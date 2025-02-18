@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/Login.css";
 
+
 function Login() {
   const navigate = useNavigate();
 
@@ -12,7 +13,7 @@ function Login() {
         <div className="logo-container">
           <img src="/logo.png" alt="TeleShow Logo" className="logo" />
         </div>
-        
+
         <input className="login-input" type="text" placeholder="Username" />
         <input className="login-input" type="password" placeholder="Password" />
 
