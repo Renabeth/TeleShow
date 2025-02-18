@@ -1,0 +1,116 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&family=Pacifico&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Applied to All Screens */
+body {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 500;
+  color: #ffffff;
+  background-image: url("https://www.transparenttextures.com/patterns/stardust.png");
+  background-size: cover;
+  background-repeat: repeat;
+  background-color: #0a0a0a;
+  animation: movingStars 50s linear infinite;
+}
+
+/* Animation */
+@keyframes movingStars {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 -100%;
+  }
+}
+
+.login-container {
+  display: flex;
+  height: 100vh;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-card {
+  width: 400px;
+  background-color: #1a1a2e;
+  padding: 2rem;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(255, 0, 128, 0.3);
+}
+
+.logo-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.logo {
+  width: 330px;
+  height: auto;
+}
+
+.login-input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 1rem;
+  background-color: #1a1a2e;
+  border: 2px solid #ff0080;
+  color: #ffffff;
+  font-size: 16px;
+  border-radius: 8px;
+  outline: none;
+  text-align: center;
+}
+
+.login-input::placeholder {
+  color: #ffffff;
+  text-align: center;
+}
+
+.login-button {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.primary {
+  background-color: #0f52ba;
+  color: white;
+  border: none;
+}
+
+.primary:hover {
+  background-color: #0d3e91;
+}
+
+.secondary {
+  background-color: #ff0080;
+  color: white;
+  border: none;
+}
+
+.secondary:hover {
+  background-color: #d60066;
+}
+
+.link {
+  background: none;
+  border: none;
+  color: #00c8ff;
+  text-decoration: underline;
+}
+
+.link:hover {
+  color: #00a6e5;
+}

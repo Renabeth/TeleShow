@@ -6,6 +6,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 
 function App() {
+  // Routing between our Screens //
   return (
     <Router>
       <Routes>
