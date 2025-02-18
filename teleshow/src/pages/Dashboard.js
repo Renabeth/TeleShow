@@ -10,7 +10,7 @@ function Dashboard() {
 
   return (
     <div className="container">
-      <h2>Welcome to the Dashboard!</h2>
+      <h2>Dashboard in Progress Stay Tuned</h2>
       <button onClick={handleLogout}>Logout</button>
     </div>
   );
