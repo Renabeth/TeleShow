@@ -1,0 +1,30 @@
+.teleshowFooter {
+    background-color: rgb(89, 91, 131);
+    text-align: center;
+    padding: 10px;
+    margin-top: 100px;
+}
+
+ul {
+    list-style: none;
+}
+
+a {
+    color: rgb(0, 0, 0);
+}
+
+/* Help from https://www.w3schools.com/css/css3_flexbox_responsive.asp */
+.contactTable {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.contact-item {
+    flex: 19%;
+}
+
+@media (max-width: 800px) {
+    .contact-item {
+        flex: 49%;
+    }
+}
