@@ -1,10 +1,41 @@
-import React from "react";
+import React, {useState} from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/Auth.css";
 
+// Help from https://www.freecodecamp.org/news/use-firebase-authentication-in-a-react-app/
+import {signInWithEmailAndPassword} from 'firebase/auth'
+import {auth, db} from '../firebase'
+
+// Help from https://firebase.google.com/docs/firestore/quickstart
+// And https://www.rowy.io/blog/firestore-timestamp
+import { collection, serverTimestamp, getDoc, getDocs, query, where, limit } from "firebase/firestore"
+
 
 function Login() {
+
   const navigate = useNavigate();
+
+  // Help from https://www.freecodecamp.org/news/use-firebase-authentication-in-a-react-app/
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+
+  const onLogin = (e) => {
+    e.preventDefault()
+    signInWithEmailAndPassword(auth, email, password)
+    .then((userCredential) => {
+      const user = userCredential.user;
+
+      navigate("/dashboard")
+      alert("Log-in successful.")
+      console.log(user)
+    })
+    .catch((error) => {
+      const errorCode = error.code
+      const errorMessage = error.message
+      console.log(errorCode, errorMessage)
+      alert(error)
+    })
+  }
 
   return (
     <div className="login-container">
@@ -15,12 +46,36 @@ function Login() {
           <img src="/logo.png" alt="TeleShow Logo" className="logo" />
         </div>
 
-        <input className="login-input" type="text" placeholder="Username" />
-        <input className="login-input" type="password" placeholder="Password" />
+        <form>
+          <div>
 
-        <button className="login-button primary" onClick={() => navigate("/dashboard")}>
+        <input 
+        className="login-input" 
+        type="text" 
+        placeholder="Email" 
+        id="email-address"
+        name="email"
+        onChange={(e)=>setEmail(e.target.value)}
+        />
+
+        <input 
+        className="login-input" 
+        type="password" 
+        placeholder="Password" 
+        id="password"
+        name="password"
+        onChange={(e)=>setPassword(e.target.value)}
+        />
+
+          </div>
+
+          <button className="login-button primary" onClick={onLogin}>Login</button>
+
+        </form>
+
+        {/*<button className="login-button primary" onClick={() => navigate("/dashboard")}>
           Login
-        </button>
+        </button>*/}
         <button className="login-button secondary" onClick={() => navigate("/signup")}>
           Sign Up
         </button>
