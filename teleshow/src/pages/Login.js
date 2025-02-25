@@ -48,7 +48,7 @@ function Login() {
 
         <form>
           <div>
-
+        {/* Help from https://www.freecodecamp.org/news/use-firebase-authentication-in-a-react-app/ */}
         <input 
         className="login-input" 
         type="text" 

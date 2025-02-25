@@ -1,0 +1,69 @@
+#dashboard {
+    background-color: rgb(50, 50, 50);
+    width: 100%;
+    margin: 0 auto;
+    padding: 15px;
+}
+
+/* Help from https://www.w3schools.com/css/css3_flexbox_responsive.asp */
+.mediaBox {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.mediaCell {
+    flex: 21%;
+}
+
+.mediaPoster {
+    max-width: 300px;
+    height: auto;
+    cursor: pointer;
+}
+
+@media (max-width: 800px) {
+    .mediaBox {
+        flex-direction: column;
+    }
+    .mediaCell {
+        flex: 84%;
+    }
+}
+
+.media {
+    width: 19%;
+}
+
+.modalPoster {
+    width: 80%;
+    height: auto;
+}
+
+#overviewBox {
+    overflow: auto;
+}
+
+.modalBox {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.modalLeft {
+    flex: 35%;
+}
+
+.modalRight {
+    flex: 65%;
+}
+
+/* Help from .login-button in Auth.css */
+.watchlist-button {
+    width: 80%;
+    padding: 12px;
+    font-size: 16px;
+    margin-top: 10px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}

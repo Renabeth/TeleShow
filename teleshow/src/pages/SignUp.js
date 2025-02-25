@@ -59,7 +59,7 @@ function Signup() {
       // And https://firebase.google.com/docs/auth/web/manage-users
       updateProfile(auth.currentUser, {
         displayName: username,
-        photoURL: "" // Placeholder; this is for the profile picture
+        photoURL: "../../Logo.png" // Placeholder; this is for the profile picture
       })
 
       alert("Signup successful! Returning to the log-in screen to log in.")
