@@ -1,0 +1,9 @@
+Resources Used:
+
+Installing bootstrap/firebase:
+https://medium.com/@Rushabh_/implementing-user-login-and-signup-with-reactjs-and-firebase-a-comprehensive-guide-7300bd33cb01
+https://console.firebase.google.com/u/0/project/teleshowfirestore/settings/general/web:OTA2M2M0NmItM2M3ZS00ZmVlLTg3ODAtNDY0Y2NkZDZkNjA0?fb_gclid=CjwKCAiAk8G9BhA0EiwAOQxmfjS8qlT_hPX_SgOvOah508cL_oSFq6yUSlBXF1SfSVzeqfLbszAaghoCTlAQAvD_BwE
+
+
+Flexbox help:
+https://www.w3schools.com/css/css3_flexbox_responsive.asp
