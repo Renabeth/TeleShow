@@ -158,8 +158,9 @@ def details():
                 media = tmdb.TV(item_id)
                 watchmode_data = watchmode_search(item_id, item_type)
             tmdb_details = media.info() #Gets detailed information from TMDB
+            cast_data = media.credits() #Get cast information
 
-            return jsonify({'tmdb': tmdb_details or [] , 'watchmode': watchmode_data or [] })
+            return jsonify({'tmdb': tmdb_details or [] , 'watchmode': watchmode_data or [], 'cast': cast_data.get('cast',[])[:12] or [] })
         except Exception as e:
             return jsonify({'error': str(e)}), 500
         
