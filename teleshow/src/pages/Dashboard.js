@@ -259,6 +259,7 @@ function Dashboard() {
   const languages = document.getElementById('languages')
   const providers = document.getElementById('providers')
 
+
   /*const showLanguages = () => {
     // Help from https://developer.themoviedb.org/reference/tv-series-details
     // 1396 Breaking Bad ID
@@ -311,6 +312,7 @@ function Dashboard() {
       })
       .catch(err => console.error(err))
   }*/
+
 
   const showDetails = async (id, status) => {
     let url = ""
@@ -392,7 +394,23 @@ function Dashboard() {
       handleOpen()
   }
 
+  /*
+  const rateBtn =  document.getElementById("rateBtn");
+  const ratingBtnOne =  document.getElementById("ratingBtnOne");
+  const ratingBtnTwo =  document.getElementById("ratingBtnTwo");
+  const ratingBtnThree =  document.getElementById("ratingBtnThree");
+  const ratingBtnFour =  document.getElementById("ratingBtnFour");
+  const ratingBtnFive =  document.getElementById("ratingBtnFive");
+
+  rateBtn.onclick = function(){
+    if(ratingBtnOne.checked) {
+      alert()
+    }
+  }
+*/
+
   return (
+
     // Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/#
     <div className="container" id="dashboard" ref={displayModeRef}>
       <h2>Dashboard in Progress Stay Tuned</h2>
@@ -406,12 +424,20 @@ function Dashboard() {
           <>
             <div className="modalBox">
               <div className="modalLeft">
-                <h1>{modalTitle || "None" }</h1>
-                <img className="modalPoster" id="modalPoster" src={modalPoster} alt="modal poster" />
+                <h1>{modalTitle || "None"}</h1>
+                <img className="modalPoster" id="modalPoster" src={modalPoster} alt="modal poster"/>
                 <button className="watchlist-button primary">
                   Add to Watchlist
                 </button>
-                <button className="watchlist-button secondary">Rate</button>
+                <button className="watchlist-button secondary" id="rateBtn">Rate</button>
+
+                <input type="radio"  name="ratingChoice" value="1" id="ratingBtnOne"/>
+                <input type="radio"  name="ratingChoice" value="2" id="ratingBtnTwo"/>
+                <input type="radio" name="ratingChoice" value="3" id="ratingBtnThree"/>
+                <input type="radio" name="ratingChoice" value="4" id="ratingBtnFour"/>
+                <input type="radio" name="ratingChoice" value="5" id="ratingBtnFive"/>
+
+
               </div>
               <div className="modalRight">
                 <h2>Overview</h2>
@@ -475,12 +501,14 @@ function Dashboard() {
         </div>
 
         {/* Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/# */}
-        <button onClick={changeDisplayMode} ref={displayModeButtonRef}>Change display mode</button>
+        <button onClick={changeDisplayMode} ref={displayModeButtonRef}>Toggle Light/Dark Mode</button>
 
         <button onClick={handleLogout} ref={logoutButtonRef}>Logout</button>
       </div>
     </div>
   );
+
+
 }
 
 export default Dashboard;
