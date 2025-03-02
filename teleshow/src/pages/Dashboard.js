@@ -1,5 +1,6 @@
 import React from "react";
 import '../styles/Dashboard.css'
+import {getFirestore, collection, addDoc} from "firebase/firestore";
 
 // Help from https://www.w3schools.com/react/showreact.asp?filename=demo2_react_conditionals_if
 //import ReactDOM from 'react-dom/client'
@@ -9,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 // Help from https://www.freecodecamp.org/news/use-firebase-authentication-in-a-react-app/
 import { useState, useEffect, useRef } from 'react'
 import { onAuthStateChanged, signOut } from "firebase/auth"
-import { auth } from '../firebase'
+import firebase, {auth, db} from '../firebase'
 
 // Help from https://www.geeksforgeeks.org/how-to-use-modal-component-in-reactjs/#
 import Modal from "../components/Modal"
@@ -166,6 +167,8 @@ function Dashboard() {
   const displayModeRef = useRef()
   const displayModeButtonRef = useRef()
   const logoutButtonRef = useRef()
+  const rateButtonRef = useRef()
+
 
   // Help from https://www.geeksforgeeks.org/how-to-use-modal-component-in-reactjs/#
   const [open, setOpen] = useState(false)
@@ -394,23 +397,27 @@ function Dashboard() {
       handleOpen()
   }
 
-  /*
-  const rateBtn =  document.getElementById("rateBtn");
-  const ratingBtnOne =  document.getElementById("ratingBtnOne");
-  const ratingBtnTwo =  document.getElementById("ratingBtnTwo");
-  const ratingBtnThree =  document.getElementById("ratingBtnThree");
-  const ratingBtnFour =  document.getElementById("ratingBtnFour");
-  const ratingBtnFive =  document.getElementById("ratingBtnFive");
+  //Detect selected rating and sends to firebase
+  //Help from https://firebase.google.com/docs/firestore/manage-data/add-data?hl=en#add_a_document
+  document.querySelectorAll('input[name="ratingChoice"]').forEach(radio => {
 
-  rateBtn.onclick = function(){
-    if(ratingBtnOne.checked) {
-      alert()
-    }
-  }
-*/
+    radio.addEventListener("change", async (event) => {
+      try {
+        const docRef = await addDoc(collection(db, "Ratings"), {
+          rating: event.target.value, // Get the selected rating value
+          timestamp: new Date() // Optional: Add timestamp
+         // need to add show
+        });
+        console.log("Document written with ID: ", docRef.id);
+      } catch (e) {
+        console.error("Error adding rating: ", e);
+        alert("Error adding rating");
+      }
+    })
 
-  return (
+    })
 
+    return (
     // Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/#
     <div className="container" id="dashboard" ref={displayModeRef}>
       <h2>Dashboard in Progress Stay Tuned</h2>
@@ -429,14 +436,32 @@ function Dashboard() {
                 <button className="watchlist-button primary">
                   Add to Watchlist
                 </button>
-                <button className="watchlist-button secondary" id="rateBtn">Rate</button>
+               <button className="watchlist-button secondary" id="rateBtn">Rate</button>
 
+                <label>
                 <input type="radio"  name="ratingChoice" value="1" id="ratingBtnOne"/>
-                <input type="radio"  name="ratingChoice" value="2" id="ratingBtnTwo"/>
-                <input type="radio" name="ratingChoice" value="3" id="ratingBtnThree"/>
-                <input type="radio" name="ratingChoice" value="4" id="ratingBtnFour"/>
-                <input type="radio" name="ratingChoice" value="5" id="ratingBtnFive"/>
+                  <img src="rating_empty_star.png" alt="rating_empty_star" width="60" height="60" />
+                </label>
 
+                <label>
+                <input  type="radio"  name="ratingChoice" value="2" id="ratingBtnTwo"/>
+                <img src="rating_empty_star.png" alt="rating_empty_star" width="60" height="60" />
+              </label>
+
+                <label>
+                <input type="radio" name="ratingChoice" value="3" id="ratingBtnThree"/>
+                <img src="rating_empty_star.png" alt="rating_empty_star" width="60" height="60" />
+              </label>
+
+                <label>
+                <input type="radio" name="ratingChoice" value="4" id="ratingBtnFour"/>
+                <img src="rating_empty_star.png" alt="rating_empty_star" width="60" height="60" />
+              </label>
+
+                <label>
+                <input type="radio" name="ratingChoice" value="5" id="ratingBtnFive"/>
+                <img src="rating_empty_star.png" alt="rating_empty_star" width="60" height="60" />
+               </label>
 
               </div>
               <div className="modalRight">
@@ -507,6 +532,7 @@ function Dashboard() {
       </div>
     </div>
   );
+
 
 
 }

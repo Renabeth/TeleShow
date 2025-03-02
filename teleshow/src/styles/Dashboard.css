@@ -67,3 +67,18 @@
     cursor: pointer;
     transition: 0.3s;
 }
+
+label.item {
+    display: inline-block;
+    position: relative;
+}
+label.item > input {
+    visibility: hidden;
+    position: absolute;
+}
+label.item > .radio-image::before {
+    content: url("http://placehold.it/50x50");
+}
+label.item > input[type="radio"]:checked + .radio-image::before {
+    content: url("http://placehold.it/75x75");
+}
