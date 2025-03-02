@@ -12,7 +12,6 @@ function SearchPage() {
   const [results, setResults] = useState({ tmdb_movie: [], tmdb_tv: [] }); // Stores search results categorized by media type
   const [loading, setLoading] = useState(false); // Tracks loading state during API requests
   const [selectedItem, setSelectedItem] = useState(null); // Stores detailed information about a selected item
-  const apiBaseUrl = process.env.REACT_APP_API_BASE_URL; // Base URL for Flask API taken from environment variables
   const image_url = "https://image.tmdb.org/t/p/w500"; // Base URL for TMDB image paths
 
   // Handles the search form submission. Makes an API request to fetch search results based on the query
@@ -22,7 +21,7 @@ function SearchPage() {
     console.log("Search triggered"); //Outputs status for debugging
     try {
       // Makes request to Flask API search endpoint with query and filter type
-      const response = await axios.get(`${apiBaseUrl}/search`, {
+      const response = await axios.get(`http://localhost:5000/search`, {
         params: { query, filter_type: filterType },
       });
 
@@ -41,7 +40,7 @@ function SearchPage() {
     console.log("Type parameter:", item.media_type); // Outputs type to console for debugging purposes
     try {
       // Makes request to Flask API details endpoint with item ID and media type
-      const response = await axios.get(`${apiBaseUrl}/search/details`, {
+      const response = await axios.get(`http://localhost:5000/search/details`, {
         params: { id: item.id, type: item.media_type },
       });
       setSelectedItem(response.data); // Store detailed item information
@@ -285,26 +284,30 @@ function SearchPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedItem.watchmode.map((service, index) => (
-                        <tr key={`${service.name}-${service.region}-${index}`}>
-                          <td>
-                            {/*Users can click on service name and be taken to link*/}
-                            <a
-                              href={service.web_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              style={{
-                                cursor: "pointer",
-                                textDecoration: "underline",
-                              }}
-                            >
-                              {service.name}
-                            </a>
-                          </td>
-                          <td>{service.price || service.type}</td>
-                          <td>{service.region}</td>
-                        </tr>
-                      ))}
+                      {selectedItem.watchmode
+                        .sort((a, b) => a.region?.localeCompare(b.region))
+                        .map((service, index) => (
+                          <tr
+                            key={`${service.name}-${service.region}-${index}`}
+                          >
+                            <td>
+                              {/*Users can click on service name and be taken to link*/}
+                              <a
+                                href={service.web_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                  cursor: "pointer",
+                                  textDecoration: "underline",
+                                }}
+                              >
+                                {service.name}
+                              </a>
+                            </td>
+                            <td>{service.price || service.type}</td>
+                            <td>{service.region}</td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
                 </div>

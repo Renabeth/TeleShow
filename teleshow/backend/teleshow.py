@@ -44,7 +44,7 @@ def watchmode_search(tmdb_id, type): #Function takes tmdb id and type (movie or 
 
                 if response.status_code == 200:
                     sources = sources_response.json()
-                    return sources #If all is successful, dictionary of sources are returned
+                    return sorted(sources, key=lambda x: x.get('region', '')) #If all is successful, dictionary of sources are returned
                 else:
                     print(f"Watchmode source API Error: {sources_response.status_code} - {sources_response.text}")
                     return []
