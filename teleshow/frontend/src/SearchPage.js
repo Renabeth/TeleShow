@@ -5,28 +5,59 @@ import React, { useState } from "react";
 import axios from "axios";
 import { Modal, Button, Spinner, Form, InputGroup } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
+import LZString from "lz-string";
 
 function SearchPage() {
   const [query, setQuery] = useState(""); // Stores the search query input by user
-  const [filterType, setFilterType] = useState("all"); //Filters output
+  const [filter_type, setFilterType] = useState("all"); //Filters output
   const [results, setResults] = useState({ tmdb_movie: [], tmdb_tv: [] }); // Stores search results categorized by media type
   const [loading, setLoading] = useState(false); // Tracks loading state during API requests
   const [selectedItem, setSelectedItem] = useState(null); // Stores detailed information about a selected item
   const image_url = "https://image.tmdb.org/t/p/w500"; // Base URL for TMDB image paths
+  const SEARCH_TTL = 24 * 60 * 60 * 1000; //Sets the localStorage variables TTL to 24hours
 
   // Handles the search form submission. Makes an API request to fetch search results based on the query
   const handleSearch = async (e) => {
     e.preventDefault();
     setLoading(true);
-    console.log("Search triggered"); //Outputs status for debugging
+    console.log("Search triggered"); //Debugging (REMOVE FROM FINAL)
+    // Sets cache key for using filter filter type and normalized query
+    const SEARCH_CACHE_KEY = (query, filter_type) =>
+      `search-${filter_type}-${query.toLowerCase().trim()}`;
+    const cacheKey = SEARCH_CACHE_KEY(query, filter_type);
+    const cache = localStorage.getItem(cacheKey);
+
+    if (cache) {
+      //If in the cache, data is decompressed and set to results
+      const { compressed, data, timestamp } = JSON.parse(cache);
+      if (Date.now() - timestamp < SEARCH_TTL) {
+        //Check if whats in cache isn't past its time-to-live
+        const decompressed = compressed
+          ? JSON.parse(LZString.decompress(data))
+          : JSON.parse(data);
+        setResults(decompressed);
+        setLoading(false);
+        return;
+      } else {
+        localStorage.removeItem(cacheKey);
+      }
+    }
     try {
       // Makes request to Flask API search endpoint with query and filter type
       const response = await axios.get(`http://localhost:5000/search`, {
-        params: { query, filter_type: filterType },
+        params: { query, filter_type },
       });
-
+      //Sets response to cache to limit API calls. Compresses for storage optimization
+      localStorage.setItem(
+        cacheKey,
+        JSON.stringify({
+          compressed: true,
+          data: LZString.compress(JSON.stringify(response.data)),
+          timestamp: Date.now(),
+        })
+      );
       setResults(response.data); // Update results state with API response
-      console.log(response.data);
+      console.log(response.data); //Debugging (REMOVE FROM FINAL)
     } catch (error) {
       console.error("Error fetching data: ", error);
     }
@@ -37,14 +68,42 @@ function SearchPage() {
 
   const handleResultClick = async (item) => {
     setLoading(true);
-    console.log("Type parameter:", item.media_type); // Outputs type to console for debugging purposes
+    console.log("Type parameter:", item.media_type); //Debugging (REMOVE FROM FINAL)
+    const DETAILS_CACHE_KEY = (id, type) => `details-${type}-${id}`;
+    const cacheKey = DETAILS_CACHE_KEY(item.id, item.media_type);
+    const cache = localStorage.getItem(cacheKey);
+
+    if (cache) {
+      const { compressed, data, timestamp } = JSON.parse(cache);
+      if (Date.now() - timestamp < SEARCH_TTL) {
+        const decompressed = compressed
+          ? JSON.parse(LZString.decompress(data))
+          : JSON.parse(data);
+        setSelectedItem(decompressed);
+        setLoading(false);
+        return;
+      } else {
+        localStorage.removeItem(cacheKey);
+      }
+    }
+
     try {
       // Makes request to Flask API details endpoint with item ID and media type
       const response = await axios.get(`http://localhost:5000/search/details`, {
         params: { id: item.id, type: item.media_type },
       });
+
+      localStorage.setItem(
+        cacheKey,
+        JSON.stringify({
+          compressed: true,
+          data: LZString.compress(JSON.stringify(response.data)),
+          timestamp: Date.now(),
+        })
+      );
+
       setSelectedItem(response.data); // Store detailed item information
-      console.log("Selected Item Details:", response.data);
+      console.log("Selected Item Details:", response.data); //Debugging (REMOVE FROM FINAL)
     } catch (error) {
       console.error("error fetching details: ", error);
     }
@@ -54,6 +113,19 @@ function SearchPage() {
   // Clears the selected item state. Used to close the details modal
   const clearSelection = () => {
     setSelectedItem(null);
+  };
+  //Clears the localStorage cache and sessionStorage cache (sessionStorage is not used yet by search)
+  // May cause issues with user auth if not used carefully
+  const clearCaches = () => {
+    const userConfirmed = window.confirm(
+      //User must confirm cache clearing
+      "Are you sure you want to erase all cached data? This action cannot be undone."
+    );
+    if (userConfirmed) {
+      sessionStorage.clear();
+      localStorage.clear();
+      setResults({ tmdb_movie: [], tmdb_tv: [] }); // Call your clearCaches function if the user confirms
+    }
   };
 
   return (
@@ -67,7 +139,7 @@ function SearchPage() {
           placeholder="Search for Movies or TV Shows"
         />
         <Form.Select
-          value={filterType}
+          value={filter_type}
           onChange={(e) => setFilterType(e.target.value)}
           placeholder="Search for Movies or TV shows"
         >
@@ -77,6 +149,9 @@ function SearchPage() {
         </Form.Select>
         <Button variant="primary" type="submit" onClick={handleSearch}>
           Search
+        </Button>
+        <Button variant="warning" onClick={clearCaches}>
+          Refresh All Data
         </Button>
       </InputGroup>
 
