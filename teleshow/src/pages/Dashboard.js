@@ -1,8 +1,7 @@
 import React from "react";
 import '../styles/Dashboard.css'
 
-// Help from https://www.w3schools.com/react/showreact.asp?filename=demo2_react_conditionals_if
-//import ReactDOM from 'react-dom/client'
+// Credit to JustWatch as TMDB API watch providers data source
 
 import { useNavigate } from "react-router-dom";
 
@@ -11,8 +10,21 @@ import { useState, useEffect, useRef } from 'react'
 import { onAuthStateChanged, signOut } from "firebase/auth"
 import { auth } from '../firebase'
 
-// Help from https://www.geeksforgeeks.org/how-to-use-modal-component-in-reactjs/#
-import Modal from "../components/Modal"
+// Help from https://react-bootstrap.netlify.app/docs/components/modal/
+import Modal from 'react-bootstrap/Modal'
+
+// Help from https://www.freecodecamp.org/news/how-to-use-the-firebase-database-in-react/
+import { collection, addDoc, getDocs } from "firebase/firestore";
+import { db } from "../firebase";
+
+// Help from https://firebase.google.com/docs/firestore/query-data/queries
+import { query, where } from "firebase/firestore";
+
+// Help from https://www.rowy.io/blog/firestore-timestamp
+import { serverTimestamp } from 'firebase/firestore'
+
+// Help from https://dev.to/rajatamil/firebase-v9-firestore-delete-document-using-deletedoc-5bjh
+import { doc, deleteDoc } from "firebase/firestore";
 
 function Dashboard() {
 
@@ -73,7 +85,7 @@ function Dashboard() {
       await fetch(movieUrl, options)
         .then(res => res.json())
         .then(json => {
-          console.log(json)
+          //console.log(json)
           let movieLength = 0;
           if(json.results.length > 4) {
             movieLength = 4
@@ -115,6 +127,10 @@ function Dashboard() {
         })
         .catch(err => console.error(err))
   }
+
+  const [userID, setUserID] = useState("")
+  const [currentMediaID, setCurrentMediaID] = useState(0)
+  const [currentMediaType, setCurrentMediaType] = useState("")
 
   const [displayName, setDisplayName] = useState("")
 
@@ -167,22 +183,13 @@ function Dashboard() {
   const displayModeButtonRef = useRef()
   const logoutButtonRef = useRef()
 
-  // Help from https://www.geeksforgeeks.org/how-to-use-modal-component-in-reactjs/#
-  const [open, setOpen] = useState(false)
-
-  const handleClose = () => {
-    setOpen(false)
-  }
-
-  const handleOpen = () => {
-    setOpen(true)
-  }
-
-  // Help from https://www.geeksforgeeks.org/how-to-keep-a-mutable-variable-in-react-useref-hook/
-
-  // Help from https://www.w3schools.com/react/react_render.asp
   
-  // Help from https://stackoverflow.com/questions/76990183/how-to-display-the-current-user-display-name-in-firebase-using-react
+  // Help from https://react-bootstrap.netlify.app/docs/components/modal/
+  const [show, setShow] = useState(false);
+  const handleClose = () => setShow(false);
+  const handleShow = () => setShow(true);
+
+  const [watchlistDuplicate, setWatchListDuplicate] = useState(true);
   
   let authFlag = true // Help from https://stackoverflow.com/questions/49873223/why-does-my-firebase-onauthstatechanged-trigger-multiple-times-react-native
 
@@ -194,9 +201,10 @@ function Dashboard() {
           const uid = user.uid;
           //console.log(user)
           //console.log(user.displayName)
-          //console.log("uid", uid)
+          console.log("uid", uid)
           console.log("You appear to be signed in.")
           setDisplayName(user.displayName)
+          setUserID(uid)
         } else {
           console.log("You appear to be signed out.")
         }
@@ -215,6 +223,10 @@ function Dashboard() {
   };
 
   const navigate = useNavigate();
+
+  const goToWatchlist = async () => {
+    navigate("/watchlist")
+  }
 
   const handleLogout = () => {
 
@@ -256,61 +268,7 @@ function Dashboard() {
     }
   }
 
-  const languages = document.getElementById('languages')
-  const providers = document.getElementById('providers')
-
-  /*const showLanguages = () => {
-    // Help from https://developer.themoviedb.org/reference/tv-series-details
-    // 1396 Breaking Bad ID
-    // 67676 Saiki K ID
-    const url = 'https://api.themoviedb.org/3/tv/1396?language=en-US'
-
-    fetch(url, options)
-      .then(res => res.json())
-      .then(json => {
-        console.log(json)
-        let languagesLength = json["spoken_languages"].length
-        let languagesContent = `<h3>Spoken Languages</h3> <ul>`
-        for(let i = 0; i < languagesLength; i++) {
-          languagesContent += "<li>" + json.spoken_languages[i].english_name + " / " + json.spoken_languages[i].name + "</li>"
-        }
-        languagesContent += "</ul>"
-
-        console.log(languagesContent)
-      })
-      .catch(err => console.error(err))
-  }
-
-  const showProviders = () => {
-    // Help from https://developer.themoviedb.org/reference/tv-series-watch-providers
-    const url = 'https://api.themoviedb.org/3/tv/1396/watch/providers'
-
     // Help from https://www.freecodecamp.org/news/javascript-fetch-api-for-beginners/
-
-    fetch(url, options)
-      .then(res => res.json())
-      .then(json => {
-        let buyLength = json.results.US.buy.length
-        let flatrateLength = json.results.US.flatrate.length 
-        console.log(json.results.US.buy)
-        console.log(json.results.US.flatrate)
-
-        let providersContent = `<h3>Buy</h3> <ul>`
-        for (let i = 0; i < buyLength; i++) {
-          providersContent += "<li>" + json.results.US.buy[i].provider_name + "</li>"
-        }
-        providersContent += "</ul>"
-
-        providersContent += `<h3>Flatrate</h3> <ul>`
-        for (let i = 0; i < flatrateLength; i++) {
-          providersContent += "<li>" + json.results.US.flatrate[i].provider_name + "</li>"
-        }
-        providersContent += "</ul>"
-
-        console.log(providersContent)
-      })
-      .catch(err => console.error(err))
-  }*/
 
   const showDetails = async (id, status) => {
     let url = ""
@@ -328,6 +286,8 @@ function Dashboard() {
       // Help from https://developer.themoviedb.org/reference/movie-watch-providers
       providerUrl = `https://api.themoviedb.org/3/movie/${id}/watch/providers`
     }
+
+    let mediaID = 0;
     
     await fetch(url, options)
       .then(res => res.json())
@@ -340,6 +300,8 @@ function Dashboard() {
         }
         setModalOverview(json.overview)
         setModalPoster(imgPath + json.poster_path)
+
+        mediaID = json.id;
 
         // Help from https://www.w3schools.com/jsref/jsref_join.asp
         let languageArray = []
@@ -385,11 +347,105 @@ function Dashboard() {
           } else {
             setModalProvidersRent("")
           }
+
         })
         .catch((err) => console.error(err))
 
+
+      setCurrentMediaType(status)
+
+      setCurrentMediaID(mediaID)
+
+
+      // Help from https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
+      const watchlistRef = collection(db, "Watchlist");
+      const checkForDuplicates = query(watchlistRef, where('user_id', '==', userID), where('media_id', '==', mediaID));
+      const querySnapshot = await getDocs(checkForDuplicates);
+      let duplicates = 0; // This will check for duplicate userID / media ID combinations
+      querySnapshot.forEach((doc) => {
+        duplicates++;
+      })
+      //console.log(currentMediaID)
+      console.log(duplicates)
+      if (duplicates > 0) {
+        setWatchListDuplicate(true)
+      } else {
+        setWatchListDuplicate(false)
+      }
+
+
+
       // Help from https://www.geeksforgeeks.org/how-to-use-modal-component-in-reactjs/#
-      handleOpen()
+      // And https://react-bootstrap.netlify.app/docs/components/modal/
+      handleShow()
+  }
+
+  // Help from https://www.freecodecamp.org/news/how-to-use-the-firebase-database-in-react/
+  // And https://firebase.google.com/docs/firestore/query-data/queries#node.js_2
+  // Adding media to watchlist
+  const addToWatchlist = async (e) => {
+    e.preventDefault();
+
+    
+    // Help from https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
+    const watchlistRef = collection(db, "Watchlist");
+    const checkForDuplicates = query(watchlistRef, where('user_id', '==', userID), where('media_id', '==', currentMediaID));
+    const querySnapshot = await getDocs(checkForDuplicates);
+    let duplicates = 0; // This will check for duplicate userID / media ID combinations
+    querySnapshot.forEach((doc) => {
+      duplicates++;
+    })
+    if (duplicates > 0) {
+      alert("You already have this in your watchlist.")
+    } else {
+      try {
+        const docRef = await addDoc(collection(db, "Watchlist"), {
+          user_id: userID,
+          title: modalTitle,
+          status: currentMediaType,
+          media_id: currentMediaID,
+
+          // Help from https://www.rowy.io/blog/firestore-timestamp
+          date_added: serverTimestamp(),
+
+          poster_path: modalPoster,
+        });
+        console.log("Wrote document with ID: ", docRef.id);
+        alert("Item added to watchlist successfully.");
+        setWatchListDuplicate(true)
+      } catch (e) {
+        console.error("Error adding document: ", e);
+      }
+    }
+  }
+
+  const removeFromWatchlist = async (e) => {
+    e.preventDefault();
+
+    let idToDelete = 0;
+
+    // Help from https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
+    const watchlistRef = collection(db, "Watchlist");
+    const q = query(watchlistRef, where('user_id', '==', userID), where('media_id', '==', currentMediaID));
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach((doc) => {
+      console.log(doc.data())
+      console.log(doc.data().title);
+      console.log(doc.id)
+      idToDelete = doc.id
+    })
+
+    // Help from https://dev.to/rajatamil/firebase-v9-firestore-delete-document-using-deletedoc-5bjh
+    await deleteDoc(doc(db, "Watchlist", idToDelete))
+    .then(() => {
+      console.log("Document deleted successfully.")
+      alert("Item removed from watchlist successfully.");
+      setWatchListDuplicate(false)
+    })
+    .catch(error => {
+      console.log(error);
+      alert(error);
+    })
   }
 
   return (
@@ -399,18 +455,41 @@ function Dashboard() {
       <div>
         {/* Help from https://stackoverflow.com/questions/76990183/how-to-display-the-current-user-display-name-in-firebase-using-react */}
         <p>Welcome, {displayName || "none"}!</p>
+        <p>User ID: {userID || "none"}</p>
+        
+        <button onClick={goToWatchlist}>Go to Watchlist</button>
 
 
-        {/* Help from https://www.geeksforgeeks.org/how-to-use-modal-component-in-reactjs/# */}
-        <Modal isOpen={open} onClose={handleClose}>
-          <>
+
+        {/* Help from https://react-bootstrap.netlify.app/docs/components/modal/ */}
+        {/* And https://github.com/react-bootstrap/react-bootstrap/issues/3794 */}
+        {/* And https://www.geeksforgeeks.org/how-to-use-modal-component-in-reactjs/# */}
+        <Modal show={show} onHide={handleClose} dialogClassName="modal-85w" backdrop="static" keyboard={false}>
+
+
+          {/* Help from https://stackoverflow.com/questions/76810663/react-modals-or-dialogs-doesnt-inherit-the-dark-mode-styles-tailwind */}
+          {/* And https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/# */}
+          <Modal.Header closeButton className={`${darkMode ? 'head-dark' : 'head-light'}`}>
+            <Modal.Title>
+              { modalTitle || "None" }
+            </Modal.Title>
+          </Modal.Header>
+
+          {/* Help from https://stackoverflow.com/questions/76810663/react-modals-or-dialogs-doesnt-inherit-the-dark-mode-styles-tailwind */}
+          {/* And https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/# */}
+          <Modal.Body className={`modalBody ${darkMode ? 'body-dark' : 'body-light'}`}>
             <div className="modalBox">
               <div className="modalLeft">
-                <h1>{modalTitle || "None" }</h1>
                 <img className="modalPoster" id="modalPoster" src={modalPoster} alt="modal poster" />
-                <button className="watchlist-button primary">
-                  Add to Watchlist
-                </button>
+                { !watchlistDuplicate ? 
+                  <button className="watchlist-button primary" onClick={addToWatchlist}>
+                    Add to Watchlist
+                  </button>
+                  : 
+                  <button className="watchlist-button primary" onClick={removeFromWatchlist}>
+                    Remove from Watchlist
+                  </button>
+                }
                 <button className="watchlist-button secondary">Rate</button>
               </div>
               <div className="modalRight">
@@ -419,37 +498,42 @@ function Dashboard() {
                   { modalOverview || "None" }
                 </div>
                 <h3>Spoken Languages</h3>
-                {modalLanguages || "None"}
+                  { modalLanguages || "None" }
                 <h3>Watch Providers</h3>
                 <h4>Buy</h4>
-                {modalProvidersBuy || "None"}
+                  { modalProvidersBuy || "None" }
                 <h4>Flatrate</h4>
-                {modalProvidersFlatrate || "None"}
+                  { modalProvidersFlatrate || "None" }
                 <h4>Rent</h4>
-                {modalProvidersRent || "None"}
+                  { modalProvidersRent || "None" }
               </div>
             </div>
-          </>
+          </Modal.Body>
         </Modal>
+
+
+
+
+        <h1 style={{textAlign: "center"}}>Recommendations</h1><br />
 
         {/* Help from https://www.w3schools.com/css/tryit.asp?filename=trycss3_flexbox_responsive2 */}
         <h4>Recommended TV (Based on Breaking Bad):</h4>
         <div className="mediaBox">
           <div id="tvCell1" className="mediaCell">
             {/* Help from https://stackoverflow.com/questions/29810914/react-js-onclick-cant-pass-value-to-method and https://upmostly.com/tutorials/pass-a-parameter-through-onclick-in-react */}
-            <img className="mediaPoster" src={tvImg1} alt="media" onClick={() => showDetails(tvId1, "tv")} />
+            <img className="mediaPoster" src={tvImg1} alt="media" onClick={async () => await showDetails(tvId1, "tv")} />
             <p>{tvTitle1}</p>
           </div>
           <div id="tvCell2" className="mediaCell">
-            <img className="mediaPoster" src={tvImg2} alt="media" onClick={() => showDetails(tvId2, "tv")} />
+            <img className="mediaPoster" src={tvImg2} alt="media" onClick={async () => await showDetails(tvId2, "tv")} />
             <p>{tvTitle2}</p>
           </div>
           <div id="tvCell3" className="mediaCell">
-            <img className="mediaPoster" src={tvImg3} alt="media" onClick={() => showDetails(tvId3, "tv")} />
+            <img className="mediaPoster" src={tvImg3} alt="media" onClick={async () => await showDetails(tvId3, "tv")} />
             <p>{tvTitle3}</p>
           </div>
           <div id="tvCell4" className="mediaCell">
-            <img className="mediaPoster" src={tvImg4} alt="media" onClick={() => showDetails(tvId4, "tv")} />
+            <img className="mediaPoster" src={tvImg4} alt="media" onClick={async () => await showDetails(tvId4, "tv")} />
             <p>{tvTitle4}</p>
           </div>
         </div>
@@ -457,19 +541,19 @@ function Dashboard() {
         <h4>Recommended Movies (Based on Sonic 3):</h4>
         <div className="mediaBox">
           <div id="movieCell1" className="mediaCell">
-            <img className="mediaPoster" src={movieImg1} alt="media" onClick={() => showDetails(movieId1, "movie")} />
+            <img className="mediaPoster" src={movieImg1} alt="media" onClick={async () => await showDetails(movieId1, "movie")} />
             <p>{movieTitle1}</p>
           </div>
           <div id="movieCell2" className="mediaCell">
-            <img className="mediaPoster" src={movieImg2} alt="media" onClick={() => showDetails(movieId2, "movie")} />
+            <img className="mediaPoster" src={movieImg2} alt="media" onClick={async () => await showDetails(movieId2, "movie")} />
             <p>{movieTitle2}</p>
           </div>
           <div id="movieCell3" className="mediaCell">
-            <img className="mediaPoster" src={movieImg3} alt="media" onClick={() => showDetails(movieId3, "movie")} />
+            <img className="mediaPoster" src={movieImg3} alt="media" onClick={async () => await showDetails(movieId3, "movie")} />
             <p>{movieTitle3}</p>
           </div>
           <div id="movieCell4" className="mediaCell">
-            <img className="mediaPoster" src={movieImg4} alt="media" onClick={() => showDetails(movieId4, "movie")} />
+            <img className="mediaPoster" src={movieImg4} alt="media" onClick={async () => await showDetails(movieId4, "movie")} />
             <p>{movieTitle4}</p>
           </div>
         </div>
@@ -484,3 +568,14 @@ function Dashboard() {
 }
 
 export default Dashboard;
+
+/*
+
+Other Resources used:
+- https://www.freecodecamp.org/news/javascript-fetch-api-for-beginners/
+- https://www.geeksforgeeks.org/how-to-keep-a-mutable-variable-in-react-useref-hook/
+- https://www.w3schools.com/react/react_render.asp
+- https://stackoverflow.com/questions/76990183/how-to-display-the-current-user-display-name-in-firebase-using-react
+- https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
+
+*/
