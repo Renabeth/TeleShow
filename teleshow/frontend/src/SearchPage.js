@@ -176,26 +176,49 @@ function SearchPage() {
       {results.tmdb_movie.length > 0 && (
         <div className="container mt-4">
           <h2>Movie Results</h2>
-          <div className="row">
+          <div className="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
             {results.tmdb_movie?.map((movie) => (
               // Individual Movie card, clickable to show details
               <div
-                className="col-md-4 mb-4"
+                className="col"
                 key={movie.id}
                 onClick={() => handleResultClick(movie)}
+                style={{
+                  cursor: "pointer",
+                  transition: "transform 0.2s ease", // Smooth transition
+                  transform: "scale(1)",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.transform = "scale(1.02)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.transform = "scale(1)")
+                }
               >
-                <div className="card h-100">
+                <div className="card h-100 shadow-sm border-0">
                   {movie.poster_url && (
                     // Movie poster
                     <img
                       src={movie.poster_url}
-                      className="card-img-top"
+                      className="card-img-top object-fit-cover"
                       alt={movie.title}
                     />
                   )}
                   {/* Movie Card Quick Details */}
                   <div className="card-body">
-                    <h5 className="card-title">{movie.title}</h5>
+                    <div className="d-flex justify-content-between align-items-start">
+                      <h5 className="card-title mb-3">
+                        {movie.title}
+                        <div className="text-muted fs-6">
+                          {movie.release_date?.substring(0, 4)}
+                          {/*Takes out just the year */}
+                        </div>
+                      </h5>
+                      <span className="badge bg-primary rounded-pill">
+                        {"\u2605"} {Math.round(movie.vote_average)}{" "}
+                        {/*Unicode for star symbol*/}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -208,26 +231,48 @@ function SearchPage() {
       {results.tmdb_tv.length > 0 && (
         <div className="container mt-4">
           <h2>Tv Results</h2>
-          <div className="row">
+          <div className="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
             {results.tmdb_tv?.map((tv) => (
               // Individual TV show card, clickable to show details
               <div
-                className="col-md-4 mb-4"
+                className="col"
                 key={tv.id}
                 onClick={() => handleResultClick(tv)}
+                style={{
+                  cursor: "pointer",
+                  transition: "transform 0.2s ease",
+                  transform: "scale(1)",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.transform = "scale(1.02)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.transform = "scale(1)")
+                }
               >
-                <div className="card h-100">
+                <div className="card h-100 shadow-sm border-0">
                   {tv.poster_url && (
                     // TV poster
                     <img
                       src={tv.poster_url}
-                      className="card-img-top"
+                      className="card-img-top object-fit-cover"
                       alt={tv.title}
                     />
                   )}
                   {/* TV Shows Card Quick Details */}
                   <div className="card-body">
-                    <h5 className="card-title">{tv.name}</h5>
+                    <div className="d-flex justify-content-between align-items-start">
+                      <h5 className="card-title mb-3">
+                        {tv.name}
+                        <div className="text-muted fs-6">
+                          {tv.first_air_date?.substring(0, 4)}
+                        </div>
+                      </h5>
+                      <span className="badge bg-primary rounded-pill">
+                        {"\u2605"} {Math.round(tv.vote_average)}{" "}
+                        {/*Unicode for star symbol*/}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -318,7 +363,7 @@ function SearchPage() {
                                 </figcaption>
                               </figure>
                             ) : (
-                              <div
+                              <div //No Cast Information formatted placeholders
                                 style={{
                                   width: "40px",
                                   height: "40px",
@@ -370,11 +415,11 @@ function SearchPage() {
                               <a
                                 href={service.web_url}
                                 target="_blank"
-                                rel="noreferrer"
+                                rel="nooperner noreferrer"
                                 style={{
                                   cursor: "pointer",
-                                  textDecoration: "underline",
                                 }}
+                                className="btn btm-sm btn-outline-primary"
                               >
                                 {service.name}
                               </a>
@@ -387,7 +432,9 @@ function SearchPage() {
                   </table>
                 </div>
               ) : (
-                <p>no streaming information is currently available</p>
+                <div className="alert alert-secondary">
+                  <p>no streaming information is currently available</p>
+                </div>
               )}
             </div>
           </Modal.Body>
