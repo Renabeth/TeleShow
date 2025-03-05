@@ -41,7 +41,7 @@
 }
 
 .watchlistLight {
-    background-color: white;
+    background-color: rgb(204, 204, 204);
     color: black;
 }
 
@@ -85,4 +85,13 @@
     flex: 79%;
     max-width: 79%;
     padding-left: 7.5px;
+}
+
+@media (max-width: 800px) {
+    .watchlistPoster {
+        flex: 30%;
+    }
+    .watchlistContent {
+        flex: 69%;
+    }
 }

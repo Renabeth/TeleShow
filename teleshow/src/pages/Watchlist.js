@@ -49,9 +49,6 @@ function Watchlist() {
     // Help from https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/
     const [isLightMode, setIsLightMode] = useState(false)
 
-    // Help from https://www.geeksforgeeks.org/how-to-change-button-text-on-click-in-reactjs/#
-    const [modeToggleButtonText, setModeToggleButtonText] = useState("Switch to Light Mode")
-
     // Help from https://www.rowy.io/blog/firestore-react-query
     const [loading, setLoading] = useState(false)
     const [watchlist, setWatchlist] = useState([])
@@ -59,10 +56,6 @@ function Watchlist() {
     // Help from https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/
     const toggleLightMode = () => {
         setIsLightMode((prevMode) => !prevMode);
-
-        // Help from https://www.geeksforgeeks.org/how-to-change-button-text-on-click-in-reactjs/#
-        setModeToggleButtonText( isLightMode ? "Switch to Light Mode" : "Switch to Dark Mode" )
-
     }
 
     // Help from https://developer.themoviedb.org/docs/image-basics
@@ -74,10 +67,12 @@ function Watchlist() {
     const handleShow = () => setShow(true);
 
     // Help from https://www.rowy.io/blog/firestore-react-query
-    const queryWatchlist = async () => {
-        const watchlistRef = await getDocs(collection(db, "Watchlist"))
+    const queryWatchlist = async (uid) => {
+        const watchlistRef = collection(db, "Watchlist")
+        const q = query(watchlistRef, where('user_id', '==', uid))
+        const querySnapshot = await getDocs(q)
         const res = []
-        watchlistRef.forEach(item => {
+        querySnapshot.forEach(item => {
             //console.log(item.data())
             res.push({
                 id: item.id,
@@ -87,9 +82,9 @@ function Watchlist() {
         return res
     }
 
-    const fetchWatchlist = async () => {
+    const fetchWatchlist = async (uid) => {
         setLoading(true)
-        const res = await queryWatchlist()
+        const res = await queryWatchlist(uid)
         setWatchlist([...res])
         setLoading(false)
     }
@@ -102,6 +97,9 @@ function Watchlist() {
                 console.log("uid", uid)
                 setLoggedIn(true)
                 setUserID(uid)
+
+                // Help from https://stackoverflow.com/questions/68260152/firebase-auth-currentuser-is-null-at-page-load/68260898#68260898
+                fetchWatchlist(uid)
             } else {
                 console.log("You are currently logged out.");
                 setLoggedIn(false)
@@ -110,7 +108,7 @@ function Watchlist() {
         })
 
         // Help from https://www.rowy.io/blog/firestore-react-query
-        fetchWatchlist()
+        //fetchWatchlist()
 
         // Help from https://stackoverflow.com/questions/53070970/infinite-loop-in-useeffect
     }, [])
@@ -131,7 +129,7 @@ function Watchlist() {
         .then(() => {
             console.log("Document deleted successfully.")
             alert("Item removed from watchlist successfully.");
-            fetchWatchlist() // Resets the watchlist display to reflect the deleted item - WA
+            fetchWatchlist(userID) // Resets the watchlist display to reflect the deleted item - WA
         })
         .catch(error => {
             console.log(error);
@@ -294,7 +292,9 @@ function Watchlist() {
                     
                     {/* Help from https://react-bootstrap.netlify.app/docs/components/buttons/ */}
                     {/* And https://www.geeksforgeeks.org/how-to-change-button-text-on-click-in-reactjs/# */}
-                    <Button variant={`${isLightMode ? "dark" : "light" }`} onClick={toggleLightMode}>{ modeToggleButtonText }</Button>
+                    <Button variant={`${isLightMode ? "dark" : "light" }`} onClick={toggleLightMode}>
+                        { `Switch to ${isLightMode ? "Dark" : "Light" } Mode` }
+                    </Button>
                     <br /><br />
                     <Button variant="primary" onClick={returnToDashboard}>
                         Return to Dashboard
@@ -322,6 +322,7 @@ function Watchlist() {
 
 
                                     <Button variant="primary" onClick={() => displayInformation(item.media_id, item.status)}>View Information</Button><br />
+                                    <Button variant="success">Write a Review</Button><br />
                                     <Button variant="danger" onClick={() => removeFromWatchlist(item.media_id)}>Remove from Watchlist</Button>
                                 </div>
                             </div>
@@ -335,3 +336,15 @@ function Watchlist() {
 }
 
 export default Watchlist;
+
+/* 
+
+Other Resources Used:
+- https://www.geeksforgeeks.org/how-to-change-button-text-on-click-in-reactjs/#
+- https://stackoverflow.com/questions/70636194/cant-make-firestore-to-get-only-docs-from-logged-user-id 
+- https://stackoverflow.com/questions/72962388/fetched-firestore-data-not-displaying-on-first-page-load-with-react-useeffect 
+- https://stackoverflow.com/questions/66752231/firebase-reactjs-useeffect-typeerror-cannot-read-property-uid-of-null 
+- https://stackoverflow.com/questions/72962388/fetched-firestore-data-not-displaying-on-first-page-load-with-react-useeffect 
+- https://stackoverflow.com/questions/71256127/how-can-i-retrieve-a-user-id-from-firestore-via-flask-backend-react-frontend/72785157 
+
+*/
