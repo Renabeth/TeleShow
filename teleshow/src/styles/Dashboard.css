@@ -82,3 +82,25 @@ label.item > .radio-image::before {
 label.item > input[type="radio"]:checked + .radio-image::before {
     content: url("http://placehold.it/75x75");
 }
+
+.wrapper{
+    display:flex;
+    flex-direction:column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.star-style{
+  height: 40px;
+    width: 40px;
+    padding-right:2px;
+}
+
+.star-value{
+    margin-top:5px;
+    font-size:30px;
+    font-weight:600;
+    text-align: center;
+}

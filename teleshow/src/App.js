@@ -10,7 +10,9 @@ import Dashboard from "./pages/Dashboard";
 function App() {
   // Routing between our Screens //
   return (
+
     <Router>
+
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
@@ -18,6 +20,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </Router>
+
   );
 }
 

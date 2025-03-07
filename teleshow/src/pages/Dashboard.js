@@ -14,6 +14,7 @@ import firebase, {auth, db} from '../firebase'
 
 // Help from https://www.geeksforgeeks.org/how-to-use-modal-component-in-reactjs/#
 import Modal from "../components/Modal"
+import StarRate from "../components/starRate";
 
 function Dashboard() {
 
@@ -399,13 +400,13 @@ function Dashboard() {
 
   //Detect selected rating and sends to firebase
   //Help from https://firebase.google.com/docs/firestore/manage-data/add-data?hl=en#add_a_document
-  document.querySelectorAll('input[name="ratingChoice"]').forEach(radio => {
+ /* document.querySelectorAll('input[name="ratingChoice"]').forEach(radio => {
 
     radio.addEventListener("change", async (event) => {
       try {
-        const docRef = await addDoc(collection(db, "Ratings"), {
+        const docRef = await addDoc(collection(db, "stars"), {
           rating: event.target.value, // Get the selected rating value
-          timestamp: new Date() // Optional: Add timestamp
+          timestamp: new Date()
          // need to add show
         });
         console.log("Document written with ID: ", docRef.id);
@@ -416,6 +417,8 @@ function Dashboard() {
     })
 
     })
+*/
+
 
     return (
     // Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/#
@@ -427,6 +430,7 @@ function Dashboard() {
 
 
         {/* Help from https://www.geeksforgeeks.org/how-to-use-modal-component-in-reactjs/# */}
+        {/* Help from https://www.youtube.com/watch?v=dsRJTxieD4U and https://www.youtube.com/watch?v=9GqhvxHNFag for ratings GUI */}
         <Modal isOpen={open} onClose={handleClose}>
           <>
             <div className="modalBox">
@@ -437,31 +441,8 @@ function Dashboard() {
                   Add to Watchlist
                 </button>
                <button className="watchlist-button secondary" id="rateBtn">Rate</button>
+                <StarRate></StarRate>
 
-                <label>
-                <input type="radio"  name="ratingChoice" value="1" id="ratingBtnOne"/>
-                  <img src="rating_empty_star.png" alt="rating_empty_star" width="60" height="60" />
-                </label>
-
-                <label>
-                <input  type="radio"  name="ratingChoice" value="2" id="ratingBtnTwo"/>
-                <img src="rating_empty_star.png" alt="rating_empty_star" width="60" height="60" />
-              </label>
-
-                <label>
-                <input type="radio" name="ratingChoice" value="3" id="ratingBtnThree"/>
-                <img src="rating_empty_star.png" alt="rating_empty_star" width="60" height="60" />
-              </label>
-
-                <label>
-                <input type="radio" name="ratingChoice" value="4" id="ratingBtnFour"/>
-                <img src="rating_empty_star.png" alt="rating_empty_star" width="60" height="60" />
-              </label>
-
-                <label>
-                <input type="radio" name="ratingChoice" value="5" id="ratingBtnFive"/>
-                <img src="rating_empty_star.png" alt="rating_empty_star" width="60" height="60" />
-               </label>
 
               </div>
               <div className="modalRight">
