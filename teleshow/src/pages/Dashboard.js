@@ -5,6 +5,9 @@ import '../styles/Dashboard.css'
 
 import { useNavigate } from "react-router-dom";
 
+// Help from https://developer.themoviedb.org/reference/trending-movies
+import axios from 'axios'
+
 // Help from https://www.freecodecamp.org/news/use-firebase-authentication-in-a-react-app/
 import { useState, useEffect, useRef } from 'react'
 import { onAuthStateChanged, signOut } from "firebase/auth"
@@ -18,13 +21,16 @@ import { collection, addDoc, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 
 // Help from https://firebase.google.com/docs/firestore/query-data/queries
-import { query, where } from "firebase/firestore";
+import { query, where, limit } from "firebase/firestore";
 
 // Help from https://www.rowy.io/blog/firestore-timestamp
 import { serverTimestamp } from 'firebase/firestore'
 
 // Help from https://dev.to/rajatamil/firebase-v9-firestore-delete-document-using-deletedoc-5bjh
 import { doc, deleteDoc } from "firebase/firestore";
+
+// Help from https://react-bootstrap.netlify.app/docs/components/buttons/
+import Button from 'react-bootstrap/Button';
 
 function Dashboard() {
 
@@ -195,7 +201,7 @@ function Dashboard() {
 
   // Help from https://www.freecodecamp.org/news/use-firebase-authentication-in-a-react-app/
   useEffect(() => {
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
       if (authFlag) { // Help from https://stackoverflow.com/questions/49873223/why-does-my-firebase-onauthstatechanged-trigger-multiple-times-react-native
         if (user) {
           const uid = user.uid;
@@ -205,6 +211,9 @@ function Dashboard() {
           console.log("You appear to be signed in.")
           setDisplayName(user.displayName)
           setUserID(uid)
+
+          // Help from https://stackoverflow.com/questions/68260152/firebase-auth-currentuser-is-null-at-page-load/68260898#68260898
+          // Recommendation call would be here
         } else {
           console.log("You appear to be signed out.")
         }
@@ -212,7 +221,9 @@ function Dashboard() {
       authFlag = false // Help from https://stackoverflow.com/questions/49873223/why-does-my-firebase-onauthstatechanged-trigger-multiple-times-react-native
     })
     showMedia(1396, 939243); // Shows media upon loading the page (1396 Breaking Bad ID; 939243 Sonic 3)
-  })
+
+    // Help from https://stackoverflow.com/questions/53070970/infinite-loop-in-useeffect
+  }, [])
 
   const options = {
     method: 'GET',
@@ -268,24 +279,25 @@ function Dashboard() {
     }
   }
 
+
+
     // Help from https://www.freecodecamp.org/news/javascript-fetch-api-for-beginners/
 
-  const showDetails = async (id, status) => {
+  const showDetails = async (id, type) => {
     let url = ""
     let providerUrl = ""
-    if (status === "tv") {
-      // Help from https://developer.themoviedb.org/reference/tv-series-details
-      url = `https://api.themoviedb.org/3/tv/${id}?language=en-US`
 
-      // Help from https://developer.themoviedb.org/reference/tv-series-watch-providers
-      providerUrl = `https://api.themoviedb.org/3/tv/${id}/watch/providers`
-    } else {
-      // Help from https://developer.themoviedb.org/reference/movie-details
-      url = `https://api.themoviedb.org/3/movie/${id}?language=en-US`
+    /*
+    Help from:
+    - https://developer.themoviedb.org/reference/tv-series-details
+    - https://developer.themoviedb.org/reference/tv-series-watch-providers
+    - https://developer.themoviedb.org/reference/movie-details
+    - https://developer.themoviedb.org/reference/movie-watch-providers
+    (Watch provider data provided by JustWatch)
+    */
 
-      // Help from https://developer.themoviedb.org/reference/movie-watch-providers
-      providerUrl = `https://api.themoviedb.org/3/movie/${id}/watch/providers`
-    }
+    url = `https://api.themoviedb.org/3/${type}/${id}?language=en-US`
+    providerUrl = `https://api.themoviedb.org/3/${type}/${id}/watch/providers`
 
     let mediaID = 0;
     
@@ -293,7 +305,7 @@ function Dashboard() {
       .then(res => res.json())
       .then(json => {
         console.log(json)
-        if (status === "tv") {
+        if (type === "tv") {
           setModalTitle(json.name)
         } else {
           setModalTitle(json.title)
@@ -352,7 +364,7 @@ function Dashboard() {
         .catch((err) => console.error(err))
 
 
-      setCurrentMediaType(status)
+      setCurrentMediaType(type)
 
       setCurrentMediaID(mediaID)
 
@@ -402,8 +414,9 @@ function Dashboard() {
         const docRef = await addDoc(collection(db, "Watchlist"), {
           user_id: userID,
           title: modalTitle,
-          status: currentMediaType,
+          type: currentMediaType,
           media_id: currentMediaID,
+          status: "Plan to watch",
 
           // Help from https://www.rowy.io/blog/firestore-timestamp
           date_added: serverTimestamp(),
@@ -518,6 +531,11 @@ function Dashboard() {
 
         {/* Help from https://www.w3schools.com/css/tryit.asp?filename=trycss3_flexbox_responsive2 */}
         <h4>Recommended TV (Based on Breaking Bad):</h4>
+
+        {/* Help from https://www.rowy.io/blog/firestore-react-query */}
+        {/* And https://react.dev/learn/rendering-lists#keeping-list-items-in-order-with-key */}
+        { /* Loading could go here */ }
+
         <div className="mediaBox">
           <div id="tvCell1" className="mediaCell">
             {/* Help from https://stackoverflow.com/questions/29810914/react-js-onclick-cant-pass-value-to-method and https://upmostly.com/tutorials/pass-a-parameter-through-onclick-in-react */}
@@ -577,5 +595,6 @@ Other Resources used:
 - https://www.w3schools.com/react/react_render.asp
 - https://stackoverflow.com/questions/76990183/how-to-display-the-current-user-display-name-in-firebase-using-react
 - https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
+- https://www.rowy.io/blog/firestore-react-query
 
 */

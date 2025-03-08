@@ -95,7 +95,7 @@ And https://stackoverflow.com/questions/76810663/react-modals-or-dialogs-doesnt-
 }
 
 .body-light {
-    background: white;
+    background: rgb(204, 204, 204);
     color: black;
 }
 

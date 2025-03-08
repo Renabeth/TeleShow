@@ -31,6 +31,15 @@ import { doc, deleteDoc } from "firebase/firestore";
 // Help from https://react-bootstrap.netlify.app/docs/components/buttons/
 import Button from 'react-bootstrap/Button';
 
+// Help from https://react-bootstrap.netlify.app/docs/forms/select/
+import Form from 'react-bootstrap/Form';
+
+// Help from https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
+import { updateDoc } from "firebase/firestore";
+
+// Help from https://react-bootstrap.netlify.app/docs/components/button-group/
+import ButtonGroup from 'react-bootstrap/ButtonGroup'
+
 function Watchlist() {
 
     const [loggedIn, setLoggedIn] = useState(false)
@@ -137,13 +146,13 @@ function Watchlist() {
         })
     }
 
-    const displayInformation = async (id, status) => {
+    const displayInformation = async (id, type) => {
 
         // Help from https://developer.themoviedb.org/reference/tv-series-details 
         // and https://developer.themoviedb.org/reference/movie-details
         const options = {
             method: 'GET',
-            url: `https://api.themoviedb.org/3/${status}/${id}?language=en-US`,
+            url: `https://api.themoviedb.org/3/${type}/${id}?language=en-US`,
             headers: {
                 accept: 'application/json',
                 Authorization: `Bearer ${process.env.REACT_APP_TMDB_READ_ACCESS_TOKEN}`
@@ -155,7 +164,7 @@ function Watchlist() {
         // (TMDB API data provided by JustWatch)
         const providerOptions = {
             method: 'GET',
-            url: `https://api.themoviedb.org/3/${status}/${id}/watch/providers`,
+            url: `https://api.themoviedb.org/3/${type}/${id}/watch/providers`,
             headers: {
                 accept: 'application.json',
                 Authorization: `Bearer ${process.env.REACT_APP_TMDB_READ_ACCESS_TOKEN}`
@@ -167,7 +176,7 @@ function Watchlist() {
         await axios.request(options)
             .then(res => {
                 console.log(res.data)
-                if (status === "tv") {
+                if (type === "tv") {
                     setModalTitle(res.data.name)
                 } else {
                     setModalTitle(res.data.title)
@@ -230,6 +239,16 @@ function Watchlist() {
         // Help from https://www.geeksforgeeks.org/how-to-use-modal-component-in-reactjs/#
         // And https://react-bootstrap.netlify.app/docs/components/modal/
         handleShow()
+    }
+
+    const updateStatus = async (id, watchStatus) => {
+        // Help from https://firebase.google.com/docs/firestore/manage-data/add-data
+        // And https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
+        // And https://www.geeksforgeeks.org/react-bootstrap-select/
+        const watchlistRef = doc(db, "Watchlist", id)
+        await updateDoc(watchlistRef, {
+            status: watchStatus
+        });
     }
 
     const returnToDashboard = () => {
@@ -320,10 +339,27 @@ function Watchlist() {
                                     {/* Help from https://stackoverflow.com/questions/52247445/how-do-i-convert-a-firestore-date-timestamp-to-a-js-date */}
                                     <p>Date Added: { item.date_added.toDate().toDateString() }</p>
 
+                                    {/* Help from https://react.dev/reference/react-dom/components/select */}
+                                    {/* And https://react-bootstrap.netlify.app/docs/forms/select/ */}
+                                    {/* And https://www.geeksforgeeks.org/react-bootstrap-select/ */}
+                                    Status:
+                                    <Form.Select data-bs-theme={`${isLightMode ? "light" : "dark"}`} style={{width: "90%"}} defaultValue={item.status} name="watchStatus"
+                                    // Help from https://stackoverflow.com/questions/61858177/how-can-i-get-the-value-from-react-bootstrap-form-select
+                                    onChange={e => updateStatus(item.id, e.target.value)}
+                                    >
+                                        <option value="Plan to watch">Plan to watch</option>
+                                        <option value="Currently watching">Currently watching</option>
+                                        <option value="On hold">On hold</option>
+                                        <option value="Stopped watching">Stopped watching</option>
+                                        <option value="Finished watching">Finished watching</option>
+                                    </Form.Select>
 
-                                    <Button variant="primary" onClick={() => displayInformation(item.media_id, item.status)}>View Information</Button><br />
-                                    <Button variant="success">Write a Review</Button><br />
-                                    <Button variant="danger" onClick={() => removeFromWatchlist(item.media_id)}>Remove from Watchlist</Button>
+                                    {/* Help from https://react-bootstrap.netlify.app/docs/components/button-group/ */}
+                                    <ButtonGroup>
+                                        <Button dialogClassName="watchBtn" variant="primary" onClick={() => displayInformation(item.media_id, item.type)}>View Information</Button>
+                                        <Button dialogClassName="watchBtn" variant="success">Write a Review</Button>
+                                        <Button dialogClassName="watchBtn" variant="danger" onClick={() => removeFromWatchlist(item.media_id)}>Remove from Watchlist</Button>
+                                    </ButtonGroup>
                                 </div>
                             </div>
                         ))}
@@ -346,5 +382,6 @@ Other Resources Used:
 - https://stackoverflow.com/questions/66752231/firebase-reactjs-useeffect-typeerror-cannot-read-property-uid-of-null 
 - https://stackoverflow.com/questions/72962388/fetched-firestore-data-not-displaying-on-first-page-load-with-react-useeffect 
 - https://stackoverflow.com/questions/71256127/how-can-i-retrieve-a-user-id-from-firestore-via-flask-backend-react-frontend/72785157 
+- https://react-bootstrap.netlify.app/docs/getting-started/color-modes/ 
 
 */

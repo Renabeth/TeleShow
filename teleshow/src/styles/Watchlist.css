@@ -95,3 +95,23 @@
         flex: 69%;
     }
 }
+
+.watchStatus {
+    width: 80%;
+}
+
+.watchStatusLight {
+    background: rgb(204, 204, 204);
+    color: black;
+}
+
+.watchStatusDark {
+    background: rgb(50, 50, 50);
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .watchBtn {
+        font-size: 10px;
+    }
+}
