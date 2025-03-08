@@ -1,5 +1,7 @@
 import React from "react";
 import '../styles/Dashboard.css'
+import StarRate from "../components/starRate";
+
 
 // Credit to JustWatch as TMDB API watch providers data source
 
@@ -189,14 +191,14 @@ function Dashboard() {
   const displayModeButtonRef = useRef()
   const logoutButtonRef = useRef()
 
-  
+
   // Help from https://react-bootstrap.netlify.app/docs/components/modal/
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
   const [watchlistDuplicate, setWatchListDuplicate] = useState(true);
-  
+
   let authFlag = true // Help from https://stackoverflow.com/questions/49873223/why-does-my-firebase-onauthstatechanged-trigger-multiple-times-react-native
 
   // Help from https://www.freecodecamp.org/news/use-firebase-authentication-in-a-react-app/
@@ -300,7 +302,7 @@ function Dashboard() {
     providerUrl = `https://api.themoviedb.org/3/${type}/${id}/watch/providers`
 
     let mediaID = 0;
-    
+
     await fetch(url, options)
       .then(res => res.json())
       .then(json => {
@@ -392,13 +394,16 @@ function Dashboard() {
       handleShow()
   }
 
+
+
+
   // Help from https://www.freecodecamp.org/news/how-to-use-the-firebase-database-in-react/
   // And https://firebase.google.com/docs/firestore/query-data/queries#node.js_2
   // Adding media to watchlist
   const addToWatchlist = async (e) => {
     e.preventDefault();
 
-    
+
     // Help from https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
     const watchlistRef = collection(db, "Watchlist");
     const checkForDuplicates = query(watchlistRef, where('user_id', '==', userID), where('media_id', '==', currentMediaID));
@@ -432,6 +437,11 @@ function Dashboard() {
     }
   }
 
+  const addRating = async (event) => {
+
+  }
+
+
   const removeFromWatchlist = async (e) => {
     e.preventDefault();
 
@@ -461,6 +471,12 @@ function Dashboard() {
     })
   }
 
+  //Detect selected rating and sends to firebase
+  //Help from https://firebase.google.com/docs/firestore/manage-data/add-data?hl=en#add_a_document
+
+
+
+
   return (
     // Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/#
     <div className="container" id="dashboard" ref={displayModeRef}>
@@ -469,8 +485,9 @@ function Dashboard() {
         {/* Help from https://stackoverflow.com/questions/76990183/how-to-display-the-current-user-display-name-in-firebase-using-react */}
         <p>Welcome, {displayName || "none"}!</p>
         <p>User ID: {userID || "none"}</p>
-        
+
         <button onClick={goToWatchlist}>Go to Watchlist</button>
+
 
 
 
@@ -494,17 +511,24 @@ function Dashboard() {
             <div className="modalBox">
               <div className="modalLeft">
                 <img className="modalPoster" id="modalPoster" src={modalPoster} alt="modal poster" />
-                { !watchlistDuplicate ? 
+                { !watchlistDuplicate ?
                   <button className="watchlist-button primary" onClick={addToWatchlist}>
                     Add to Watchlist
                   </button>
-                  : 
+                  :
                   <button className="watchlist-button primary" onClick={removeFromWatchlist}>
                     Remove from Watchlist
                   </button>
                 }
                 <button className="watchlist-button secondary">Rate</button>
+              <br/>
+                <StarRate></StarRate>
+
+
               </div>
+
+
+
               <div className="modalRight">
                 <h2>Overview</h2>
                 <div id="overviewBox">
@@ -586,6 +610,7 @@ function Dashboard() {
 }
 
 export default Dashboard;
+
 
 /*
 

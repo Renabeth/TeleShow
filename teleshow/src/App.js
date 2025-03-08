@@ -10,6 +10,7 @@ function App() {
   // Routing between our Screens //
   return (
     <Router>
+        <starRate></starRate>
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />

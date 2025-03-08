@@ -2,6 +2,9 @@ import React from "react";
 import '../styles/Dashboard.css'
 import '../styles/Watchlist.css'
 
+import StarRate from "../components/starRate";
+
+
 // Credit to JustWatch as TMDB API watch providers data source
 
 // Help from https://developer.themoviedb.org/reference/tv-series-details 
@@ -97,6 +100,7 @@ function Watchlist() {
         setWatchlist([...res])
         setLoading(false)
     }
+
 
     // Help from https://www.freecodecamp.org/news/use-firebase-authentication-in-a-react-app/
     useEffect(() => {
@@ -359,7 +363,12 @@ function Watchlist() {
                                         <Button dialogClassName="watchBtn" variant="primary" onClick={() => displayInformation(item.media_id, item.type)}>View Information</Button>
                                         <Button dialogClassName="watchBtn" variant="success">Write a Review</Button>
                                         <Button dialogClassName="watchBtn" variant="danger" onClick={() => removeFromWatchlist(item.media_id)}>Remove from Watchlist</Button>
+
+
                                     </ButtonGroup>
+                                    <br/>
+                                    <p>Your rating:</p>
+                                    <StarRate></StarRate>
                                 </div>
                             </div>
                         ))}
