@@ -22,11 +22,11 @@
 }
 
 @media (max-width: 800px) {
-    .mediaBox {
-        flex-direction: column;
-    }
     .mediaCell {
-        flex: 84%;
+        flex: 49%;
+    }
+    .mediaPoster {
+        max-width: 200px;
     }
 }
 
@@ -68,39 +68,37 @@
     transition: 0.3s;
 }
 
-label.item {
-    display: inline-block;
-    position: relative;
-}
-label.item > input {
-    visibility: hidden;
-    position: absolute;
-}
-label.item > .radio-image::before {
-    content: url("http://placehold.it/50x50");
-}
-label.item > input[type="radio"]:checked + .radio-image::before {
-    content: url("http://placehold.it/75x75");
+/* Help from https://github.com/react-bootstrap/react-bootstrap/issues/3794 */
+.modal-85w {
+    width: 85%;
+    min-width: 85%;
 }
 
-.wrapper{
-    display:flex;
-    flex-direction:column;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    overflow: hidden;
+/*
+Help from https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/#
+And https://stackoverflow.com/questions/76810663/react-modals-or-dialogs-doesnt-inherit-the-dark-mode-styles-tailwind
+*/
+
+.head-dark {
+    background: rgb(78, 42, 97);
+    color: white;
 }
 
-.star-style{
-  height: 40px;
-    width: 40px;
-    padding-right:2px;
+.head-light {
+    background: rgb(130, 218, 159);;
+    color: black;
 }
 
-.star-value{
-    margin-top:5px;
-    font-size:30px;
-    font-weight:600;
-    text-align: center;
+.body-dark {
+    background: rgb(50, 50, 50);
+    color: white;
+}
+
+.body-light {
+    background: rgb(204, 204, 204);
+    color: black;
+}
+
+.modalBody {
+    border-radius: 0px 0px 10px 10px;
 }
