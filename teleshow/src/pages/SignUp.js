@@ -43,37 +43,68 @@ function Signup() {
 
     if (!password) {
       errorReport += "Please provide a password.\n"
-    } else if (password.length < 8) {
+    } 
+    
+    if (password.length < 8) {
       errorReport += "Password should be at least eight characters long.\n"
-    } if (password !== confirmPassword) {
+      // Help from https://www.w3schools.com/js/js_regexp.asp
+    } 
+    
+    if (/\s/.test(password)) {
+      errorReport += "No spaces allowed in passwords.\n";
+    } 
+    
+    if (!/[a-z]/.test(password)) {
+      errorReport += "Password must contain at least one lowercase character.\n";
+    } 
+    
+    if (!/[A-Z]/.test(password)) {
+      errorReport += "Password must contain at least one uppercase character.\n";
+    } 
+    
+    if (!/[0-9]/.test(password)) {
+      errorReport += "Password must contain a number.\n";
+    } 
+    
+    if (password !== confirmPassword) {
       errorReport += "Passwords do not match.\n"
     }
 
     if (errorReport === "") {
+      await createUserWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+        const user = userCredential.user
 
-    await createUserWithEmailAndPassword(auth, email, password)
-    .then((userCredential) => {
-      const user = userCredential.user
+        // Help from https://stackoverflow.com/questions/40389946/how-do-i-set-the-displayname-of-firebase-user
+        // And https://firebase.google.com/docs/auth/web/manage-users
+        updateProfile(auth.currentUser, {
+          displayName: username,
+          photoURL: "../../Logo.png" // Placeholder; this is for the profile picture
+        })
 
-      // Help from https://stackoverflow.com/questions/40389946/how-do-i-set-the-displayname-of-firebase-user
-      // And https://firebase.google.com/docs/auth/web/manage-users
-      updateProfile(auth.currentUser, {
-        displayName: username,
-        photoURL: "../../Logo.png" // Placeholder; this is for the profile picture
+        alert("Signup successful! Returning to the log-in screen to log in.")
+        console.log(user)
+
+        navigate("/")
       })
+      .catch((error) => {
+        const errorCode = error.code
+        const errorMessage = error.message
+        console.log(errorCode, errorMessage)
+        //alert(error)
 
-      alert("Signup successful! Returning to the log-in screen to log in.")
-      console.log(user)
-
-      navigate("/")
-    })
-    .catch((error) => {
-      const errorCode = error.code
-      const errorMessage = error.message
-      console.log(errorCode, errorMessage)
-      alert(error)
-    })
-    
+        // Help from https://stackoverflow.com/questions/31014919/create-custom-error-messages-for-firebase-authentication
+        switch (error.code) {
+          case ("auth/email-already-in-use"): {
+            alert("The email you have entered is already in use.\n");
+            break;
+          }
+          default: {
+            alert(error.code);
+            break;
+          }
+        }
+      })
     } else {
       alert(errorReport)
     }

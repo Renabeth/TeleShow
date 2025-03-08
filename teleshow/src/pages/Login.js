@@ -33,7 +33,26 @@ function Login() {
       const errorCode = error.code
       const errorMessage = error.message
       console.log(errorCode, errorMessage)
-      alert(error)
+      //alert(error.code)
+      // Help from https://firebase.google.com/docs/auth/admin/errors
+      switch(error.code) {
+        case ("auth/invalid-email"): {
+          alert("Email is not valid.");
+          break;
+        }
+        case ("auth/missing-password"): {
+          alert("Please enter your password.");
+          break;
+        }
+        case ("auth/invalid-credential"): {
+          alert("Invalid email and/or password.");
+          break;
+        }
+        default: {
+          alert(error.code);
+          break;
+        }
+      }
     })
   }
 
