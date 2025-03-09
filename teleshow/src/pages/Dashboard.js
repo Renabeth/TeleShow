@@ -437,10 +437,6 @@ function Dashboard() {
     }
   }
 
-  const addRating = async (event) => {
-
-  }
-
 
   const removeFromWatchlist = async (e) => {
     e.preventDefault();
@@ -470,12 +466,6 @@ function Dashboard() {
       alert(error);
     })
   }
-
-  //Detect selected rating and sends to firebase
-  //Help from https://firebase.google.com/docs/firestore/manage-data/add-data?hl=en#add_a_document
-
-
-
 
   return (
     // Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/#
