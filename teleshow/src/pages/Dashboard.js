@@ -139,6 +139,7 @@ function Dashboard() {
   const [userID, setUserID] = useState("")
   const [currentMediaID, setCurrentMediaID] = useState(0)
   const [currentMediaType, setCurrentMediaType] = useState("")
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   const [displayName, setDisplayName] = useState("")
 
@@ -183,6 +184,8 @@ function Dashboard() {
   const [modalProvidersFlatrate, setModalProvidersFlatrate] = useState("")
   const [modalProvidersRent, setModalProvidersRent] = useState("")
 
+  const [modalRating, setModalRating] = useState(0)
+
   // Help from https://developer.themoviedb.org/docs/image-basics
   const imgPath = "https://image.tmdb.org/t/p/w500"
 
@@ -199,18 +202,16 @@ function Dashboard() {
 
   const [watchlistDuplicate, setWatchListDuplicate] = useState(true);
 
-  let authFlag = true // Help from https://stackoverflow.com/questions/49873223/why-does-my-firebase-onauthstatechanged-trigger-multiple-times-react-native
-
   // Help from https://www.freecodecamp.org/news/use-firebase-authentication-in-a-react-app/
   useEffect(() => {
     onAuthStateChanged(auth, async (user) => {
-      if (authFlag) { // Help from https://stackoverflow.com/questions/49873223/why-does-my-firebase-onauthstatechanged-trigger-multiple-times-react-native
         if (user) {
           const uid = user.uid;
           //console.log(user)
           //console.log(user.displayName)
           console.log("uid", uid)
           console.log("You appear to be signed in.")
+        setIsLoggedIn(true)
           setDisplayName(user.displayName)
           setUserID(uid)
 
@@ -218,9 +219,8 @@ function Dashboard() {
           // Recommendation call would be here
         } else {
           console.log("You appear to be signed out.")
-        }
+          setIsLoggedIn(false)
       }
-      authFlag = false // Help from https://stackoverflow.com/questions/49873223/why-does-my-firebase-onauthstatechanged-trigger-multiple-times-react-native
     })
     showMedia(1396, 939243); // Shows media upon loading the page (1396 Breaking Bad ID; 939243 Sonic 3)
 
@@ -369,6 +369,18 @@ function Dashboard() {
       setCurrentMediaType(type)
 
       setCurrentMediaID(mediaID)
+      //console.log("Media ID: ", mediaID)
+      setModalRating(0)
+      const ratingRef = collection(db, "Ratings")
+      const ratingSnapshot = await getDocs(query(ratingRef, where('user_id', '==', userID), where('media_id', '==', mediaID)))
+      ratingSnapshot.forEach((rating) => {
+        console.log("Rating: ", rating.data())
+        if (rating.data().media_id === mediaID && rating.data().user_id === userID) {
+          setModalRating(rating.data().rating)
+        } else {
+          setModalRating(0)
+        }
+      })
 
 
       // Help from https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
@@ -473,10 +485,15 @@ function Dashboard() {
       <h2>Dashboard in Progress Stay Tuned</h2>
       <div>
         {/* Help from https://stackoverflow.com/questions/76990183/how-to-display-the-current-user-display-name-in-firebase-using-react */}
+        { isLoggedIn ? <>
         <p>Welcome, {displayName || "none"}!</p>
         <p>User ID: {userID || "none"}</p>
 
         <button onClick={goToWatchlist}>Go to Watchlist</button>
+        </> : <>
+        <p>You are currently logged out.</p>
+        </>
+        }
 
 
 
@@ -510,9 +527,18 @@ function Dashboard() {
                     Remove from Watchlist
                   </button>
                 }
+                <button className="watchlist-button secondary">
+                  Write a Review
+                </button>
                 <p>Leave a Rating:</p>
 
-                <StarRate></StarRate>
+                {/* Help from https://stackoverflow.com/questions/70344255/react-js-passing-one-components-variables-to-another-component-and-vice-versa */}
+                <StarRate
+                userID={userID}
+                currentMediaID={currentMediaID}
+                currentMediaType={currentMediaType}
+                initialRate={modalRating}>
+                </StarRate>
 
 
               </div>
@@ -524,8 +550,10 @@ function Dashboard() {
                 <div id="overviewBox">
                   { modalOverview || "None" }
                 </div>
+                <hr />
                 <h3>Spoken Languages</h3>
                   { modalLanguages || "None" }
+                <hr />
                 <h3>Watch Providers</h3>
                 <h4>Buy</h4>
                   { modalProvidersBuy || "None" }
@@ -533,6 +561,7 @@ function Dashboard() {
                   { modalProvidersFlatrate || "None" }
                 <h4>Rent</h4>
                   { modalProvidersRent || "None" }
+                
               </div>
             </div>
           </Modal.Body>
@@ -540,7 +569,7 @@ function Dashboard() {
 
 
 
-
+        { isLoggedIn ? <>
         <h1 style={{textAlign: "center"}}>Recommendations</h1><br />
 
         {/* Help from https://www.w3schools.com/css/tryit.asp?filename=trycss3_flexbox_responsive2 */}
@@ -590,10 +619,16 @@ function Dashboard() {
           </div>
         </div>
 
+        </> : "" }
+
         {/* Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/# */}
         <button onClick={changeDisplayMode} ref={displayModeButtonRef}>Change display mode</button>
 
+        { isLoggedIn ? <>
         <button onClick={handleLogout} ref={logoutButtonRef}>Logout</button>
+        </> : 
+        <button onClick={() => navigate("/")}>Return to Login</button>
+        }
       </div>
     </div>
   );
@@ -611,5 +646,6 @@ Other Resources used:
 - https://stackoverflow.com/questions/76990183/how-to-display-the-current-user-display-name-in-firebase-using-react
 - https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
 - https://www.rowy.io/blog/firestore-react-query
+- https://stackoverflow.com/questions/49873223/why-does-my-firebase-onauthstatechanged-trigger-multiple-times-react-native
 
 */
