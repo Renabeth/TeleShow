@@ -166,13 +166,37 @@ def calculate_similarity(overview1, overview2):
 def calculate_relevance(
     item, query
 ):  # Makes sure that items with the query in the name get precidence
-    base_score = item.get("popularity", 0)
+    
+    if item.get("popularity") < 3 and item.get("vote_count") < 20: #If the its not popular and doesn't have a lot of votes put on the bottom
+        return 0
+    
     title = item.get("title", "") or item.get("name", "")
-    if query.lower() in title.lower():
-        base_score *= 1.5  # Boost items with query in title
+    base_score = item.get("popularity", 0)
+    
+    # Split query into words for partial matching
+    query_words = query.lower().split()
+    
+    # Calculates title match score
+    title_match_score = 0
+    
+    # Exact matches gets highest priority
     if title.lower() == query.lower():
-        base_score *= 2  # Further boost exact matches
-    return base_score
+        title_match_score = 10  
+
+    # Partial matches where query is contained in title
+    elif query.lower() in title.lower():
+        title_match_score = 5
+    # Check for individual word matches
+    else:
+        word_matches = sum(1 for word in query_words if word in title.lower())
+        if word_matches > 0:
+            title_match_score = 2 * word_matches
+    
+    # Calculate final score with title matches having higher weight than popularity
+    final_score = (title_match_score * 100) + base_score
+
+    return final_score
+    
 
 @cache.memoize(3600)
 def expand_pool_with_discover(
@@ -183,6 +207,7 @@ def expand_pool_with_discover(
         "page": 1,
         "release_date.gte": "2000-01-01",
         "original_language": "en",
+        "vote_average.gte": 7
     }
     if media_genres:
         params["with_genres"] = "|".join(map(str, media_genres))
@@ -498,10 +523,7 @@ def get_recommendations():  # Unused data for better recommendations.
     else:
         return jsonify(
             {
-                "recommendations": {
-                    "movies": tmdb.Movies().popular()["results"][:5],
-                    "tv": tmdb.TV().popular()["results"][:5],
-                },
+                "recommendations": tmdb.Movies().popular()["results"][:8] or []
             }
         )
 

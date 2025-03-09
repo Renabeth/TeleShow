@@ -82,7 +82,7 @@ function SearchPage() {
         console.log("Cache hit for details:", decompressed);
         setSelectedItem(decompressed);
         setLoading(false);
-        handleRecommendations(decompressed);// Cached data needs to be passed so recommendation handler still runs
+        handleRecommendations(decompressed); // Cached data needs to be passed so recommendation handler still runs
         return;
       } else {
         localStorage.removeItem(cacheKey);
@@ -95,7 +95,7 @@ function SearchPage() {
         params: { id: item.id, type: item.media_type },
       });
 
-      console.log("API response for details:", response.data);//Debugging
+      console.log("API response for details:", response.data); //Debugging
 
       localStorage.setItem(
         cacheKey,
@@ -116,8 +116,9 @@ function SearchPage() {
   //Recommendation Handling
   const handleRecommendations = async (item) => {
     setLoading(true);
-    setRecommendations(null); //Remove shown recommendations from modal 
-    console.log( //Debugging
+    setRecommendations(null); //Remove shown recommendations from modal
+    console.log(
+      //Debugging
       "Fetching recommendations for:",
       item.tmdb.id,
       item.tmdb.media_type
@@ -139,7 +140,7 @@ function SearchPage() {
           ? JSON.parse(LZString.decompress(data))
           : JSON.parse(data);
         console.log("Cache hit for recommendations");
-        setRecommendations(decompressed.recommendations);//Recommendations are in an array within data
+        setRecommendations(decompressed.recommendations); //Recommendations are in an array within data
         setLoading(false);
         return;
       } else {
@@ -160,13 +161,13 @@ function SearchPage() {
         "No cast information";
       const keyword_ids =
         item.tmdb.keywords?.map((keyword) => keyword.id).join(",") || "None";
-      const region =
-      item.tmdb.origin_country?.[0] || "None";
+      const region = item.tmdb.origin_country?.[0] || "None";
 
       const response = await axios.get(
         `http://localhost:5000/recommendations`,
         {
-          params: { //Recommendation factors passed
+          params: {
+            //Recommendation factors passed
             id: item.tmdb.id,
             type: item.tmdb.media_type,
             overview: item.tmdb.overview,
