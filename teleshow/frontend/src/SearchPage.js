@@ -15,6 +15,7 @@ function SearchPage() {
   const [selectedItem, setSelectedItem] = useState(null); // Stores detailed information about a selected item
   const image_url = "https://image.tmdb.org/t/p/w500"; // Base URL for TMDB image paths
   const SEARCH_TTL = 24 * 60 * 60 * 1000; //Sets the localStorage variables TTL to 24hours
+  const [recommendations, setRecommendations] = useState([]);
 
   // Handles the search form submission. Makes an API request to fetch search results based on the query
   const handleSearch = async (e) => {
@@ -56,7 +57,7 @@ function SearchPage() {
           timestamp: Date.now(),
         })
       );
-      setResults(response.data); // Update results state with API response
+      setResults(response.data || []); // Update results state with API response
       console.log(response.data); //Debugging (REMOVE FROM FINAL)
     } catch (error) {
       console.error("Error fetching data: ", error);
@@ -65,10 +66,9 @@ function SearchPage() {
   };
 
   // Handles click on a search result item /Fetches detailed information about the selected item
-
   const handleResultClick = async (item) => {
     setLoading(true);
-    console.log("Type parameter:", item.media_type); //Debugging (REMOVE FROM FINAL)
+    console.log("Fetching details for:", item.id, item.media_type);
     const DETAILS_CACHE_KEY = (id, type) => `details-${type}-${id}`;
     const cacheKey = DETAILS_CACHE_KEY(item.id, item.media_type);
     const cache = localStorage.getItem(cacheKey);
@@ -79,8 +79,10 @@ function SearchPage() {
         const decompressed = compressed
           ? JSON.parse(LZString.decompress(data))
           : JSON.parse(data);
+        console.log("Cache hit for details:", decompressed);
         setSelectedItem(decompressed);
         setLoading(false);
+        handleRecommendations(decompressed);// Cached data needs to be passed so recommendation handler still runs
         return;
       } else {
         localStorage.removeItem(cacheKey);
@@ -93,6 +95,8 @@ function SearchPage() {
         params: { id: item.id, type: item.media_type },
       });
 
+      console.log("API response for details:", response.data);//Debugging
+
       localStorage.setItem(
         cacheKey,
         JSON.stringify({
@@ -102,8 +106,97 @@ function SearchPage() {
         })
       );
 
-      setSelectedItem(response.data); // Store detailed item information
-      console.log("Selected Item Details:", response.data); //Debugging (REMOVE FROM FINAL)
+      setSelectedItem(response.data || []); // Store detailed item information
+      handleRecommendations(response.data);
+    } catch (error) {
+      console.error("error fetching details: ", error);
+    }
+    setLoading(false);
+  };
+  //Recommendation Handling
+  const handleRecommendations = async (item) => {
+    setLoading(true);
+    setRecommendations(null); //Remove shown recommendations from modal 
+    console.log( //Debugging
+      "Fetching recommendations for:",
+      item.tmdb.id,
+      item.tmdb.media_type
+    );
+    const REC_CACHE_KEY = (name, id, type) =>
+      `recommendations-${name}-${type}-${id}`;
+    const cacheKey = REC_CACHE_KEY(
+      item.tmdb.title || item.tmdb.name,
+      item.tmdb.id,
+      item.tmdb.media_type
+    );
+    const cache = localStorage.getItem(cacheKey);
+    console.log("Generated cacheKey:", cacheKey);
+
+    if (cache) {
+      const { compressed, data, timestamp } = JSON.parse(cache);
+      if (Date.now() - timestamp < SEARCH_TTL) {
+        const decompressed = compressed
+          ? JSON.parse(LZString.decompress(data))
+          : JSON.parse(data);
+        console.log("Cache hit for recommendations");
+        setRecommendations(decompressed.recommendations);//Recommendations are in an array within data
+        setLoading(false);
+        return;
+      } else {
+        localStorage.removeItem(cacheKey);
+      }
+    }
+    try {
+      const genre_ids = item.tmdb.genres?.map((genre) => genre.id).join(",");
+      const producer_ids =
+        item.tmdb.production_companies
+          ?.map((company) => company.id)
+          .join(",") || "Unknown";
+      const cast =
+        item.cast?.map((person) => person.name).join(",") ||
+        "No cast information";
+      const cast_ids =
+        item.cast?.map((person) => person.id).join(",") ||
+        "No cast information";
+      const keyword_ids =
+        item.tmdb.keywords?.map((keyword) => keyword.id).join(",") || "None";
+      const region =
+      item.tmdb.origin_country?.[0] || "None";
+
+      const response = await axios.get(
+        `http://localhost:5000/recommendations`,
+        {
+          params: { //Recommendation factors passed
+            id: item.tmdb.id,
+            type: item.tmdb.media_type,
+            overview: item.tmdb.overview,
+            tagline: item.tmdb.tagline || "",
+            language: item.tmdb.original_language,
+            region,
+            genre_ids,
+            producer_ids,
+            cast,
+            cast_ids,
+            keyword_ids,
+          },
+        }
+      );
+      console.log(
+        "API response for recommendations:",
+        item.tmdb.id,
+        item.tmdb.media_type
+      ); // debugging
+
+      localStorage.setItem(
+        cacheKey,
+        JSON.stringify({
+          compressed: true,
+          data: LZString.compress(JSON.stringify(response.data)),
+          timestamp: Date.now(),
+        })
+      );
+
+      setRecommendations(response.data.recommendations || []);
     } catch (error) {
       console.error("error fetching details: ", error);
     }
@@ -125,6 +218,7 @@ function SearchPage() {
       sessionStorage.clear();
       localStorage.clear();
       setResults({ tmdb_movie: [], tmdb_tv: [] }); // Call your clearCaches function if the user confirms
+      window.location.reload();
     }
   };
 
@@ -268,10 +362,6 @@ function SearchPage() {
                           {tv.first_air_date?.substring(0, 4)}
                         </div>
                       </h5>
-                      <span className="badge bg-primary rounded-pill">
-                        {"\u2605"} {Math.round(tv.vote_average)}{" "}
-                        {/*Unicode for star symbol*/}
-                      </span>
                     </div>
                   </div>
                 </div>
@@ -292,7 +382,7 @@ function SearchPage() {
             <div className="row">
               <div className="col-md-4">
                 {selectedItem.tmdb.poster_path ? (
-                  <img
+                  <img //Selected movie picture
                     src={`${image_url}${selectedItem.tmdb.poster_path}`}
                     alt={selectedItem.tmdb.title || selectedItem.tmdb.name}
                     className="img-fluid rounded"
@@ -340,6 +430,19 @@ function SearchPage() {
                     "N/A"
                   )}
                 </p>
+                {/* Genres Section */}
+                <div className="d-flex flex-wrap gap-2 mb-2">
+                  {selectedItem.tmdb.genres &&
+                  selectedItem.tmdb.genres.length > 0 ? (
+                    selectedItem.tmdb.genres.map((genre) => (
+                      <span key={genre.id} className="badge bg-info text-white">
+                        {genre.name}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-muted">No genres available</span>
+                  )}
+                </div>
                 {/* Displays overview of the content */}
                 <p>{selectedItem.tmdb.overview}</p>
 
@@ -388,7 +491,54 @@ function SearchPage() {
                 </div>
               </div>
             </div>
+            {/*Test */}
+            {/* Recommendations */}
+            {recommendations && !loading ? (
+              <div className="mt-4">
+                <h4 className="mb-3">More Like This</h4>
 
+                <div className="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
+                  {recommendations?.map((rec) => (
+                    <div key={rec.id} className="col">
+                      <div
+                        className="card h-100 shadow-sm hover-shadow-lg transition"
+                        onClick={() => handleResultClick(rec)}
+                        role="button"
+                      >
+                        {rec.poster_path && (
+                          <img
+                            src={`${image_url}${rec.poster_path}`}
+                            className="card-img-top"
+                            alt={rec.title || rec.name}
+                            loading="lazy"
+                          />
+                        )}
+                        <div className="card-body">
+                          <h5 className="card-title text-truncate">
+                            {rec.title || rec.name}
+                          </h5>
+                          <div className="d-flex justify-content-between small mb-2">
+                            <span className="badge bg-primary">
+                              {rec.release_date?.split("-")[0] ||
+                                rec.first_air_date?.split("-")[0]}
+                            </span>
+                            <span className="badge bg-success">
+                              <i className="bi bi-star-fill me-1"></i>
+                              {Math.round(rec.vote_average)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="loading-spinner">
+                <Spinner animation="border" variant="primary" />
+                <span> Finding similar titles...</span>
+              </div>
+            )}
             {/* Displays streaming availability in a table format */}
             {/* Table shows platform name, price information, and region availability */}
             <div className="mt-4">
