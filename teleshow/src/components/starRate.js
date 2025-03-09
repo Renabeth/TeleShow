@@ -4,8 +4,12 @@ import {addDoc, collection, doc, getDocs, query, serverTimestamp, where} from "f
 import {setDoc, getDoc} from "firebase/firestore";
 import {db} from "../firebase";
 
+// Help from https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
+import { updateDoc } from "firebase/firestore";
+
 //help from https://www.youtube.com/watch?v=BmhU_MoxNqQ
-export default function StarRate() {
+// And https://stackoverflow.com/questions/70344255/react-js-passing-one-components-variables-to-another-component-and-vice-versa
+export default function StarRate(props) {
 
     //from Dashboard.js
     const [userID] = useState("")
@@ -14,6 +18,8 @@ export default function StarRate() {
 
     const [rating, setRating] = React.useState(null);
     const [rateColor] = React.useState(null);
+
+    const [initialRatingFlag, setInitialRatingFlag] = useState(false);
     //alert("Rating = " + {rating});
 
     const ratingRef = collection(db, "Ratings");
@@ -24,22 +30,54 @@ export default function StarRate() {
 
 
 
+
+
+    // Help from https://www.freecodecamp.org/news/how-to-use-the-firebase-database-in-react/
+    // And https://firebase.google.com/docs/firestore/query-data/queries#node.js_2
     const handleRatingClick = async (currentRate) => {
+        // Help from https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
+        const ratingRef = collection(db, "Ratings");
+        const checkForRatingDuplicates = query(ratingRef, where('user_id', '==', props.userID), where('media_id', '==', props.currentMediaID));
+        const ratingQuerySnapshot = await getDocs(checkForRatingDuplicates);
+        let ratingDuplicates = 0;
+        let docId = 0;
+        ratingQuerySnapshot.forEach((doc) => {
+            ratingDuplicates++;
+            docId = doc.id;
+        })
+
+        console.log("Rating Duplicates:", ratingDuplicates)
+
         setRating(currentRate);
         alert(`Rating of ${currentRate} saved successfully!`);
 
+        if (ratingDuplicates > 0) {
+            try {
+                // Help from https://firebase.google.com/docs/firestore/manage-data/add-data
+                // And https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
+                // And https://www.geeksforgeeks.org/react-bootstrap-select/
+                await updateDoc(doc(db, "Ratings", docId), {
+                    rating: currentRate
+                });
+                alert("Rating updated successfully.");
+            } catch (error) {
+                console.error("Error updating rating: ", error);
+            }
+        } else {
+            // Serena's code
 // Send the rating to Firestore
         try {
             await addDoc(collection(db, "Ratings"), {
                 rating: currentRate,
-                user_id: userID,
-                media_id: currentMediaID,
-                media_type: currentMediaType,
+                    user_id: props.userID,
+                    media_id: props.currentMediaID,
+                    media_type: props.currentMediaType,
                 created_at: serverTimestamp(),
             });
             console.log("Rating successfully added to Firestore");
         } catch (error) {
             console.error("Error adding rating: ", error);
+        }
         }
 
     };
@@ -48,10 +86,15 @@ export default function StarRate() {
         <>
             {[...Array(5)].map((star, index) => {
                 const currentRate = index + 1;
+                if(!initialRatingFlag) {
+                    setRating(props.initialRate)
+                    setInitialRatingFlag(true)
+                }
+                //console.log("Star: ", star);
+                // Help from https://react.dev/learn/rendering-lists#keeping-list-items-in-order-with-key
                 return (
-                    <>
-                        <label>
-                            <input type="radio" name="rate"
+                    <label key={index}>
+                        <input type="radio" name="rate" style={{display: "none"}}
                                    value={currentRate}
                                    onClick={() => handleRatingClick(currentRate)}
                             />
@@ -59,9 +102,6 @@ export default function StarRate() {
                                     color={currentRate <= (rateColor || rating) ? "yellow" : "black"}
                             />
                         </label>
-
-                    </>
-
                 )
             })}
         </>
