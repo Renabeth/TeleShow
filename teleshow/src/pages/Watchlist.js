@@ -2,7 +2,7 @@ import React from "react";
 import '../styles/Dashboard.css'
 import '../styles/Watchlist.css'
 
-import StarRate from "../components/starRate";
+import StarRate from "../components/StarRate";
 
 
 // Credit to JustWatch as TMDB API watch providers data source
@@ -85,12 +85,26 @@ function Watchlist() {
         const querySnapshot = await getDocs(q)
         const res = []
         querySnapshot.forEach(item => {
-            //console.log(item.data())
+            //console.log("Item Data:", item.data())
             res.push({
                 id: item.id,
                 ...item.data()
             })
         })
+
+        console.log("res:", res);
+        for (let i = 0; i < res.length; i++) {
+            let snap = await getDocs(query(collection(db, "Ratings"), where('user_id', '==', res[i].user_id), where('media_id', '==', res[i].media_id)))
+            let rating = 0;
+            await snap.forEach(thing => {
+                console.log("Snap item: ", thing.data());
+                console.log("rating:", thing.data().rating)
+                rating = thing.data().rating
+            })
+            res[i].rating = rating
+            console.log("Res item:", res[i]);
+        }
+
         return res
     }
 
@@ -292,8 +306,10 @@ function Watchlist() {
                         <div id="overviewBox">
                             { modalOverview || "None" }
                         </div>
+                        <hr />
                         <h3>Spoken Languages</h3>
                             { modalLanguages || "None" }
+                        <hr />
                         <h3>Watch Providers</h3>
                         <h4>Buy</h4>
                             { modalProvidersBuy || "None" }
@@ -368,7 +384,15 @@ function Watchlist() {
                                     </ButtonGroup>
                                     <br/>
                                     <p>Your rating:</p>
-                                    <StarRate></StarRate>
+
+                                    {/* Help from https://stackoverflow.com/questions/70344255/react-js-passing-one-components-variables-to-another-component-and-vice-versa */}
+                                    <StarRate
+                                    userID={userID}
+                                    currentMediaID={item.media_id}
+                                    currentMediaType={item.type}
+                                    initialRate={item.rating}>
+
+                                    </StarRate>
                                 </div>
                             </div>
                         ))}

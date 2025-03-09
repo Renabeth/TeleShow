@@ -1,6 +1,6 @@
 import React from "react";
 import '../styles/Dashboard.css'
-import StarRate from "../components/starRate";
+import StarRate from "../components/StarRate";
 
 
 // Credit to JustWatch as TMDB API watch providers data source
