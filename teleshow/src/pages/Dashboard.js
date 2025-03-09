@@ -520,8 +520,8 @@ function Dashboard() {
                     Remove from Watchlist
                   </button>
                 }
-                <button className="watchlist-button secondary">Rate</button>
-              <br/>
+                <p>Leave a Rating:</p>
+
                 <StarRate></StarRate>
 
 
