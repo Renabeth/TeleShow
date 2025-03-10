@@ -43,6 +43,9 @@ import { updateDoc } from "firebase/firestore";
 // Help from https://react-bootstrap.netlify.app/docs/components/button-group/
 import ButtonGroup from 'react-bootstrap/ButtonGroup'
 
+// Help from https://www.youtube.com/watch?v=91LWShFZn40
+import { getAggregateFromServer, average } from "firebase/firestore";
+
 function Watchlist() {
 
     const [loggedIn, setLoggedIn] = useState(false)
@@ -140,12 +143,12 @@ function Watchlist() {
         // Help from https://stackoverflow.com/questions/53070970/infinite-loop-in-useeffect
     }, [])
 
-    const removeFromWatchlist = async (id) => {
+    const removeFromWatchlist = async (id, type) => {
         let idToDelete = 0;
         
         // Help from https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
         const watchlistRef = collection(db, "Watchlist");
-        const q = query(watchlistRef, where('user_id', '==', userID), where('media_id', '==', id));
+        const q = query(watchlistRef, where('user_id', '==', userID), where('media_id', '==', id), where('type', '==', type));
         const querySnapshot = await getDocs(q);
         querySnapshot.forEach((doc) => {
             idToDelete = doc.id
@@ -377,8 +380,8 @@ function Watchlist() {
                                     {/* Help from https://react-bootstrap.netlify.app/docs/components/button-group/ */}
                                     <ButtonGroup>
                                         <Button dialogClassName="watchBtn" variant="primary" onClick={() => displayInformation(item.media_id, item.type)}>View Information</Button>
-                                        <Button dialogClassName="watchBtn" variant="success">Write a Review</Button>
-                                        <Button dialogClassName="watchBtn" variant="danger" onClick={() => removeFromWatchlist(item.media_id)}>Remove from Watchlist</Button>
+                                        <Button dialogClassName="watchBtn" variant="success" onClick={() => alert("Review functionality has not been implemented yet. We thank you for your patience.")}>Write a Review</Button>
+                                        <Button dialogClassName="watchBtn" variant="danger" onClick={() => removeFromWatchlist(item.media_id, item.type)}>Remove from Watchlist</Button>
 
 
                                     </ButtonGroup>

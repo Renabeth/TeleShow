@@ -37,7 +37,7 @@ export default function StarRate(props) {
     const handleRatingClick = async (currentRate) => {
         // Help from https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
         const ratingRef = collection(db, "Ratings");
-        const checkForRatingDuplicates = query(ratingRef, where('user_id', '==', props.userID), where('media_id', '==', props.currentMediaID));
+        const checkForRatingDuplicates = query(ratingRef, where('user_id', '==', props.userID), where('media_id', '==', props.currentMediaID), where('media_type', '==', props.currentMediaType));
         const ratingQuerySnapshot = await getDocs(checkForRatingDuplicates);
         let ratingDuplicates = 0;
         let docId = 0;
@@ -49,7 +49,7 @@ export default function StarRate(props) {
         console.log("Rating Duplicates:", ratingDuplicates)
 
         setRating(currentRate);
-        alert(`Rating of ${currentRate} saved successfully!`);
+        //alert(`Rating of ${currentRate} saved successfully!`);
 
         if (ratingDuplicates > 0) {
             try {
@@ -98,7 +98,7 @@ export default function StarRate(props) {
                                    value={currentRate}
                                    onClick={() => handleRatingClick(currentRate)}
                             />
-                            <FaStar size={50}
+                            <FaStar size={50} style={{cursor: "pointer"}}
                                     color={currentRate <= (rateColor || rating) ? "yellow" : "black"}
                             />
                         </label>

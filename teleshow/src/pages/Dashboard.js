@@ -34,6 +34,12 @@ import { doc, deleteDoc } from "firebase/firestore";
 // Help from https://react-bootstrap.netlify.app/docs/components/buttons/
 import Button from 'react-bootstrap/Button';
 
+// Help from https://react-icons.github.io/react-icons/icons/bs/
+import { BsCircleFill, BsBookmarkFill } from "react-icons/bs";
+
+// Help from https://www.youtube.com/watch?v=91LWShFZn40
+import { getAggregateFromServer, average } from "firebase/firestore";
+
 function Dashboard() {
 
   const showMedia = async (tvId, movieId) => {
@@ -175,6 +181,12 @@ function Dashboard() {
   const [movieId3, setMovieId3] = useState(0)
   const [movieId4, setMovieId4] = useState(0)
 
+  // Help from https://www.rowy.io/blog/firestore-react-query
+  const [tvLoading, setTvLoading] = useState(false)
+  const [movieLoading, setMovieLoading] = useState(false)
+  const [recommendedTv, setRecommendedTv] = useState([])
+  const [recommendedMovies, setRecommendedMovies] = useState([])
+
   const [modalTitle, setModalTitle] = useState("")
   const [modalPoster, setModalPoster] = useState("")
   const [modalOverview, setModalOverview] = useState("")
@@ -185,14 +197,15 @@ function Dashboard() {
   const [modalProvidersRent, setModalProvidersRent] = useState("")
 
   const [modalRating, setModalRating] = useState(0)
+  const [modalAverageRating, setModalAverageRating] = useState(0)
 
   // Help from https://developer.themoviedb.org/docs/image-basics
   const imgPath = "https://image.tmdb.org/t/p/w500"
 
   // Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/#
   const displayModeRef = useRef()
-  const displayModeButtonRef = useRef()
-  const logoutButtonRef = useRef()
+  //const displayModeButtonRef = useRef()
+  //const logoutButtonRef = useRef()
 
 
   // Help from https://react-bootstrap.netlify.app/docs/components/modal/
@@ -211,7 +224,7 @@ function Dashboard() {
           //console.log(user.displayName)
           console.log("uid", uid)
           console.log("You appear to be signed in.")
-        setIsLoggedIn(true)
+          setIsLoggedIn(true)
           setDisplayName(user.displayName)
           setUserID(uid)
 
@@ -220,6 +233,7 @@ function Dashboard() {
         } else {
           console.log("You appear to be signed out.")
           setIsLoggedIn(false)
+          setUserID("")
       }
     })
     showMedia(1396, 939243); // Shows media upon loading the page (1396 Breaking Bad ID; 939243 Sonic 3)
@@ -257,30 +271,30 @@ function Dashboard() {
   const changeDisplayMode = () => {
     console.log(darkMode)
     if (darkMode) { // Change to dark mode
-      displayModeRef.current.style.backgroundColor = "white"
+      displayModeRef.current.style.backgroundColor = "rgb(204, 204, 204)"
       displayModeRef.current.style.color = "black"
-
-      displayModeButtonRef.current.style.backgroundColor = "cyan"
-      displayModeButtonRef.current.style.color = "black"
-
-      logoutButtonRef.current.style.backgroundColor = "cyan"
-      logoutButtonRef.current.style.color = "black"
-
       setDarkMode(false)
     } else { // Change to light mode
       displayModeRef.current.style.backgroundColor = "rgb(50, 50, 50)"
       displayModeRef.current.style.color = "white"
-
-      displayModeButtonRef.current.style.backgroundColor = "white"
-      displayModeButtonRef.current.style.color = "black"
-
-      logoutButtonRef.current.style.backgroundColor = "white"
-      logoutButtonRef.current.style.color = "black"
-
       setDarkMode(true)
     }
   }
 
+
+  const getAverageRating = async (mediaID, type) => {
+    // Help from https://www.youtube.com/watch?v=91LWShFZn40
+    const averageRatingQuery = query(collection(db, "Ratings"), where('media_id', '==', mediaID), where('media_type', '==', type))
+    const averageRatingSnapshot = await getAggregateFromServer(averageRatingQuery, {
+      averageRating: average('rating')
+    })
+    console.log("Average rating: ", averageRatingSnapshot.data().averageRating)
+    if (averageRatingSnapshot.data().averageRating !== null) {
+      setModalAverageRating(averageRatingSnapshot.data().averageRating)
+    } else {
+      setModalAverageRating(0)
+    }
+  }
 
 
     // Help from https://www.freecodecamp.org/news/javascript-fetch-api-for-beginners/
@@ -371,6 +385,7 @@ function Dashboard() {
       setCurrentMediaID(mediaID)
       //console.log("Media ID: ", mediaID)
       setModalRating(0)
+      setModalAverageRating(0)
       const ratingRef = collection(db, "Ratings")
       const ratingSnapshot = await getDocs(query(ratingRef, where('user_id', '==', userID), where('media_id', '==', mediaID)))
       ratingSnapshot.forEach((rating) => {
@@ -382,10 +397,13 @@ function Dashboard() {
         }
       })
 
+      // Updating avgRating
+      await getAverageRating(mediaID, type)
+
 
       // Help from https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
       const watchlistRef = collection(db, "Watchlist");
-      const checkForDuplicates = query(watchlistRef, where('user_id', '==', userID), where('media_id', '==', mediaID));
+      const checkForDuplicates = query(watchlistRef, where('user_id', '==', userID), where('media_id', '==', mediaID), where('type', '==', type));
       const querySnapshot = await getDocs(checkForDuplicates);
       let duplicates = 0; // This will check for duplicate userID / media ID combinations
       querySnapshot.forEach((doc) => {
@@ -399,15 +417,10 @@ function Dashboard() {
         setWatchListDuplicate(false)
       }
 
-
-
       // Help from https://www.geeksforgeeks.org/how-to-use-modal-component-in-reactjs/#
       // And https://react-bootstrap.netlify.app/docs/components/modal/
       handleShow()
   }
-
-
-
 
   // Help from https://www.freecodecamp.org/news/how-to-use-the-firebase-database-in-react/
   // And https://firebase.google.com/docs/firestore/query-data/queries#node.js_2
@@ -415,10 +428,9 @@ function Dashboard() {
   const addToWatchlist = async (e) => {
     e.preventDefault();
 
-
     // Help from https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
     const watchlistRef = collection(db, "Watchlist");
-    const checkForDuplicates = query(watchlistRef, where('user_id', '==', userID), where('media_id', '==', currentMediaID));
+    const checkForDuplicates = query(watchlistRef, where('user_id', '==', userID), where('media_id', '==', currentMediaID), where('type', '==', currentMediaType));
     const querySnapshot = await getDocs(checkForDuplicates);
     let duplicates = 0; // This will check for duplicate userID / media ID combinations
     querySnapshot.forEach((doc) => {
@@ -457,12 +469,12 @@ function Dashboard() {
 
     // Help from https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
     const watchlistRef = collection(db, "Watchlist");
-    const q = query(watchlistRef, where('user_id', '==', userID), where('media_id', '==', currentMediaID));
+    const q = query(watchlistRef, where('user_id', '==', userID), where('media_id', '==', currentMediaID), where('type', '==', currentMediaType));
     const querySnapshot = await getDocs(q);
     querySnapshot.forEach((doc) => {
-      console.log(doc.data())
-      console.log(doc.data().title);
-      console.log(doc.id)
+      //console.log(doc.data())
+      //console.log(doc.data().title);
+      //console.log(doc.id)
       idToDelete = doc.id
     })
 
@@ -486,12 +498,33 @@ function Dashboard() {
       <div>
         {/* Help from https://stackoverflow.com/questions/76990183/how-to-display-the-current-user-display-name-in-firebase-using-react */}
         { isLoggedIn ? <>
-        <p>Welcome, {displayName || "none"}!</p>
+
+        <p>Welcome, {displayName || "none"}! </p>
         <p>User ID: {userID || "none"}</p>
 
-        <button onClick={goToWatchlist}>Go to Watchlist</button>
+        <div>
+          {/* Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/# */}
+          <Button onClick={changeDisplayMode} variant={`${darkMode ? "light" : "dark"}`}>Switch to {darkMode ? "Light" : "Dark"} Mode</Button>
+          <Button variant="danger" onClick={handleLogout}>Log out</Button>
+        </div>
+        <br/>
+        
+
+        <div className="centerBar">
+          {/* Help from https://react-icons.github.io/react-icons/icons/bs/ */}
+          <BsCircleFill style={{fontSize: "48px", cursor: "pointer", float: "left"}} onClick={() => alert("Profile functionality has not yet been fully implemented. We thank you for your patience.")} />
+
+          <Button variant="secondary" style={{width: "60%", textAlign: "left", fontSize: "24px"}} onClick={() => alert("Search functionality has not yet been implemented.")}>Search...</Button>
+
+          {/* Help from https://react-icons.github.io/react-icons/icons/bs/ */}
+          <BsBookmarkFill style={{fontSize: "48px", cursor: "pointer", float: "right"}} onClick={goToWatchlist} />
+        </div>
+        <br />
+
+        {/*<button onClick={goToWatchlist}>Go to Watchlist</button>*/}
         </> : <>
         <p>You are currently logged out.</p>
+        <Button variant="primary" onClick={() => navigate("/")}>Return to Login</Button>
         </>
         }
 
@@ -527,7 +560,7 @@ function Dashboard() {
                     Remove from Watchlist
                   </button>
                 }
-                <button className="watchlist-button secondary">
+                <button className="watchlist-button secondary" onClick={() => alert("Review functionality has not been implemented yet. We thank you for your patience.")}>
                   Write a Review
                 </button>
                 <p>Leave a Rating:</p>
@@ -551,6 +584,8 @@ function Dashboard() {
                   { modalOverview || "None" }
                 </div>
                 <hr />
+                {/*<h3>Average Rating: { modalAverageRating || 0 }/5</h3>
+                <hr /> Commented out until average rating updates is implemented */}
                 <h3>Spoken Languages</h3>
                   { modalLanguages || "None" }
                 <hr />
@@ -620,15 +655,6 @@ function Dashboard() {
         </div>
 
         </> : "" }
-
-        {/* Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/# */}
-        <button onClick={changeDisplayMode} ref={displayModeButtonRef}>Change display mode</button>
-
-        { isLoggedIn ? <>
-        <button onClick={handleLogout} ref={logoutButtonRef}>Logout</button>
-        </> : 
-        <button onClick={() => navigate("/")}>Return to Login</button>
-        }
       </div>
     </div>
   );
@@ -639,7 +665,7 @@ export default Dashboard;
 
 /*
 
-Other Resources used:
+Other Resources used/referred to:
 - https://www.freecodecamp.org/news/javascript-fetch-api-for-beginners/
 - https://www.geeksforgeeks.org/how-to-keep-a-mutable-variable-in-react-useref-hook/
 - https://www.w3schools.com/react/react_render.asp
@@ -647,5 +673,9 @@ Other Resources used:
 - https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
 - https://www.rowy.io/blog/firestore-react-query
 - https://stackoverflow.com/questions/49873223/why-does-my-firebase-onauthstatechanged-trigger-multiple-times-react-native
+- https://cloud.google.com/blog/products/databases/aggregate-with-sum-and-avg-in-firestore
+- https://nithinkvarrier.medium.com/sum-and-average-in-firestore-leverage-getaggregatefromserver-in-the-latest-update-november-2023-06fd10f92347
+- https://firebase.google.com/docs/firestore/query-data/indexing 
+- https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/#
 
 */
