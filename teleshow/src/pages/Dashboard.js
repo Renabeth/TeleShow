@@ -486,13 +486,8 @@ function Dashboard() {
         { isLoggedIn ? <>
 
         <p>Welcome, {displayName || "none"}! </p>
-        <p>User ID: {userID || "none"}</p>
 
-        <div>
-          {/* Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/# */}
-          <Button onClick={changeDisplayMode} variant={`${darkMode ? "light" : "dark"}`}>Switch to {darkMode ? "Light" : "Dark"} Mode</Button>
-          <Button variant="danger" onClick={handleLogout}>Log out</Button>
-        </div>
+        
         <br/>
         
 
@@ -592,7 +587,7 @@ function Dashboard() {
 
 
         { isLoggedIn ? <>
-        <h1 style={{textAlign: "center"}}>Recommendations</h1><br />
+       
 
         {/* Help from https://www.w3schools.com/css/tryit.asp?filename=trycss3_flexbox_responsive2 */}
         <h4>Recommended TV (Based on Breaking Bad):</h4>
@@ -620,6 +615,7 @@ function Dashboard() {
             <p>{tvTitle4}</p>
           </div>
         </div>
+        
 
         <h4>Recommended Movies (Based on Sonic 3):</h4>
         <div className="mediaBox">
@@ -639,6 +635,12 @@ function Dashboard() {
             <img className="mediaPoster" src={movieImg4} alt="media" onClick={async () => await showDetails(movieId4, "movie")} />
             <p>{movieTitle4}</p>
           </div>
+        </div>
+
+        <div>
+          {/* Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/# */}
+          <Button onClick={changeDisplayMode} variant={`${darkMode ? "light" : "dark"}`}>Switch to {darkMode ? "Light" : "Dark"} Mode</Button>
+          <Button variant="danger" onClick={handleLogout}>Log out</Button>
         </div>
 
         </> : "" }
