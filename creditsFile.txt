@@ -600,6 +600,10 @@ https://stackoverflow.com/questions/50207339/cloud-firestore-failed-precondition
 JavaScript floating point precision:
 https://www.geeksforgeeks.org/floating-point-number-precision-in-javascript/# 
 
+Dotenv:
+https://www.youtube.com/watch?v=YtkZR0NFd1g 
+https://www.youtube.com/watch?v=zwcvXd3kGbw 
+
 Misc.:
 
 https://stackoverflow.com/questions/55802458/why-is-my-array-empty-at-the-function-that-receives-it-in-react 
