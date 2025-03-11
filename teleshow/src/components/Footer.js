@@ -29,6 +29,20 @@ const Footer = () => {
                 </div>
                 <div className="contact-item">
                     Serena D'Avanzo
+                    <li>
+                        <a href="mailto:serenad9601@gmail.com" rel="noreferrer" target="_blank">
+                            Email
+                        </a><br />
+                        <a href="https://github.com/Renabeth" rel="noreferrer" target="_blank">
+                            GitHub
+                        </a>
+                        <br />
+                        <a href="https://www.linkedin.com/in/serena-d-avanzo-5b3692201/" rel="noreferrer" target="_blank">
+                            LinkedIn
+                        </a>
+                    </li>
+
+
                 </div>
                 <div className="contact-item">
                     Moses Pierre
