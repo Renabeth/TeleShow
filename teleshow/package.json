@@ -7,8 +7,15 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "^13.5.0",
+    "axios": "^1.8.1",
+    "bootstrap": "^5.3.3",
+    "firebase": "^11.3.1",
     "react": "^19.0.0",
+    "react-bootstrap": "^2.10.9",
     "react-dom": "^19.0.0",
+    "react-icons": "^5.5.0",
+    "react-router": "^7.2.0",
+    "react-router-dom": "^7.2.0",
     "react-scripts": "5.0.1",
     "teleshow": "file:",
     "web-vitals": "^2.1.4"
@@ -36,5 +43,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.7"
   }
 }
