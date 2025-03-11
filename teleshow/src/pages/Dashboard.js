@@ -1,6 +1,7 @@
 import React from "react";
 import '../styles/Dashboard.css'
 import StarRate from "../components/starRate";
+import GetAverageRating from "../scripts/GetAverageRating.js"
 
 
 // Credit to JustWatch as TMDB API watch providers data source
@@ -282,21 +283,6 @@ function Dashboard() {
   }
 
 
-  const getAverageRating = async (mediaID, type) => {
-    // Help from https://www.youtube.com/watch?v=91LWShFZn40
-    const averageRatingQuery = query(collection(db, "Ratings"), where('media_id', '==', mediaID), where('media_type', '==', type))
-    const averageRatingSnapshot = await getAggregateFromServer(averageRatingQuery, {
-      averageRating: average('rating')
-    })
-    console.log("Average rating: ", averageRatingSnapshot.data().averageRating)
-    if (averageRatingSnapshot.data().averageRating !== null) {
-      setModalAverageRating(averageRatingSnapshot.data().averageRating)
-    } else {
-      setModalAverageRating(0)
-    }
-  }
-
-
     // Help from https://www.freecodecamp.org/news/javascript-fetch-api-for-beginners/
 
   const showDetails = async (id, type) => {
@@ -398,7 +384,7 @@ function Dashboard() {
       })
 
       // Updating avgRating
-      await getAverageRating(mediaID, type)
+      setModalAverageRating(await GetAverageRating(mediaID, type))
 
 
       // Help from https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/

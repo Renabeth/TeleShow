@@ -1,6 +1,7 @@
 import React from "react";
 import '../styles/Dashboard.css'
 import '../styles/Watchlist.css'
+import GetAverageRating from "../scripts/GetAverageRating.js";
 
 import StarRate from "../components/starRate";
 
@@ -81,20 +82,6 @@ function Watchlist() {
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
 
-    const getAverageRating = async (mediaID, type) => {
-        // Help from https://www.youtube.com/watch?v=91LWShFZn40
-        const averageRatingQuery = query(collection(db, "Ratings"), where('media_id', '==', mediaID), where('media_type', '==', type))
-        const averageRatingSnapshot = await getAggregateFromServer(averageRatingQuery, {
-            averageRating: average('rating')
-        })
-        console.log("Average rating: ", averageRatingSnapshot.data().averageRating)
-        if (averageRatingSnapshot.data().averageRating !== null) {
-            return averageRatingSnapshot.data().averageRating
-        } else {
-            return 0
-        }
-    }
-
     // Help from https://www.rowy.io/blog/firestore-react-query
     const queryWatchlist = async (uid) => {
         const watchlistRef = collection(db, "Watchlist")
@@ -122,7 +109,7 @@ function Watchlist() {
             })
             res[i].rating = rating
             console.log("Res item:", res[i]);
-            res[i].averageRating = await getAverageRating(res[i].media_id, res[i].type)
+            res[i].averageRating = await GetAverageRating(res[i].media_id, res[i].type)
         }
 
         return res

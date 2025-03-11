@@ -4,6 +4,8 @@ import {addDoc, collection, doc, getDocs, query, serverTimestamp, where} from "f
 import {setDoc, getDoc} from "firebase/firestore";
 import {db} from "../firebase";
 
+import GetAverageRating from "../scripts/GetAverageRating";
+
 // Help from https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
 import { updateDoc } from "firebase/firestore";
 
@@ -30,20 +32,6 @@ export default function StarRate(props) {
     const [ratingDuplicate, setRatingDuplicate] = useState(true);
     const checkForDuplicates = query(ratingRef, where('user_id', '==', userID), where('media_id', '==', currentMediaID));
     const querySnapshot = getDocs(checkForDuplicates);
-
-    const getAverageRating = async (mediaID, type) => {
-        // Help from https://www.youtube.com/watch?v=91LWShFZn40
-        const averageRatingQuery = query(collection(db, "Ratings"), where('media_id', '==', mediaID), where('media_type', '==', type))
-        const averageRatingSnapshot = await getAggregateFromServer(averageRatingQuery, {
-          averageRating: average('rating')
-        })
-        console.log("Average rating: ", averageRatingSnapshot.data().averageRating)
-        if (averageRatingSnapshot.data().averageRating !== null) {
-          setAvgRating(averageRatingSnapshot.data().averageRating)
-        } else {
-          setAvgRating(0)
-        }
-    }
 
 
     // Help from https://www.freecodecamp.org/news/how-to-use-the-firebase-database-in-react/
@@ -94,7 +82,7 @@ export default function StarRate(props) {
         }
         }
 
-        await getAverageRating(props.currentMediaID, props.currentMediaType)
+        setAvgRating(await GetAverageRating(props.currentMediaID, props.currentMediaType))
 
     };
 
