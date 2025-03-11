@@ -81,6 +81,20 @@ function Watchlist() {
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
 
+    const getAverageRating = async (mediaID, type) => {
+        // Help from https://www.youtube.com/watch?v=91LWShFZn40
+        const averageRatingQuery = query(collection(db, "Ratings"), where('media_id', '==', mediaID), where('media_type', '==', type))
+        const averageRatingSnapshot = await getAggregateFromServer(averageRatingQuery, {
+            averageRating: average('rating')
+        })
+        console.log("Average rating: ", averageRatingSnapshot.data().averageRating)
+        if (averageRatingSnapshot.data().averageRating !== null) {
+            return averageRatingSnapshot.data().averageRating
+        } else {
+            return 0
+        }
+    }
+
     // Help from https://www.rowy.io/blog/firestore-react-query
     const queryWatchlist = async (uid) => {
         const watchlistRef = collection(db, "Watchlist")
@@ -99,13 +113,16 @@ function Watchlist() {
         for (let i = 0; i < res.length; i++) {
             let snap = await getDocs(query(collection(db, "Ratings"), where('user_id', '==', res[i].user_id), where('media_id', '==', res[i].media_id)))
             let rating = 0;
-            await snap.forEach(thing => {
+            let avgRating = 0;
+            snap.forEach(thing => {
                 console.log("Snap item: ", thing.data());
                 console.log("rating:", thing.data().rating)
                 rating = thing.data().rating
+                avgRating = 0;
             })
             res[i].rating = rating
             console.log("Res item:", res[i]);
+            res[i].averageRating = await getAverageRating(res[i].media_id, res[i].type)
         }
 
         return res
@@ -393,7 +410,8 @@ function Watchlist() {
                                     userID={userID}
                                     currentMediaID={item.media_id}
                                     currentMediaType={item.type}
-                                    initialRate={item.rating}>
+                                    initialRate={item.rating}
+                                    initialAvgRate={item.averageRating}>
 
                                     </StarRate>
                                 </div>

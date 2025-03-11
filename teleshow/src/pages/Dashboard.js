@@ -570,7 +570,8 @@ function Dashboard() {
                 userID={userID}
                 currentMediaID={currentMediaID}
                 currentMediaType={currentMediaType}
-                initialRate={modalRating}>
+                initialRate={modalRating}
+                initialAvgRate={modalAverageRating}>
                 </StarRate>
 
 

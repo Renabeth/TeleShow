@@ -7,6 +7,9 @@ import {db} from "../firebase";
 // Help from https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
 import { updateDoc } from "firebase/firestore";
 
+// Help from https://www.youtube.com/watch?v=91LWShFZn40
+import { getAggregateFromServer, average } from "firebase/firestore";
+
 //help from https://www.youtube.com/watch?v=BmhU_MoxNqQ
 // And https://stackoverflow.com/questions/70344255/react-js-passing-one-components-variables-to-another-component-and-vice-versa
 export default function StarRate(props) {
@@ -17,6 +20,7 @@ export default function StarRate(props) {
     const [currentMediaType] = useState("")
 
     const [rating, setRating] = React.useState(null);
+    const [avgRating, setAvgRating] = useState(0)
     const [rateColor] = React.useState(null);
 
     const [initialRatingFlag, setInitialRatingFlag] = useState(false);
@@ -27,9 +31,19 @@ export default function StarRate(props) {
     const checkForDuplicates = query(ratingRef, where('user_id', '==', userID), where('media_id', '==', currentMediaID));
     const querySnapshot = getDocs(checkForDuplicates);
 
-
-
-
+    const getAverageRating = async (mediaID, type) => {
+        // Help from https://www.youtube.com/watch?v=91LWShFZn40
+        const averageRatingQuery = query(collection(db, "Ratings"), where('media_id', '==', mediaID), where('media_type', '==', type))
+        const averageRatingSnapshot = await getAggregateFromServer(averageRatingQuery, {
+          averageRating: average('rating')
+        })
+        console.log("Average rating: ", averageRatingSnapshot.data().averageRating)
+        if (averageRatingSnapshot.data().averageRating !== null) {
+          setAvgRating(averageRatingSnapshot.data().averageRating)
+        } else {
+          setAvgRating(0)
+        }
+    }
 
 
     // Help from https://www.freecodecamp.org/news/how-to-use-the-firebase-database-in-react/
@@ -80,6 +94,8 @@ export default function StarRate(props) {
         }
         }
 
+        await getAverageRating(props.currentMediaID, props.currentMediaType)
+
     };
 
     return (
@@ -88,6 +104,7 @@ export default function StarRate(props) {
                 const currentRate = index + 1;
                 if(!initialRatingFlag) {
                     setRating(props.initialRate)
+                    setAvgRating(props.initialAvgRate)
                     setInitialRatingFlag(true)
                 }
                 //console.log("Star: ", star);
@@ -104,6 +121,9 @@ export default function StarRate(props) {
                         </label>
                 )
             })}
+            <br />
+            {/* Help from https://www.geeksforgeeks.org/floating-point-number-precision-in-javascript/# */}
+            Average Rating: {avgRating.toPrecision(2)} / 5
         </>
     )
 
