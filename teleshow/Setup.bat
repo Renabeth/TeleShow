@@ -25,9 +25,9 @@
 :: Install React dependencies
 @echo Installing React dependencies...
 @cd frontend
-@call npm install react-router-dom react-bootstrap axios bootstrap lz-string axios-retry react-icons firebase-admin
+@call npm install react-router-dom react-router react-bootstrap axios bootstrap lz-string axios-retry react-icons firebase-admin
 
-@call npm install --save-dev concurrently
+@call npm install --save-dev concurrently dotenv 
 
 @echo ===== Setup complete! =====
 @pause
