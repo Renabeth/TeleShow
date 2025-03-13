@@ -12,8 +12,8 @@
 )
 
 :: Check if Node.js is installed
-node --version > nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
+@node --version > nul 2>&1
+@if %ERRORLEVEL% NEQ 0 (
     @echo Node.js is not installed! Please install Node.js first.
     @exit /b 1
 )
@@ -25,7 +25,9 @@ if %ERRORLEVEL% NEQ 0 (
 :: Install React dependencies
 @echo Installing React dependencies...
 @cd frontend
-@call npm install react-router-dom react-bootstrap axios bootstrap lz-string
+@call npm install react-router-dom react-bootstrap axios bootstrap lz-string axios-retry react-icons firebase-admin
+
+@call npm install --save-dev concurrently
 
 @echo ===== Setup complete! =====
 @pause

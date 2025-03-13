@@ -1,0 +1,172 @@
+/*Written by Moses Pierre*/
+/*https://moderncss.dev/*/
+/* Container for the search bar */
+.search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: width 0.2s ease-in-out, background-color 0.2s ease-in-out, padding 0.2s ease-in-out;
+  width: 60px; /* Icon width when collapsed */
+  height: 60px; /*Icon heigh when collapsed*/
+  overflow: hidden;
+  border: 1px solid #ccc; /* Border for icon */
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0;
+}
+  
+  
+.search-container.expanded {
+  width: 330px; 
+  background-color: #D3D3D3; /* gray background */
+  padding: 5px 20px; /* Space for input */
+  overflow: visible;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+  
+  /* Search icon styles */
+.search-trigger {
+  cursor: pointer;
+  transition: transform 0.2s ease, color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #D3D3D3; /* Background for icon */
+}
+
+
+  
+.search-trigger:hover .search-icon {
+  transform: scale(1.1); /* Magnify icon on hover */
+}
+
+.search-icon {
+  font-size: 45px; /*Icon size and color*/
+  color: #000000;
+}
+
+
+/* Control the search input appearance */
+.search-input {
+  width: 100%; 
+  opacity: 0;
+  border: none;
+  background: transparent;
+  transition: opacity 0.3s ease;
+  outline: none;
+  font-size: 16px;
+  padding: 5px;
+}
+
+.search-input:focus {
+  outline: none; /* Removes the default blue outline */
+  box-shadow: none; 
+  background-color: #D3D3D3; 
+}
+
+/* When expanded, make the input visible */
+.search-container.expanded .search-input {
+  opacity: 1;
+}
+
+/* Placeholder dissolve animation */
+.search-input::placeholder {
+  font-size: 14px;
+  color: #6c757d;
+}
+
+
+/* Keyframe for icon fade-in animation */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.filter-area {
+  position: relative;
+  margin-left: 10px;
+  z-index: 1600;
+}
+  
+  
+.filter-dropdown-btn {
+  cursor: pointer;
+  background-color: #ffffff;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  padding: 5px 10px;
+  font-size: 14px;
+  color: #6c757d;
+  opacity: 0; /* Initially hidden */
+  transform: translateY(10px); 
+  transition: background-color 0.3s ease, box-shadow 0.3s ease, opacity 0.4s ease, transform 0.4s ease; /* Adds transitions */
+  pointer-events: none;
+}
+
+.filter-dropdown-btn:focus {
+  outline: none;
+  box-shadow: none;
+  background-color: #D3D3D3; /* Same gray as hover/active */
+  border-color: #A9A9A9;
+  color: #333333;
+}
+  
+.filter-dropdown-btn:hover {
+  background-color: #D3D3D3;
+  border-color: #a9a9a9;
+  color: #333333;
+}
+
+.filter-dropdown-btn:active {
+  outline: none;
+  background-color: #D3D3D3; /* Gray when in active state */
+  border-color: #A9A9A9; /*Gray border */
+  color: #333333; /* Keep the text color consistent */
+}
+
+.filter-dropdown-menu {
+  display: none; /* Hidden by default */
+  position: absolute;
+  top: 100%;
+  left:0;
+  z-index: 1500; /* Ensure the dropdown always appears on top */
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
+  width: 150px;
+}
+
+.filter-dropdown-menu.show {
+  display: block;
+  animation: fadeInUp 0.3s ease forwards;
+}
+
+/*Dropdown Animation*/
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.search-container.expanded .filter-dropdown-btn {
+  pointer-events: auto; /* Re-enable interaction */
+  animation: fadeInUp 0.4s ease forwards;
+  animation-delay: 0.2s; /* Delay the animation start */
+}
+

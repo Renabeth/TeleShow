@@ -1,0 +1,84 @@
+/*Written by Moses Pierre*/
+.grey-modal .modal-content {
+  background-color: #808080;
+}
+
+.grey-modal .modal-header {
+  background-color: #696969; 
+  color: black;
+}
+  
+.grey-modal .modal-body {
+  background-color: #808080; 
+  color: black;
+}
+  
+.grey-modal .modal-footer {
+  background-color: #696969;
+  color: black;
+}
+  
+/* Style for cast sections */
+.grey-modal .cast-section {
+  background-color: #808080;
+  color: black;
+}
+  
+/* Style for individual cast cards */
+.grey-modal .cast-card {
+  background-color: #808080;
+  color: black;
+}
+
+.grey-modal .btn-like {
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  margin-right: 10px;
+  border-radius: 5px;
+}
+  
+.grey-modal .btn-watchlist {
+  background-color: #4d79ff;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+}
+  
+.grey-modal .btn-like:hover,
+.grey-modal .btn-watchlist:hover {
+  opacity: 0.9;
+}
+
+/* Style for recommendation cards */
+.grey-modal .recommendation-item {
+  background-color: #808080;
+  color: black;
+}
+  
+.grey-modal .recommendation-title {
+  color: black;
+}
+
+.grey-modal .recommendation-details{
+  color: black;
+}
+.grey-modal select,
+.grey-modal input {
+  background-color: #696969;
+  color: white;
+  border: 1px solid #555;
+}
+  
+.grey-modal select option {
+  background-color: #696969;
+  color: white;
+}
+  
+.grey-modal label {
+  color: white;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
