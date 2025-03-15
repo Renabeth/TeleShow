@@ -27,6 +27,7 @@ const Footer = () => {
                         </li>
                     </ul>
                 </div>
+
                 <div className="contact-item">
                     Serena D'Avanzo
                     <li>
