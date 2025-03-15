@@ -1,10 +1,27 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getAuth, sendPasswordResetEmail } from "firebase/auth"; // Import Firebase functions
 import "../styles/Auth.css";  // Reuse the same styles as Login/Signup
 
 function ForgotPassword() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
+  const [message, setMessage] = useState(""); // For success/error messages
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      setMessage("Please enter your email.");
+      return;
+    }
+
+    const auth = getAuth();
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setMessage("Password reset link sent! Check your email.");
+    } catch (error) {
+      setMessage("Error: " + error.message);
+    }
+  };
 
   return (
     <div className="login-container">
@@ -14,10 +31,8 @@ function ForgotPassword() {
           <img src="/logo.png" alt="TeleShow Logo" className="logo" />
         </div>
 
-        
         <h2 className="login-title">Reset Password</h2>
 
-        
         <input
           className="login-input"
           type="email"
@@ -26,8 +41,11 @@ function ForgotPassword() {
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        {/* Reset Password Button (Functionality will be added with Firebase later) */}
-        <button className="login-button primary">
+        {/* Show Success/Error Message */}
+        {message && <p className="message">{message}</p>}
+
+        {/* Reset Password Button */}
+        <button className="login-button primary" onClick={handleResetPassword}>
           Send Reset Link
         </button>
 

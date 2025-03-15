@@ -1,8 +1,11 @@
 import React from "react";
 import '../styles/Dashboard.css'
 import '../styles/Watchlist.css'
+import GetAverageRating from "../scripts/GetAverageRating.js";
+import SetProviders from "../scripts/SetProviders.js"
 
 import StarRate from "../components/starRate";
+import FetchComments from "../components/FetchComments.js"
 
 
 // Credit to JustWatch as TMDB API watch providers data source
@@ -43,23 +46,31 @@ import { updateDoc } from "firebase/firestore";
 // Help from https://react-bootstrap.netlify.app/docs/components/button-group/
 import ButtonGroup from 'react-bootstrap/ButtonGroup'
 
+// Help from https://www.youtube.com/watch?v=91LWShFZn40
+import { getAggregateFromServer, average } from "firebase/firestore";
+
 function Watchlist() {
 
     const [loggedIn, setLoggedIn] = useState(false)
     const [userID, setUserID] = useState("")
+    const [displayName, setDisplayName] = useState("")
+    const [currentMediaID, setCurrentMediaID] = useState(0)
+    const [currentMediaType, setCurrentMediaType] = useState("")
 
     // Copied from Dashboard.js
     const [modalTitle, setModalTitle] = useState("")
     const [modalPoster, setModalPoster] = useState("")
     const [modalOverview, setModalOverview] = useState("")
     const [modalLanguages, setModalLanguages] = useState("")
-    
+
+    const [modalProvidersAds, setModalProvidersAds] = useState("")
     const [modalProvidersBuy, setModalProvidersBuy] = useState("")
     const [modalProvidersFlatrate, setModalProvidersFlatrate] = useState("")
     const [modalProvidersRent, setModalProvidersRent] = useState("")
 
     // Help from https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/
     const [isLightMode, setIsLightMode] = useState(false)
+    const [displayMode, setDisplayMode] = useState("darkMode")
 
     // Help from https://www.rowy.io/blog/firestore-react-query
     const [loading, setLoading] = useState(false)
@@ -68,6 +79,7 @@ function Watchlist() {
     // Help from https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/
     const toggleLightMode = () => {
         setIsLightMode((prevMode) => !prevMode);
+        isLightMode ? setDisplayMode("darkMode") : setDisplayMode("lightMode")
     }
 
     // Help from https://developer.themoviedb.org/docs/image-basics
@@ -85,12 +97,29 @@ function Watchlist() {
         const querySnapshot = await getDocs(q)
         const res = []
         querySnapshot.forEach(item => {
-            //console.log(item.data())
+            //console.log("Item Data:", item.data())
             res.push({
                 id: item.id,
                 ...item.data()
             })
         })
+
+        console.log("res:", res);
+        for (let i = 0; i < res.length; i++) {
+            let snap = await getDocs(query(collection(db, "Ratings"), where('user_id', '==', res[i].user_id), where('media_id', '==', res[i].media_id)))
+            let rating = 0;
+            let avgRating = 0;
+            snap.forEach(thing => {
+                console.log("Snap item: ", thing.data());
+                console.log("rating:", thing.data().rating)
+                rating = thing.data().rating
+                avgRating = 0;
+            })
+            res[i].rating = rating
+            console.log("Res item:", res[i]);
+            res[i].averageRating = await GetAverageRating(res[i].media_id, res[i].type)
+        }
+
         return res
     }
 
@@ -110,7 +139,7 @@ function Watchlist() {
                 console.log("uid", uid)
                 setLoggedIn(true)
                 setUserID(uid)
-
+                setDisplayName(user.displayName)
                 // Help from https://stackoverflow.com/questions/68260152/firebase-auth-currentuser-is-null-at-page-load/68260898#68260898
                 fetchWatchlist(uid)
             } else {
@@ -126,12 +155,12 @@ function Watchlist() {
         // Help from https://stackoverflow.com/questions/53070970/infinite-loop-in-useeffect
     }, [])
 
-    const removeFromWatchlist = async (id) => {
+    const removeFromWatchlist = async (id, type) => {
         let idToDelete = 0;
         
         // Help from https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
         const watchlistRef = collection(db, "Watchlist");
-        const q = query(watchlistRef, where('user_id', '==', userID), where('media_id', '==', id));
+        const q = query(watchlistRef, where('user_id', '==', userID), where('media_id', '==', id), where('type', '==', type));
         const querySnapshot = await getDocs(q);
         querySnapshot.forEach((doc) => {
             idToDelete = doc.id
@@ -175,6 +204,9 @@ function Watchlist() {
             }
         }
 
+        setCurrentMediaID(id)
+        setCurrentMediaType(type)
+
         // Help from https://developer.themoviedb.org/reference/tv-series-details 
         // and https://developer.themoviedb.org/reference/movie-details
         await axios.request(options)
@@ -203,42 +235,28 @@ function Watchlist() {
         // and https://developer.themoviedb.org/reference/movie-watch-providers
         // (TMDB API data provided by JustWatch)
         await axios.request(providerOptions)
-            .then(res => {
+            .then(async res => {
                 console.log(res.data)
 
-                // Copied from Dashboard.js
-                if (res.data.results.US.buy) {
-                    let buyArray = []
-                    for (let i = 0; i < res.data.results.US.buy.length; i++) {
-                      buyArray.push(res.data.results.US.buy[i].provider_name)
-                    }
-                    setModalProvidersBuy(buyArray.join(", "))
+                // Help from https://www.freecodecamp.org/news/check-if-an-object-is-empty-in-javascript/
+                if (Object.keys(res.data.results).length) {
+                    setModalProvidersAds(await SetProviders(res.data.results.US.ads))
+                    setModalProvidersBuy(await SetProviders(res.data.results.US.buy))
+                    setModalProvidersFlatrate(await SetProviders(res.data.results.US.flatrate))
+                    setModalProvidersRent(await SetProviders(res.data.results.US.rent))
                 } else {
+                    setModalProvidersAds("")
                     setModalProvidersBuy("")
-                }
-        
-                if (res.data.results.US.flatrate) {
-                    let flatArray = []
-                    for (let j = 0; j < res.data.results.US.flatrate.length; j++) {
-                      flatArray.push(res.data.results.US.flatrate[j].provider_name)
-                    }
-                    setModalProvidersFlatrate(flatArray.join(", "))
-                } else {
                     setModalProvidersFlatrate("")
-                }
-        
-                if (res.data.results.US.rent) {
-                    let rentArray = []
-                    for (let j = 0; j < res.data.results.US.rent.length; j++) {
-                      rentArray.push(res.data.results.US.rent[j].provider_name)
-                    }
-                    setModalProvidersRent(rentArray.join(", "))
-                } else {
                     setModalProvidersRent("")
                 }
-
             })
-            .catch(err => console.error(err))
+            .catch(err => {
+                console.error(err)
+                setModalProvidersBuy("")
+                setModalProvidersFlatrate("")
+                setModalProvidersRent("")
+            })
 
         // Help from https://www.geeksforgeeks.org/how-to-use-modal-component-in-reactjs/#
         // And https://react-bootstrap.netlify.app/docs/components/modal/
@@ -292,15 +310,53 @@ function Watchlist() {
                         <div id="overviewBox">
                             { modalOverview || "None" }
                         </div>
+                        <hr />
+
                         <h3>Spoken Languages</h3>
                             { modalLanguages || "None" }
+                        <hr />
+
                         <h3>Watch Providers</h3>
-                        <h4>Buy</h4>
-                            { modalProvidersBuy || "None" }
-                        <h4>Flatrate</h4>
-                            { modalProvidersFlatrate || "None" }
-                        <h4>Rent</h4>
-                            { modalProvidersRent || "None" }
+
+                        { modalProvidersAds ?
+                            <>
+                                <h4>Ads</h4>
+                                {modalProvidersAds}
+                            </> : ""
+                        }
+
+                        {
+                            modalProvidersBuy ?
+                            <>
+                                <h4>Buy</h4>
+                                {modalProvidersBuy}
+                            </> : ""
+                        }
+
+                        {
+                            modalProvidersFlatrate ?
+                            <>
+                                <h4>Flatrate</h4>
+                                {modalProvidersFlatrate}
+                            </> : ""
+                        }
+
+                        {
+                            modalProvidersRent ?
+                            <>
+                                <h4>Rent</h4>
+                                {modalProvidersRent}
+                            </> : ""
+                        }
+
+                        <hr />
+                        {/* Help from https://www.geeksforgeeks.org/how-to-perform-form-validation-in-react/ */}
+                        <FetchComments
+                        userID={userID}
+                        mediaId={currentMediaID}
+                        mediaType={currentMediaType}
+                        displayName={displayName}
+                        displayMode={displayMode} />
                         </div>
                     </div>
                 </Modal.Body>
@@ -360,15 +416,22 @@ function Watchlist() {
 
                                     {/* Help from https://react-bootstrap.netlify.app/docs/components/button-group/ */}
                                     <ButtonGroup>
-                                        <Button dialogClassName="watchBtn" variant="primary" onClick={() => displayInformation(item.media_id, item.type)}>View Information</Button>
-                                        <Button dialogClassName="watchBtn" variant="success">Write a Review</Button>
-                                        <Button dialogClassName="watchBtn" variant="danger" onClick={() => removeFromWatchlist(item.media_id)}>Remove from Watchlist</Button>
-
-
+                                        <Button variant="primary" onClick={() => displayInformation(item.media_id, item.type)}>View Information</Button>
+                                        <Button variant="success" onClick={() => alert("Review functionality has not been implemented yet. We thank you for your patience.")}>Write a Review</Button>
+                                        <Button variant="danger" onClick={() => removeFromWatchlist(item.media_id, item.type)}>Remove from Watchlist</Button>
                                     </ButtonGroup>
                                     <br/>
                                     <p>Your rating:</p>
-                                    <StarRate></StarRate>
+
+                                    {/* Help from https://stackoverflow.com/questions/70344255/react-js-passing-one-components-variables-to-another-component-and-vice-versa */}
+                                    <StarRate
+                                    userID={userID}
+                                    currentMediaID={item.media_id}
+                                    currentMediaType={item.type}
+                                    initialRate={item.rating}
+                                    initialAvgRate={item.averageRating}>
+
+                                    </StarRate>
                                 </div>
                             </div>
                         ))}

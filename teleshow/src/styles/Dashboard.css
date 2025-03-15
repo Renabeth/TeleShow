@@ -1,5 +1,5 @@
 #dashboard {
-    background-color: rgb(50, 50, 50);
+    /*background-color: rgb(50, 50, 50);*/
     width: 100%;
     margin: 0 auto;
     padding: 15px;
@@ -103,5 +103,20 @@ And https://stackoverflow.com/questions/76810663/react-modals-or-dialogs-doesnt-
     border-radius: 0px 0px 10px 10px;
 }
 
+.centerBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    width: 100%;
+    margin: 0 auto;
+}
 
+.dashboard-light {
+    background-color: rgb(204, 204, 204);
+    color: black;
+}
 
+.dashboard-dark {
+    background-color: rgb(50, 50, 50);
+    color: white;
+}
