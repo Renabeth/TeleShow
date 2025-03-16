@@ -66,6 +66,7 @@ function Watchlist() {
     const [modalProvidersAds, setModalProvidersAds] = useState("")
     const [modalProvidersBuy, setModalProvidersBuy] = useState("")
     const [modalProvidersFlatrate, setModalProvidersFlatrate] = useState("")
+    const [modalProvidersFree, setModalProvidersFree] = useState("")
     const [modalProvidersRent, setModalProvidersRent] = useState("")
 
     // Help from https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/
@@ -110,13 +111,13 @@ function Watchlist() {
             let rating = 0;
             let avgRating = 0;
             snap.forEach(thing => {
-                console.log("Snap item: ", thing.data());
-                console.log("rating:", thing.data().rating)
+                //console.log("Snap item: ", thing.data());
+                //console.log("rating:", thing.data().rating)
                 rating = thing.data().rating
                 avgRating = 0;
             })
             res[i].rating = rating
-            console.log("Res item:", res[i]);
+            //console.log("Res item:", res[i]);
             res[i].averageRating = await GetAverageRating(res[i].media_id, res[i].type)
         }
 
@@ -243,11 +244,13 @@ function Watchlist() {
                     setModalProvidersAds(await SetProviders(res.data.results.US.ads))
                     setModalProvidersBuy(await SetProviders(res.data.results.US.buy))
                     setModalProvidersFlatrate(await SetProviders(res.data.results.US.flatrate))
+                    setModalProvidersFree(await SetProviders(res.data.results.US.free))
                     setModalProvidersRent(await SetProviders(res.data.results.US.rent))
                 } else {
                     setModalProvidersAds("")
                     setModalProvidersBuy("")
                     setModalProvidersFlatrate("")
+                    setModalProvidersFree("")
                     setModalProvidersRent("")
                 }
             })
@@ -318,10 +321,19 @@ function Watchlist() {
 
                         <h3>Watch Providers</h3>
 
+                        {
+                            !modalProvidersAds &&
+                            !modalProvidersBuy &&
+                            !modalProvidersFlatrate &&
+                            !modalProvidersFree &&
+                            !modalProvidersRent ?
+                            <p>{"None"}</p> : ""
+                        }
+
                         { modalProvidersAds ?
                             <>
                                 <h4>Ads</h4>
-                                {modalProvidersAds}
+                                <p>{modalProvidersAds}</p>
                             </> : ""
                         }
 
@@ -329,7 +341,7 @@ function Watchlist() {
                             modalProvidersBuy ?
                             <>
                                 <h4>Buy</h4>
-                                {modalProvidersBuy}
+                                <p>{modalProvidersBuy}</p>
                             </> : ""
                         }
 
@@ -337,7 +349,15 @@ function Watchlist() {
                             modalProvidersFlatrate ?
                             <>
                                 <h4>Flatrate</h4>
-                                {modalProvidersFlatrate}
+                                <p>{modalProvidersFlatrate}</p>
+                            </> : ""
+                        }
+
+                        {
+                            modalProvidersFree ?
+                            <>
+                                <h4>Free</h4>
+                                <p>{modalProvidersFree}</p>
                             </> : ""
                         }
 
@@ -345,7 +365,7 @@ function Watchlist() {
                             modalProvidersRent ?
                             <>
                                 <h4>Rent</h4>
-                                {modalProvidersRent}
+                                <p>{modalProvidersRent}</p>
                             </> : ""
                         }
 

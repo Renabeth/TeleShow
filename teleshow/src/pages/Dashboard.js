@@ -72,6 +72,7 @@ function Dashboard() {
   const [modalProvidersAds, setModalProvidersAds] = useState("")
   const [modalProvidersBuy, setModalProvidersBuy] = useState("")
   const [modalProvidersFlatrate, setModalProvidersFlatrate] = useState("")
+  const [modalProvidersFree, setModalProvidersFree] = useState("")
   const [modalProvidersRent, setModalProvidersRent] = useState("")
   
   const [modalRating, setModalRating] = useState(0)
@@ -92,7 +93,7 @@ function Dashboard() {
     //const tvUrl = `https://api.themoviedb.org/3/tv/1396/recommendations?language=en-US&page=1`
 
     // Help from https://developer.themoviedb.org/reference/trending-tv
-    const tvUrl = 'https://api.themoviedb.org/3/trending/tv/week?language=en-US'
+    const tvUrl = 'https://api.themoviedb.org/3/trending/tv/day?language=en-US'
     // Should we do week instead of day?
 
     // Help from https://developer.themoviedb.org/reference/movie-recommendations
@@ -100,7 +101,7 @@ function Dashboard() {
     //const movieUrl = `https://api.themoviedb.org/3/movie/939243/recommendations?language=en-US&page=1`
 
     // Help from https://developer.themoviedb.org/reference/trending-movies
-    const movieUrl = 'https://api.themoviedb.org/3/trending/movie/week?language=en-US'
+    const movieUrl = 'https://api.themoviedb.org/3/trending/movie/day?language=en-US'
     
     // Help from https://www.youtube.com/watch?v=PGCMdiXRI6Y
     const tvResponse = await fetch(tvUrl, options)
@@ -242,11 +243,13 @@ function Dashboard() {
             setModalProvidersAds(await SetProviders(json.results.US.ads))
             setModalProvidersBuy(await SetProviders(json.results.US.buy))
             setModalProvidersFlatrate(await SetProviders(json.results.US.flatrate))
+            setModalProvidersFree(await SetProviders(json.results.US.free))
             setModalProvidersRent(await SetProviders(json.results.US.rent))
           } else {
             setModalProvidersAds("")
             setModalProvidersBuy("")
             setModalProvidersFlatrate("")
+            setModalProvidersFree("")
             setModalProvidersRent("")
           }
         })
@@ -450,10 +453,19 @@ function Dashboard() {
 
                 <h3>Watch Providers</h3>
 
+                {
+                  !modalProvidersAds &&
+                  !modalProvidersBuy &&
+                  !modalProvidersFlatrate &&
+                  !modalProvidersFree &&
+                  !modalProvidersRent ?
+                  <p>{"None"}</p> : ""
+                }
+
                 { modalProvidersAds ? 
                   <>
                     <h4>Ads</h4>
-                    {modalProvidersAds}
+                    <p>{modalProvidersAds}</p>
                   </> : ""
                 }
 
@@ -461,7 +473,7 @@ function Dashboard() {
                   modalProvidersBuy ?
                   <>
                     <h4>Buy</h4>
-                    {modalProvidersBuy}
+                    <p>{modalProvidersBuy}</p>
                   </> : ""
                 }
 
@@ -469,7 +481,15 @@ function Dashboard() {
                   modalProvidersFlatrate ?
                   <>
                     <h4>Flatrate</h4>
-                    {modalProvidersFlatrate}
+                    <p>{modalProvidersFlatrate}</p>
+                  </> : ""
+                }
+
+                {
+                  modalProvidersFree ?
+                  <>
+                    <h4>Free</h4>
+                    <p>{modalProvidersFree}</p>
                   </> : ""
                 }
 
@@ -477,7 +497,7 @@ function Dashboard() {
                   modalProvidersRent ?
                   <>
                     <h4>Rent</h4>
-                    {modalProvidersRent}
+                    <p>{modalProvidersRent}</p>
                   </> : ""
                 }
 
