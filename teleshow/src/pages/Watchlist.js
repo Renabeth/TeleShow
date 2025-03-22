@@ -25,7 +25,7 @@ import { auth } from '../firebase'
 import Modal from 'react-bootstrap/Modal'
 
 // Help from https://www.freecodecamp.org/news/how-to-use-the-firebase-database-in-react/
-import { collection, addDoc, getDocs } from "firebase/firestore";
+import {collection, addDoc, getDocs, serverTimestamp} from "firebase/firestore";
 import { db } from "../firebase";
 
 // Help from https://firebase.google.com/docs/firestore/query-data/queries
@@ -76,6 +76,9 @@ function Watchlist() {
     const [loading, setLoading] = useState(false)
     const [watchlist, setWatchlist] = useState([])
 
+    const [reviewDuplicate, setReviewDuplicate] = useState(true);
+
+
     // Help from https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/
     const toggleLightMode = () => {
         setIsLightMode((prevMode) => !prevMode);
@@ -89,6 +92,14 @@ function Watchlist() {
     const [show, setShow] = useState(false);
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
+
+    const[review,setReview] = useState(false);
+    const handleReview= () => setReview(true);
+    const handleReviewClose = () => setReview(false);
+
+    // State to hold review textarea value
+    const [reviewText, setReviewText] = useState("");
+
 
     // Help from https://www.rowy.io/blog/firestore-react-query
     const queryWatchlist = async (uid) => {
@@ -263,6 +274,44 @@ function Watchlist() {
         handleShow()
     }
 
+   const displayReviewModal = async () => {
+handleReview()
+   }
+
+    // From FetchComments.js, handle change in textarea
+    const handleReviewChange = (e) => {
+        setReviewText(e.target.value);
+        const { name, value } = e.target;
+        setReviewData({
+            ...reviewData,
+            [name]: value,
+        })
+    };
+
+    // Submit review to Firestore
+    const handleReviewSubmit = async (e) => {
+        e.preventDefault();
+
+        if (reviewText.trim() === "") {
+            alert("Review cannot be empty!");
+            return;
+        }
+        try {
+            const reviewRef = await addDoc(collection(db, "Reviews"), {
+                review: reviewText,
+                timestamp: new Date(),
+            });
+            console.log("Review added with ID: ", reviewRef.id);
+
+            // Clear  textarea after submission
+            setReviewText("");
+            alert("Review submitted successfully!");
+        } catch (error) {
+            console.error("Error adding review: ", error);
+            alert("Error submitting review. Please try again.");
+        }
+    };
+
     const updateStatus = async (id, watchStatus) => {
         // Help from https://firebase.google.com/docs/firestore/manage-data/add-data
         // And https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
@@ -276,6 +325,14 @@ function Watchlist() {
     const returnToDashboard = () => {
         navigate("/dashboard")
     }
+
+
+    //From FetchComments.js
+    const [reviewData, setReviewData] = useState({
+        text: '',
+        remainingCharacters: 5000,
+    })
+
 
     // From Dashboard.js
     const navigate = useNavigate();
@@ -362,6 +419,50 @@ function Watchlist() {
                 </Modal.Body>
             </Modal>
 
+            {/* review modal */}
+            <Modal show={review} onHide={handleReviewClose} backdrop="static" keyboard={false} dialogClassName="modal-85w">
+
+                {/* Help from https://stackoverflow.com/questions/76810663/react-modals-or-dialogs-doesnt-inherit-the-dark-mode-styles-tailwind */}
+                {/* And https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/# */}
+                <Modal.Header className={`${isLightMode ? 'head-light' : 'head-dark'}`} closeButton>
+                    <Modal.Title>
+                        { modalTitle || "None" }
+                    </Modal.Title>
+                </Modal.Header>
+
+                {/* value={commentData.text}*/}
+                {/*onChange={handleCommentChange} */ }
+                {/* Help from https://stackoverflow.com/questions/76810663/react-modals-or-dialogs-doesnt-inherit-the-dark-mode-styles-tailwind */}
+                {/* And https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/# */}
+                <Modal.Body className={`modalBody ${isLightMode ? 'body-light' : 'body-dark'}`}>
+                    <div className="modalBox">
+                        <div className="modalLeft">
+                        </div>
+                        <div className="modalRight">
+                            <h2>Write a Review</h2>
+                            <form onSubmit = {handleReviewSubmit}>
+                            <textarea
+                                className={`commentTextBox ${displayMode==="lightMode" ? "textBox-light" : "textBox-dark" }`}
+                                rows={5}
+                                placeholder="Add a Review..."
+                                name="text"
+                                onChange={handleReviewChange}
+                                maxLength={5000} />
+                            { `${reviewData.remainingCharacters - reviewData.text.length} characters remaining.` }
+
+                            <button className="watchlist-button secondary" type="submit">Submit</button>
+                        </form>
+                            <div id="overviewBox">
+                                { modalOverview || "None" }
+                            </div>
+
+                        </div>
+                    </div>
+                </Modal.Body>
+            </Modal>
+
+
+
             <div className="watchlistBox">
                 <div className="watchlistLeft">
 
@@ -414,10 +515,11 @@ function Watchlist() {
                                         <option value="Finished watching">Finished watching</option>
                                     </Form.Select>
 
-                                    {/* Help from https://react-bootstrap.netlify.app/docs/components/button-group/ */}
+
+
                                     <ButtonGroup>
                                         <Button variant="primary" onClick={() => displayInformation(item.media_id, item.type)}>View Information</Button>
-                                        <Button variant="success" onClick={() => alert("Review functionality has not been implemented yet. We thank you for your patience.")}>Write a Review</Button>
+                                        <Button variant="success" onClick={() => displayReviewModal()}>Write a Review</Button>
                                         <Button variant="danger" onClick={() => removeFromWatchlist(item.media_id, item.type)}>Remove from Watchlist</Button>
                                     </ButtonGroup>
                                     <br/>

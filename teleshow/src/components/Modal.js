@@ -1,10 +1,12 @@
 // Help from https://www.geeksforgeeks.org/how-to-use-modal-component-in-reactjs/#
 import React from "react"
 
+
 const Modal = ({ isOpen, onClose, children }) => {
     if (!isOpen) return null;
 
     return (
+
         <div
             
             style={{
@@ -38,6 +40,7 @@ const Modal = ({ isOpen, onClose, children }) => {
                 {children}
             </div>
         </div>
+
     );
 };
 

@@ -6,6 +6,7 @@ import FetchComments from "../components/FetchComments.js"
 import SetProviders from "../scripts/SetProviders.js"
 
 
+
 // Credit to JustWatch as TMDB API watch providers data source
 
 import { useNavigate } from "react-router-dom";
@@ -73,12 +74,13 @@ function Dashboard() {
   const [modalProvidersBuy, setModalProvidersBuy] = useState("")
   const [modalProvidersFlatrate, setModalProvidersFlatrate] = useState("")
   const [modalProvidersRent, setModalProvidersRent] = useState("")
-  
+
   const [modalRating, setModalRating] = useState(0)
   const [modalAverageRating, setModalAverageRating] = useState(0)
 
   // Used to track if an item is already in a user's watchlist -WA
   const [watchlistDuplicate, setWatchListDuplicate] = useState(true);
+  const [reviewDuplicate, setReviewDuplicate] = useState(true);
 
   // Help from https://www.youtube.com/watch?v=PGCMdiXRI6Y
   const getRecommendations = async () => {
@@ -101,13 +103,13 @@ function Dashboard() {
 
     // Help from https://developer.themoviedb.org/reference/trending-movies
     const movieUrl = 'https://api.themoviedb.org/3/trending/movie/week?language=en-US'
-    
+
     // Help from https://www.youtube.com/watch?v=PGCMdiXRI6Y
     const tvResponse = await fetch(tvUrl, options)
       .then((tvResponse) => tvResponse.json())
       .catch(error => console.error(error))
       setRecommendedTv(tvResponse.results)
-    
+
     const movieResponse = await fetch(movieUrl, options)
       .then((movieResponse) => movieResponse.json())
       .catch(error => console.error(error))
@@ -286,7 +288,7 @@ function Dashboard() {
       querySnapshot.forEach((doc) => {
         duplicates++;
       })
-      
+
       console.log(duplicates)
       if (duplicates > 0) {
         setWatchListDuplicate(true)
@@ -339,7 +341,48 @@ function Dashboard() {
   }
 
 
-  const removeFromWatchlist = async (e) => {
+  const writeReview = async (e) => {
+  const reviewRef = collection(db, "Reviews");
+    const checkForDuplicates = query(reviewRef, where('user_id', '==', userID), where('media_id', '==', currentMediaID), where('type', '==', currentMediaType));
+    const querySnapshot = await getDocs(checkForDuplicates);
+    let duplicates = 0; // This will check for duplicate userID / media ID combinations
+    querySnapshot.forEach((doc) => {
+      duplicates++;
+    })
+    if (duplicates > 0) {
+      alert("Please update your review before submitting.")
+    } else {
+      try {
+        const docRef = await addDoc(collection(db, "Reviews"), {
+          user_id: userID,
+          title: modalTitle,
+          type: currentMediaType,
+          media_id: currentMediaID,
+          review: reviewRef,
+
+          date_added: serverTimestamp(),
+
+          poster_path: modalPoster,
+        });
+        console.log("Wrote document with ID: ", docRef.id);
+        alert("Review added successfully.");
+        setReviewDuplicate(true)
+      } catch (e) {
+        console.error("Error adding review: ", e);
+      }
+    }
+    handleShow()
+
+  }
+
+
+  const toggleReviewModal = ({isOpen, onClose}) => {
+    if(!isOpen) {
+      return null;
+    }
+  }
+
+    const removeFromWatchlist = async (e) => {
     e.preventDefault();
 
     let idToDelete = 0;
@@ -365,179 +408,209 @@ function Dashboard() {
     })
   }
 
+
   return (
-    // Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/#
-    <div className={`container ${isLightMode ? "dashboard-light" : "dashboard-dark" }`} id="dashboard">
-      <h2>Dashboard in Progress Stay Tuned</h2>
-      <div>
-        {/* Help from https://stackoverflow.com/questions/76990183/how-to-display-the-current-user-display-name-in-firebase-using-react */}
-        { isLoggedIn ? <>
 
-        <p>Welcome, {displayName || "none"}! </p>
-        <br/>
-
-        <div className="centerBar">
-          {/* Help from https://react-icons.github.io/react-icons/icons/bs/ */}
-          <BsCircleFill style={{fontSize: "48px", cursor: "pointer", float: "left"}} onClick={() => alert("Profile functionality has not yet been fully implemented. We thank you for your patience.")} />
-
-          <Button variant="secondary" style={{width: "60%", textAlign: "left", fontSize: "24px"}} onClick={() => alert("Search functionality has not yet been implemented.")}>Search...</Button>
-
-          {/* Help from https://react-icons.github.io/react-icons/icons/bs/ */}
-          <BsBookmarkFill style={{fontSize: "48px", cursor: "pointer", float: "right"}} onClick={goToWatchlist} />
-        </div>
-        <br />
-        </> : <>
-        <p>You are currently logged out.</p>
-        <Button variant="primary" onClick={() => navigate("/")}>Return to Login</Button>
-        </>
-        }
-
-        {/* Help from https://react-bootstrap.netlify.app/docs/components/modal/ */}
-        {/* And https://github.com/react-bootstrap/react-bootstrap/issues/3794 */}
-        {/* And https://www.geeksforgeeks.org/how-to-use-modal-component-in-reactjs/# */}
-        <Modal show={show} onHide={handleClose} dialogClassName="modal-85w" backdrop="static" keyboard={false}>
-
-
-          {/* Help from https://stackoverflow.com/questions/76810663/react-modals-or-dialogs-doesnt-inherit-the-dark-mode-styles-tailwind */}
-          {/* And https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/# */}
-          <Modal.Header closeButton className={`${isLightMode ? 'head-light' : 'head-dark'}`}>
-            <Modal.Title>
-              { modalTitle || "None" }
-            </Modal.Title>
-          </Modal.Header>
-
-          {/* Help from https://stackoverflow.com/questions/76810663/react-modals-or-dialogs-doesnt-inherit-the-dark-mode-styles-tailwind */}
-          {/* And https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/# */}
-          <Modal.Body className={`modalBody ${isLightMode ? 'body-light' : 'body-dark'}`}>
-            <div className="modalBox">
-              <div className="modalLeft">
-                <img className="modalPoster" id="modalPoster" src={modalPoster} alt="modal poster" />
-                { !watchlistDuplicate ?
-                  <button className="watchlist-button primary" onClick={addToWatchlist}>
-                    Add to Watchlist
-                  </button>
-                  :
-                  <button className="watchlist-button primary" onClick={removeFromWatchlist}>
-                    Remove from Watchlist
-                  </button>
-                }
-                <button className="watchlist-button secondary" onClick={() => alert("Review functionality has not been implemented yet. We thank you for your patience.")}>
-                  Write a Review
-                </button>
-                <p>Leave a Rating:</p>
-
-                {/* Help from https://stackoverflow.com/questions/70344255/react-js-passing-one-components-variables-to-another-component-and-vice-versa */}
-                <StarRate
-                userID={userID}
-                currentMediaID={currentMediaID}
-                currentMediaType={currentMediaType}
-                initialRate={modalRating}
-                initialAvgRate={modalAverageRating}
-                isLightMode={false}>
-                </StarRate>
-              </div>
-
-              <div className="modalRight">
-                <h2>Overview</h2>
-                <div id="overviewBox">
-                  { modalOverview || "None" }
-                </div>
-                <hr />
-                
-                <h3>Spoken Languages</h3>
-                  { modalLanguages || "None" }
-                <hr />
-
-                <h3>Watch Providers</h3>
-
-                { modalProvidersAds ? 
-                  <>
-                    <h4>Ads</h4>
-                    {modalProvidersAds}
-                  </> : ""
-                }
-
-                {
-                  modalProvidersBuy ?
-                  <>
-                    <h4>Buy</h4>
-                    {modalProvidersBuy}
-                  </> : ""
-                }
-
-                {
-                  modalProvidersFlatrate ?
-                  <>
-                    <h4>Flatrate</h4>
-                    {modalProvidersFlatrate}
-                  </> : ""
-                }
-
-                {
-                  modalProvidersRent ?
-                  <>
-                    <h4>Rent</h4>
-                    {modalProvidersRent}
-                  </> : ""
-                }
-
-                <hr />
-
-                {/* Help from https://www.geeksforgeeks.org/how-to-perform-form-validation-in-react/ */}
-                <FetchComments
-                userID={userID}
-                mediaId={currentMediaID}
-                mediaType={currentMediaType}
-                displayName={displayName}
-                displayMode={displayMode} />
-              </div>
-            </div>
-          </Modal.Body>
-        </Modal>
-
-        { isLoggedIn ? <>
-
-        {/* Help from https://www.w3schools.com/css/tryit.asp?filename=trycss3_flexbox_responsive2 */}
-        <h4>Recommended TV:</h4>
-
-        {/* Help from https://www.rowy.io/blog/firestore-react-query */}
-        {/* And https://react.dev/learn/rendering-lists#keeping-list-items-in-order-with-key */}
-
-        {/* Help from https://www.youtube.com/watch?v=PGCMdiXRI6Y */}
-        {/* And https://www.rowy.io/blog/firestore-react-query */}
-        { tvLoading && <p>Loading TV Recommendations...</p>}
-        <div className="mediaBox">
-          {recommendedTv && recommendedTv.slice(0, 4).map((tv) => (
-            <div key={tv.id} className="mediaCell">
-              {/* Help from https://stackoverflow.com/questions/29810914/react-js-onclick-cant-pass-value-to-method and https://upmostly.com/tutorials/pass-a-parameter-through-onclick-in-react */}
-              <img className="mediaPoster" src={imgPath+tv.poster_path} alt="media" onClick={async () => await showDetails(tv.id, "tv")} />
-              <p>{tv.name}</p>
-            </div>
-          ))}
-        </div>
-
-        <h4>Recommended Movies:</h4>
-        { movieLoading && <p>Loading Movie Recommendations...</p>}
-        <div className="mediaBox">
-          {recommendedMovies && recommendedMovies.slice(0, 4).map((movie) => (
-            <div key={movie.id} className="mediaCell">
-              {/* Help from https://stackoverflow.com/questions/29810914/react-js-onclick-cant-pass-value-to-method and https://upmostly.com/tutorials/pass-a-parameter-through-onclick-in-react */}
-              <img className="mediaPoster" src={imgPath+movie.poster_path} alt="media" onClick={async () => await showDetails(movie.id, "movie")} />
-              <p>{movie.title}</p>
-            </div>
-          ))}
-        </div>
-
+      // Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/#
+      <div className={`container ${isLightMode ? "dashboard-light" : "dashboard-dark"}`} id="dashboard">
+        <h2>Dashboard in Progress Stay Tuned</h2>
         <div>
-          {/* Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/# */}
-          <Button onClick={toggleLightMode} variant={`${isLightMode ? "dark" : "light"}`}>Switch to {isLightMode ? "Dark" : "Light"} Mode</Button>
-          <Button variant="danger" onClick={handleLogout}>Log out</Button>
-        </div>
+          {/* Help from https://stackoverflow.com/questions/76990183/how-to-display-the-current-user-display-name-in-firebase-using-react */}
+          {isLoggedIn ? <>
 
-        </> : "" }
+            <p>Welcome, {displayName || "none"}! </p>
+            <br/>
+
+            <div className="centerBar">
+              {/* Help from https://react-icons.github.io/react-icons/icons/bs/ */}
+              <BsCircleFill style={{fontSize: "48px", cursor: "pointer", float: "left"}}
+                            onClick={() => alert("Profile functionality has not yet been fully implemented. We thank you for your patience.")}/>
+
+              <Button variant="secondary" style={{width: "60%", textAlign: "left", fontSize: "24px"}}
+                      onClick={() => alert("Search functionality has not yet been implemented.")}>Search...</Button>
+
+              {/* Help from https://react-icons.github.io/react-icons/icons/bs/ */}
+              <BsBookmarkFill style={{fontSize: "48px", cursor: "pointer", float: "right", color: "blueviolet"}}
+                              onClick={goToWatchlist}/>
+            </div>
+            <br/>
+          </> : <>
+            <p>You are currently logged out.</p>
+            <Button variant="primary" onClick={() => navigate("/")}>Return to Login</Button>
+          </>
+          }
+
+
+          {/* Help from https://react-bootstrap.netlify.app/docs/components/modal/ */}
+          {/* And https://github.com/react-bootstrap/react-bootstrap/issues/3794 */}
+          {/* And https://www.geeksforgeeks.org/how-to-use-modal-component-in-reactjs/# */}
+          <Modal show={show} onHide={handleClose} dialogClassName="modal-85w" backdrop="static" keyboard={false}>
+
+
+            {/* Help from https://stackoverflow.com/questions/76810663/react-modals-or-dialogs-doesnt-inherit-the-dark-mode-styles-tailwind */}
+            {/* And https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/# */}
+            <Modal.Header closeButton className={`${isLightMode ? 'head-light' : 'head-dark'}`}>
+              <Modal.Title>
+                {modalTitle || "None"}
+              </Modal.Title>
+            </Modal.Header>
+
+
+
+
+
+            {/* Help from https://stackoverflow.com/questions/76810663/react-modals-or-dialogs-doesnt-inherit-the-dark-mode-styles-tailwind */}
+            {/* And https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/# */}
+            <Modal.Body className={`modalBody ${isLightMode ? 'body-light' : 'body-dark'}`}>
+              <div className="modalBox">
+                <div className="modalLeft">
+                  <img className="modalPoster" id="modalPoster" src={modalPoster} alt="modal poster"/>
+                  {!watchlistDuplicate ?
+                      <button className="watchlist-button primary" onClick={addToWatchlist}>
+                        Add to Watchlist
+                      </button>
+                      :
+                      <button className="watchlist-button primary" onClick={removeFromWatchlist}>
+                        Remove from Watchlist
+                      </button>
+                  }
+
+                  <div className="mediaBox">
+                    {recommendedTv && recommendedTv.slice(0, 4).map((tv) => (
+                        <div key={tv.id} className="mediaCell">
+                          {/* Help from https://stackoverflow.com/questions/29810914/react-js-onclick-cant-pass-value-to-method and https://upmostly.com/tutorials/pass-a-parameter-through-onclick-in-react */}
+                          <button className="watchlist-button secondary" src={imgPath + tv.poster_path} alt="media"
+                               onClick={async () => await showDetails(tv.id, "tv")}/>
+                          <p>{tv.name}</p>
+                        </div>
+                    ))}
+                  </div>
+
+
+                  <p>Leave a Rating:</p>
+
+                  {/* Help from https://stackoverflow.com/questions/70344255/react-js-passing-one-components-variables-to-another-component-and-vice-versa */}
+                  <StarRate
+                      userID={userID}
+                      currentMediaID={currentMediaID}
+                      currentMediaType={currentMediaType}
+                      initialRate={modalRating}
+                      initialAvgRate={modalAverageRating}
+                      isLightMode={false}>
+                  </StarRate>
+                </div>
+
+                <div className="modalRight">
+                  <h2>Overview</h2>
+                  <div id="overviewBox">
+                    {modalOverview || "None"}
+                  </div>
+                  <hr/>
+
+                  <h3>Spoken Languages</h3>
+                  {modalLanguages || "None"}
+                  <hr/>
+
+                  <h3>Watch Providers</h3>
+
+                  {modalProvidersAds ?
+                      <>
+                        <h4>Ads</h4>
+                        {modalProvidersAds}
+                      </> : ""
+                  }
+
+                  {
+                    modalProvidersBuy ?
+                        <>
+                          <h4>Buy</h4>
+                          {modalProvidersBuy}
+                        </> : ""
+                  }
+
+                  {
+                    modalProvidersFlatrate ?
+                        <>
+                          <h4>Flatrate</h4>
+                          {modalProvidersFlatrate
+                          }
+                        </> : ""
+                  }
+
+                  {
+                    modalProvidersRent ?
+                        <>
+                          <h4>Rent</h4>
+                          {modalProvidersRent}
+                        </> : ""
+                  }
+
+                  <hr/>
+
+                  {/* Help from https://www.geeksforgeeks.org/how-to-perform-form-validation-in-react/ */}
+                  <FetchComments
+                      userID={userID}
+                      mediaId={currentMediaID}
+                      mediaType={currentMediaType}
+                      displayName={displayName}
+                      displayMode={displayMode}/>
+                </div>
+              </div>
+            </Modal.Body>
+          </Modal>
+
+          {isLoggedIn ? <>
+
+            {/* Help from https://www.w3schools.com/css/tryit.asp?filename=trycss3_flexbox_responsive2 */}
+            <h4>Recommended TV:</h4>
+
+            {/* Help from https://www.rowy.io/blog/firestore-react-query */}
+            {/* And https://react.dev/learn/rendering-lists#keeping-list-items-in-order-with-key */}
+
+            {/* Help from https://www.youtube.com/watch?v=PGCMdiXRI6Y */}
+            {/* And https://www.rowy.io/blog/firestore-react-query */}
+            {tvLoading && <p>Loading TV Recommendations...</p>}
+            <div className="mediaBox">
+              {recommendedTv && recommendedTv.slice(0, 4).map((tv) => (
+                  <div key={tv.id} className="mediaCell">
+                    {/* Help from https://stackoverflow.com/questions/29810914/react-js-onclick-cant-pass-value-to-method and https://upmostly.com/tutorials/pass-a-parameter-through-onclick-in-react */}
+                    <img className="mediaPoster" src={imgPath + tv.poster_path} alt="media"
+                         onClick={async () => await showDetails(tv.id, "tv")}/>
+                    <p>{tv.name}</p>
+                  </div>
+              ))}
+            </div>
+
+            <h4>Recommended Movies:</h4>
+            {movieLoading && <p>Loading Movie Recommendations...</p>}
+            <div className="mediaBox">
+              {recommendedMovies && recommendedMovies.slice(0, 4).map((movie) => (
+                  <div key={movie.id} className="mediaCell">
+                    {/* Help from https://stackoverflow.com/questions/29810914/react-js-onclick-cant-pass-value-to-method and https://upmostly.com/tutorials/pass-a-parameter-through-onclick-in-react */}
+                    <img className="mediaPoster" src={imgPath + movie.poster_path} alt="media"
+                         onClick={async () => await showDetails(movie.id, "movie")}/>
+                    <p>{movie.title}</p>
+                  </div>
+              ))}
+            </div>
+
+            <div>
+              {/* Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/# */}
+              <Button onClick={toggleLightMode} variant={`${isLightMode ? "dark" : "light"}`}>Switch
+                to {isLightMode ? "Dark" : "Light"} Mode</Button>
+              <Button variant="danger" onClick={handleLogout}>Log out</Button>
+            </div>
+
+          </> : ""}
+        </div>
       </div>
-    </div>
-  );
+
+
+
+
+
+
+    );
 }
 
 export default Dashboard;
