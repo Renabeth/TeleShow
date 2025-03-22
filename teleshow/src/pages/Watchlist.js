@@ -77,7 +77,7 @@ function Watchlist() {
     const [watchlist, setWatchlist] = useState([])
 
     const [reviewDuplicate, setReviewDuplicate] = useState(true);
-
+    const [reviewID, setReviewID] = useState(null);
 
     // Help from https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/
     const toggleLightMode = () => {
@@ -276,6 +276,8 @@ function Watchlist() {
 
    const displayReviewModal = async (id, type) => {
 
+        setCurrentMediaID(id)
+       setCurrentMediaType(type)
 
        const options = {
            method: 'GET',
@@ -296,6 +298,20 @@ function Watchlist() {
                accept: 'application.json',
                Authorization: `Bearer ${process.env.REACT_APP_TMDB_READ_ACCESS_TOKEN}`
            }
+       }
+
+       //Check if review exists
+       const reviewRef = collection(db, "Reviews")
+       const q = query(reviewRef, where("user_id", "==", userID), where("media_id", "==", id))
+       const querySnapshot = await getDocs(q)
+
+       if (!querySnapshot.empty) {
+           const existingReview = querySnapshot.docs[0].data()
+           setReviewText(existingReview.review)
+           setReviewID(querySnapshot.docs[0].id)
+       } else {
+           setReviewText("")
+           setReviewID(null)
        }
 
        await axios.request(options)
@@ -323,6 +339,10 @@ function Watchlist() {
        handleReview()
    }
 
+   const queryReviews = async(id, type) => {
+
+   }
+
     // From FetchComments.js, handle change in textarea
     const handleReviewChange = (e) => {
         setReviewText(e.target.value);
@@ -334,33 +354,43 @@ function Watchlist() {
     };
 
 
-
     // Submit review to Firestore
-    const handleReviewSubmit = async (e) => {
-        e.preventDefault();
+    const handleReviewSubmit = async (e, currentMediaID, currentMediaType) => {
+        e.preventDefault()
 
         if (reviewText.trim() === "") {
-            alert("Review cannot be empty!");
-            return;
+            alert("Review cannot be empty!")
+            return
         }
+
         try {
-            const reviewRef = await addDoc(collection(db, "Reviews"), {
-                user_id: userID,
-                title: modalTitle,
-                media_type: currentMediaType,
-                media_id: currentMediaID,
-                review: reviewText,
+            if (reviewID) {
+                // Update existing review
+                const reviewRef = doc(db, "Reviews", reviewID)
+                await updateDoc(reviewRef, {
+                    review: reviewText,
+                    date_added: serverTimestamp(),
+                })
+                alert("Review updated successfully!")
+            } else {
+                // Add a new review if no previous review exists
+                const reviewRef = await addDoc(collection(db, "Reviews"), {
+                    user_id: userID,
+                    title: modalTitle,
+                    media_type: currentMediaType,
+                    media_id: currentMediaID,
+                    review: reviewText,
+                    date_added: serverTimestamp(),
+                })
+                console.log("Review added with ID: ", reviewRef.id)
+                alert("Review submitted successfully!")
+            }
 
-                date_added: serverTimestamp(),
-
-            });
-            console.log("Review added with ID: ", reviewRef.id);
-
-            // Clear  textarea after submission
-            setReviewText("");
-            alert("Review submitted successfully!");
+            // Clear textarea and reset after submission
+            setReviewText("")
+            setReviewID(null)
         } catch (error) {
-            alert("Error submitting review. Please try again.");
+            alert("Error submitting review. Please try again.")
         }
     };
 
@@ -491,12 +521,13 @@ function Watchlist() {
                         </div>
                         <div className="modalRight">
                             <h2>Write a Review</h2>
-                            <form onSubmit = {handleReviewSubmit}>
+                            <form onSubmit ={(e)=> handleReviewSubmit(e, currentMediaID, currentMediaType)}>
                             <textarea
                                 className={`commentTextBox ${displayMode==="lightMode" ? "textBox-light" : "textBox-dark" }`}
                                 rows={5}
                                 placeholder="Add a Review..."
                                 name="text"
+                                value={reviewText}
                                 onChange={handleReviewChange}
                                 maxLength={5000} />
                             { `${reviewData.remainingCharacters - reviewData.text.length} characters remaining.` }
