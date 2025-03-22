@@ -274,8 +274,53 @@ function Watchlist() {
         handleShow()
     }
 
-   const displayReviewModal = async () => {
-handleReview()
+   const displayReviewModal = async (id, type) => {
+
+
+       const options = {
+           method: 'GET',
+           url: `https://api.themoviedb.org/3/${type}/${id}?language=en-US`,
+           headers: {
+               accept: 'application/json',
+               Authorization: `Bearer ${process.env.REACT_APP_TMDB_READ_ACCESS_TOKEN}`
+           }
+       };
+
+       // Help from https://developer.themoviedb.org/reference/tv-series-watch-providers
+       // and https://developer.themoviedb.org/reference/movie-watch-providers
+       // (TMDB API data provided by JustWatch)
+       const providerOptions = {
+           method: 'GET',
+           url: `https://api.themoviedb.org/3/${type}/${id}/watch/providers`,
+           headers: {
+               accept: 'application.json',
+               Authorization: `Bearer ${process.env.REACT_APP_TMDB_READ_ACCESS_TOKEN}`
+           }
+       }
+
+       await axios.request(options)
+           .then(res => {
+               console.log(res.data)
+               if (type === "tv") {
+                   setModalTitle(res.data.name)
+               } else {
+                   setModalTitle(res.data.title)
+               }
+               setModalOverview(res.data.overview)
+               setModalPoster(imgPath + res.data.poster_path)
+
+               // Help from https://www.w3schools.com/jsref/jsref_join.asp
+               // Copied from Dashboard.js
+               let languageArray = []
+               for(let i = 0; i < res.data.spoken_languages.length; i++) {
+                   languageArray.push(res.data.spoken_languages[i].name)
+               }
+               setModalLanguages(languageArray.join(", "))
+           })
+           .catch(err => console.error(err))
+
+
+       handleReview()
    }
 
     // From FetchComments.js, handle change in textarea
@@ -288,6 +333,8 @@ handleReview()
         })
     };
 
+
+
     // Submit review to Firestore
     const handleReviewSubmit = async (e) => {
         e.preventDefault();
@@ -298,8 +345,14 @@ handleReview()
         }
         try {
             const reviewRef = await addDoc(collection(db, "Reviews"), {
+                user_id: userID,
+                title: modalTitle,
+                media_type: currentMediaType,
+                media_id: currentMediaID,
                 review: reviewText,
-                timestamp: new Date(),
+
+                date_added: serverTimestamp(),
+
             });
             console.log("Review added with ID: ", reviewRef.id);
 
@@ -307,7 +360,6 @@ handleReview()
             setReviewText("");
             alert("Review submitted successfully!");
         } catch (error) {
-            console.error("Error adding review: ", error);
             alert("Error submitting review. Please try again.");
         }
     };
@@ -430,8 +482,7 @@ handleReview()
                     </Modal.Title>
                 </Modal.Header>
 
-                {/* value={commentData.text}*/}
-                {/*onChange={handleCommentChange} */ }
+
                 {/* Help from https://stackoverflow.com/questions/76810663/react-modals-or-dialogs-doesnt-inherit-the-dark-mode-styles-tailwind */}
                 {/* And https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/# */}
                 <Modal.Body className={`modalBody ${isLightMode ? 'body-light' : 'body-dark'}`}>
@@ -450,18 +501,14 @@ handleReview()
                                 maxLength={5000} />
                             { `${reviewData.remainingCharacters - reviewData.text.length} characters remaining.` }
 
-                            <button className="watchlist-button secondary" type="submit">Submit</button>
+                            <button className="watchlist-button secondary" type="submit" onClick={handleReviewClose}>Submit</button>
                         </form>
-                            <div id="overviewBox">
-                                { modalOverview || "None" }
-                            </div>
+
 
                         </div>
                     </div>
                 </Modal.Body>
             </Modal>
-
-
 
             <div className="watchlistBox">
                 <div className="watchlistLeft">
@@ -519,7 +566,7 @@ handleReview()
 
                                     <ButtonGroup>
                                         <Button variant="primary" onClick={() => displayInformation(item.media_id, item.type)}>View Information</Button>
-                                        <Button variant="success" onClick={() => displayReviewModal()}>Write a Review</Button>
+                                        <Button variant="success" onClick={() => displayReviewModal(item.media_id,item.type)}>Write a Review</Button>
                                         <Button variant="danger" onClick={() => removeFromWatchlist(item.media_id, item.type)}>Remove from Watchlist</Button>
                                     </ButtonGroup>
                                     <br/>

@@ -475,17 +475,7 @@ function Dashboard() {
                       </button>
                   }
 
-                  <div className="mediaBox">
-                    {recommendedTv && recommendedTv.slice(0, 4).map((tv) => (
-                        <div key={tv.id} className="mediaCell">
-                          {/* Help from https://stackoverflow.com/questions/29810914/react-js-onclick-cant-pass-value-to-method and https://upmostly.com/tutorials/pass-a-parameter-through-onclick-in-react */}
-                          <button className="watchlist-button secondary" src={imgPath + tv.poster_path} alt="media"
-                               onClick={async () => await showDetails(tv.id, "tv")}/>
-                          <p>{tv.name}</p>
-                        </div>
-                    ))}
-                  </div>
-
+               <button className="watchlist-button secondary" onClick={() =>alert("Reviews Coming Soon!")}>Write a Review</button>
 
                   <p>Leave a Rating:</p>
 
