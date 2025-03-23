@@ -339,10 +339,6 @@ function Watchlist() {
        handleReview()
    }
 
-   const queryReviews = async(id, type) => {
-
-   }
-
     // From FetchComments.js, handle change in textarea
     const handleReviewChange = (e) => {
         setReviewText(e.target.value);
