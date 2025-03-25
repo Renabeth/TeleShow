@@ -22,6 +22,7 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+<<<<<<< HEAD
 
 # Frontend build artifacts
 /frontend/build/
@@ -31,3 +32,9 @@ backend/Resources/
 
 # Miscellaneous system files
 .DS_Store
+=======
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+node_modules
+>>>>>>> comments

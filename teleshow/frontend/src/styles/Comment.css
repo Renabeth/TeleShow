@@ -1,0 +1,71 @@
+.comments {
+    overflow: auto;
+    max-height: 300px;
+
+    /*
+        Help from https://stackoverflow.com/questions/10743763/word-wrap-break-word-does-not-work-in-this-example
+        (Code taken from https://css-tricks.com/snippets/css/prevent-long-urls-from-breaking-out-of-container/ )
+        
+        This prevents overly long comments from breaking the modal
+    */
+    word-break: break-word;
+}
+
+.comment {
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+    color: black;
+    border-radius: 10px;
+    padding: 15px 16px;
+    margin: 5px 0px;
+    width: 100%;
+}
+
+.comment-light {
+    background-color: white;
+    color: black;
+}
+
+.comment-dark {
+    background-color: rgb(80, 80, 80);
+    color: white;
+}
+
+.commentHead {
+    display: flex;
+    flex-direction: row;
+}
+
+.commentHeadPic {
+    flex: 10%;
+}
+
+.commentProfilePic {
+    width: 100%;
+    border-radius: 25px;
+    max-width: 50px;
+    max-height: 50px;
+}
+
+.commentHeadUsername {
+    flex: 89%;
+}
+
+.commentText {
+    flex: 100%;
+}
+
+.commentTextBox {
+    width: 100%;
+}
+
+.textBox-light {
+    background-color: white;
+    color: black;
+}
+
+.textBox-dark {
+    background-color: rgb(80, 80, 80);
+    color: white;
+}

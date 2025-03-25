@@ -1,0 +1,171 @@
+Resources Used:
+
+Installing bootstrap/firebase:
+https://medium.com/@Rushabh_/implementing-user-login-and-signup-with-reactjs-and-firebase-a-comprehensive-guide-7300bd33cb01
+https://console.firebase.google.com/u/0/project/teleshowfirestore/settings/general/web:OTA2M2M0NmItM2M3ZS00ZmVlLTg3ODAtNDY0Y2NkZDZkNjA0?fb_gclid=CjwKCAiAk8G9BhA0EiwAOQxmfjS8qlT_hPX_SgOvOah508cL_oSFq6yUSlBXF1SfSVzeqfLbszAaghoCTlAQAvD_BwE
+
+
+Flexbox help:
+https://www.w3schools.com/css/css3_flexbox_responsive.asp
+https://www.w3schools.com/css/tryit.asp?filename=trycss3_flexbox_responsive2 
+
+Setting up firebase:
+https://css-tricks.com/user-registration-authentication-firebase-react/
+
+Firebase Authentication:
+https://www.freecodecamp.org/news/use-firebase-authentication-in-a-react-app/
+
+React Input validation:
+https://www.geeksforgeeks.org/how-to-perform-form-validation-in-react/#
+
+.env:
+https://www.youtube.com/watch?v=x3IWvqMv8Ms
+https://stackoverflow.com/questions/71847610/react-firebase-config-env-file-doesnt-work
+https://www.reddit.com/r/reactjs/comments/umx2rg/env_file_not_working/
+
+Installing dotenv:
+https://stackoverflow.com/questions/42182577/is-it-possible-to-use-dotenv-in-a-react-project
+
+Firebase:
+https://firebase.google.com/docs/firestore/quickstart 
+https://github.com/firebase/snippets-web/blob/467eaa165dcbd9b3ab15711e76fa52237ba37f8b/snippets/firestore-next/test-firestore/add_ada_lovelace.js#L8-L19
+
+Adding a document:
+https://www.youtube.com/watch?v=BjtxPj6jRM8&t=354s  
+
+
+Help from https://www.youtube.com/watch?v=x3IWvqMv8Ms
+
+Switching to another branch:
+https://www.w3schools.com/git/git_branch_push_to_remote.asp?remote=github
+
+Committing to another branch:
+https://stackoverflow.com/questions/13897717/push-commits-to-another-branch 
+
+Creating a new branch:
+https://stackoverflow.com/questions/66882952/how-to-create-new-local-branch-and-switch-between-branches-in-git 
+
+Creating a copy of a branch:
+https://stackoverflow.com/questions/78115299/how-to-make-a-copy-of-a-branch 
+
+Error fixing:
+
+React conditionals:
+https://www.w3schools.com/react/react_conditional_rendering.asp 
+https://www.w3schools.com/react/react_es6_ternary.asp 
+https://www.w3schools.com/react/showreact.asp?filename=demo2_react_conditionals_if
+
+Managing users:
+https://firebase.google.com/docs/auth/android/manage-users 
+https://firebase.google.com/docs/auth/web/manage-users 
+
+User displayname:
+https://stackoverflow.com/questions/40389946/how-do-i-set-the-displayname-of-firebase-user 
+
+https://stackoverflow.com/questions/76990183/how-to-display-the-current-user-display-name-in-firebase-using-react 
+
+Useref:
+https://www.w3schools.com/react/react_useref.asp 
+https://www.geeksforgeeks.org/how-to-keep-a-mutable-variable-in-react-useref-hook/ 
+
+Uploading a profile picture:
+https://www.youtube.com/watch?v=IbHfZSiQdqU
+
+Preventing React from rendering twice:
+https://stackoverflow.com/questions/49873223/why-does-my-firebase-onauthstatechanged-trigger-multiple-times-react-native (Abdulaziz Noor)
+
+Displaying user information:
+https://www.youtube.com/watch?v=j9IT0E835B8 
+
+Using the JavaScript fetch API:
+https://stackoverflow.com/questions/45018338/javascript-fetch-api-how-to-save-output-to-variable-as-an-object-not-the-prom 
+https://www.freecodecamp.org/news/javascript-fetch-api-for-beginners/
+
+Rendering react elements:
+https://www.w3schools.com/react/react_render.asp 
+
+https://stackoverflow.com/questions/26566317/invariant-violation-registercomponent-target-container-is-not-a-dom-elem 
+
+Working with TMDB images:
+https://developer.themoviedb.org/docs/image-basics 
+
+Light/dark mode functionality:
+https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/# 
+
+JavaScript join:
+https://www.w3schools.com/jsref/jsref_join.asp 
+
+ReactJS modal component:
+https://www.geeksforgeeks.org/how-to-use-modal-component-in-reactjs/# 
+
+CSS modals:
+https://www.w3schools.com/howto/howto_css_modals.asp 
+
+React-Bootstrap modal:
+https://www.geeksforgeeks.org/react-bootstrap-modal-component/ 
+https://react-bootstrap.netlify.app/docs/components/modal/ 
+https://github.com/react-bootstrap/react-bootstrap/issues/3794 
+
+Color modes:
+https://react-bootstrap.netlify.app/docs/getting-started/color-modes/ 
+
+Light/dark mode handling:
+https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/ 
+https://stackoverflow.com/questions/76810663/react-modals-or-dialogs-doesnt-inherit-the-dark-mode-styles-tailwind 
+
+Using Firestore in React:
+https://www.freecodecamp.org/news/how-to-use-the-firebase-database-in-react/ 
+
+Firestore queries:
+https://firebase.google.com/docs/firestore/query-data/queries 
+https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/ 
+
+Deleting data in firestore:
+https://dev.to/rajatamil/firebase-v9-firestore-delete-document-using-deletedoc-5bjh 
+https://stackoverflow.com/questions/70365858/firebase-error-typeerror-cannot-use-in-operator-to-search-for-delegate-in 
+
+React bootstrap buttons:
+https://react-bootstrap.netlify.app/docs/components/buttons/ 
+
+Changing button text:
+https://www.geeksforgeeks.org/how-to-change-button-text-on-click-in-reactjs/ 
+
+Using timestamps in firestore:
+https://www.rowy.io/blog/firestore-timestamp 
+
+Usestate with an array of objects:
+https://dev.to/joelynn/react-hooks-working-with-state-arrays-2n2g 
+https://www.geeksforgeeks.org/how-to-render-an-array-of-objects-in-reactjs/ 
+https://www.youtube.com/watch?v=Y62mbztjmus 
+
+JavaScript date object:
+https://www.w3schools.com/js/js_dates.asp 
+https://stackoverflow.com/questions/52247445/how-do-i-convert-a-firestore-date-timestamp-to-a-js-date 
+
+JavaScript date formatting:
+https://www.w3schools.com/js/js_date_formats.asp 
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date 
+
+Preventing infinite loops:
+https://stackoverflow.com/questions/53070970/infinite-loop-in-useeffect 
+
+Displaying firestore data in react:
+https://www.geeksforgeeks.org/how-to-perform-fetch-and-send-with-firestore-using-reactjs/# 
+https://www.rowy.io/blog/firestore-react-query 
+https://www.youtube.com/watch?v=T-GfSkC1JpE 
+
+Displaying items in a list:
+https://react.dev/learn/rendering-lists#keeping-list-items-in-order-with-key 
+
+Misc.:
+
+https://www.geeksforgeeks.org/how-to-perform-fetch-and-send-with-firestore-using-reactjs/# 
+https://dev.to/joelynn/react-hooks-working-with-state-arrays-2n2g 
+https://www.geeksforgeeks.org/how-to-render-an-array-of-objects-in-reactjs/ 
+https://react.dev/learn/updating-arrays-in-state 
+—
+
+https://stackoverflow.com/questions/32577886/is-there-a-way-to-render-multiple-react-components-in-the-react-render-functio
+https://stackoverflow.com/questions/58818727/react-usestate-not-setting-initial-value 
+https://stackoverflow.com/questions/67795817/usestate-value-is-one-step-behind-in-reactjs 
+https://www.freecodecamp.org/news/how-to-use-the-usestate-and-useeffect-hooks-in-your-project/ 

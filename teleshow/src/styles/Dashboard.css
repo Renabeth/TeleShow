@@ -1,0 +1,122 @@
+#dashboard {
+    /*background-color: rgb(50, 50, 50);*/
+    width: 100%;
+    margin: 0 auto;
+    padding: 15px;
+}
+
+/* Help from https://www.w3schools.com/css/css3_flexbox_responsive.asp */
+.mediaBox {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.mediaCell {
+    flex: 21%;
+}
+
+.mediaPoster {
+    max-width: 300px;
+    height: auto;
+    cursor: pointer;
+}
+
+@media (max-width: 800px) {
+    .mediaCell {
+        flex: 49%;
+    }
+    .mediaPoster {
+        max-width: 200px;
+    }
+}
+
+.media {
+    width: 19%;
+}
+
+.modalPoster {
+    width: 80%;
+    height: auto;
+}
+
+#overviewBox {
+    overflow: auto;
+}
+
+.modalBox {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.modalLeft {
+    flex: 35%;
+}
+
+.modalRight {
+    flex: 65%;
+}
+
+/* Help from .login-button in Auth.css */
+.watchlist-button {
+    width: 80%;
+    padding: 12px;
+    font-size: 16px;
+    margin-top: 10px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+/* Help from https://github.com/react-bootstrap/react-bootstrap/issues/3794 */
+.modal-85w {
+    width: 85%;
+    min-width: 85%;
+}
+
+/*
+Help from https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/#
+And https://stackoverflow.com/questions/76810663/react-modals-or-dialogs-doesnt-inherit-the-dark-mode-styles-tailwind
+*/
+
+.head-dark {
+    background: rgb(78, 42, 97);
+    color: white;
+}
+
+.head-light {
+    background: rgb(130, 218, 159);;
+    color: black;
+}
+
+.body-dark {
+    background: rgb(50, 50, 50);
+    color: white;
+}
+
+.body-light {
+    background: rgb(204, 204, 204);
+    color: black;
+}
+
+.modalBody {
+    border-radius: 0px 0px 10px 10px;
+}
+
+.centerBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.dashboard-light {
+    background-color: rgb(204, 204, 204);
+    color: black;
+}
+
+.dashboard-dark {
+    background-color: rgb(50, 50, 50);
+    color: white;
+}
