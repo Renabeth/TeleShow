@@ -1019,7 +1019,7 @@ def get_user_recommendations():
         )
 
         return jsonify(
-            {"movie_recs": sorted_movie_results[:20], "tv_recs": sorted_tv_results[:20]}
+            {"movie_recs": sorted_movie_results[:4], "tv_recs": sorted_tv_results[:4]}
         )
 
     except Exception as e:
