@@ -311,9 +311,9 @@ function Watchlist() {
       const languages = tmdbData?.spoken_languages
         .map((language) => language.name)
         .join(",");
-      {
-        languages ? setModalLanguages(languages) : setModalLanguages("");
-      }
+      
+      setModalLanguages(languages ? languages : "");
+      
       setModalProvidersBuy("");
       setModalProvidersFlatrate("");
       setModalProvidersRent("");
