@@ -301,9 +301,9 @@ function Watchlist() {
       const languages = tmdbData?.spoken_languages
         .map((language) => language.name)
         .join(",");
-      {
-        languages ? setModalLanguages(languages) : setModalLanguages("");
-      }
+      
+      setModalLanguages(languages ? languages : "");
+      
       setModalProvidersBuy("");
       setModalProvidersFlatrate("");
       setModalProvidersRent("");
@@ -567,8 +567,8 @@ function Watchlist() {
                       userID={userID}
                       currentMediaID={item.media_id}
                       currentMediaType={item.media_type}
-                      initialRate={item.rating || 0}
-                      initialAvgRate={item.averageRating || 0}
+                      initialRate={item.rating}
+                      initialAvgRate={item.averageRating}
                     ></StarRate>
                   </div>
                 </div>

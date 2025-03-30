@@ -103,6 +103,10 @@ function Dashboard() {
 
     // Help from https://developer.themoviedb.org/reference/trending-movies
     const movieUrl = 'https://api.themoviedb.org/3/trending/movie/day?language=en-US'
+
+    // Worked with Moses on this -William
+    //const response = axios.get("http://localhost:5000/interactions/user-recommendations", {user_id: userID})
+    //console.log(response)
     
     // Help from https://www.youtube.com/watch?v=PGCMdiXRI6Y
     const tvResponse = await fetch(tvUrl, options)

@@ -9,6 +9,20 @@ const Footer = () => {
             <div className="contactTable">
                 <div className="contact-item">
                     Oguzhan Besiktepe
+                    <ul>
+                        <li>
+                            <a href="mailto:oguzhanbesiktepe@gmail.com" rel="noreferrer" target="_blank">
+                                Email
+                            </a><br />
+                            <a href="https://github.com/OguzhanBesiktepe" rel="noreferrer" target="_blank">
+                                GitHub
+                            </a>
+                            <br />
+                            <a href="https://www.linkedin.com/in/oguzhan-besiktepe/" rel="noreferrer" target="_blank">
+                                LinkedIn
+                            </a>
+                        </li>
+                    </ul>
                 </div>
                 <div className="contact-item">
                     William Ackerman
@@ -37,6 +51,7 @@ const Footer = () => {
                     Steave Marie Joseph
                 </div>
             </div>
+            <p>Credit to JustWatch as TMDB API watch providers data source.</p>
             <p>2025.</p>
         </header>
     )
