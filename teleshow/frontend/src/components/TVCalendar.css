@@ -1,0 +1,46 @@
+.tv-calendar {
+    padding: 20px;
+  }
+  
+  .date-header {
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .calendar-poster {
+    width: 100px;
+    height: 150px;
+    object-fit: cover;
+  }
+  
+  .no-poster {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #eee;
+    color: #999;
+  }
+  
+  .episode-info {
+    margin-top: 8px;
+  }
+  
+  .episode-number {
+    font-weight: bold;
+    color: #666;
+  }
+  
+  .episode-name {
+    font-style: italic;
+  }
+  
+  .spin-icon {
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  

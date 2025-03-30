@@ -1,50 +1,71 @@
 /*Written by Moses Pierre*/
 /*https://moderncss.dev/*/
-/* Container for the search bar */
 .search-container {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: width 0.2s ease-in-out, background-color 0.2s ease-in-out, padding 0.2s ease-in-out;
-  width: 60px; /* Icon width when collapsed */
-  height: 60px; /*Icon heigh when collapsed*/
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease-in-out, padding 0.3s ease-in-out;
+  width: 50px; /* Icon width when collapsed */
+  height: 50px; /*Icon heigh when collapsed*/
   overflow: hidden;
-  border: 1px solid #ccc; /* Border for icon */
-  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2); /* Border for icon */
+  border-radius: 50%;
   cursor: pointer;
   padding: 0;
+  background: rgba(255, 255, 255, 0.1); /* Translucent background */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  margin:0;
+  background-clip:padding-box;
 }
   
   
 .search-container.expanded {
-  width: 330px; 
-  background-color: #D3D3D3; /* gray background */
+  width: 400px; 
+  background-color: rgba(255, 255, 255, 0.15); /* Translucent background. rgba allows for color and blur definition*/
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   padding: 5px 20px; /* Space for input */
   overflow: visible;
-  animation: fadeIn 0.2s ease-in-out;
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius:25px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  z-index:1400;
+}
+
+.search-container.expanded.results-visible {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom: none;
 }
 
   
   /* Search icon styles */
 .search-trigger {
   cursor: pointer;
-  transition: transform 0.2s ease, color 0.2s ease;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #D3D3D3; /* Background for icon */
+  background-color: transparent; /* Background for icon */
+  border: none !important;
 }
 
 
   
 .search-trigger:hover .search-icon {
-  transform: scale(1.1); /* Magnify icon on hover */
+  transform: scale(1.15) rotate(5deg); /* Magnify icon and slighty rotate on hover */
+  color: rgba(255, 255, 255, 1);
 }
 
 .search-icon {
-  font-size: 45px; /*Icon size and color*/
-  color: #000000;
+  font-size: 35px; /*Icon size and color*/
+  color: rgba(255, 255, 255, 0.8);
+  display:block;
+  position:relative;
 }
 
 
@@ -58,36 +79,53 @@
   outline: none;
   font-size: 16px;
   padding: 5px;
+  pointer-events:none;
+  color: rgba(0, 0, 0, 0.9);
 }
 
 .search-input:focus {
   outline: none; /* Removes the default blue outline */
   box-shadow: none; 
-  background-color: #D3D3D3; 
+  background-color: transparent; 
 }
 
 /* When expanded, make the input visible */
 .search-container.expanded .search-input {
   opacity: 1;
+  pointer-events: auto;
 }
 
 /* Placeholder dissolve animation */
 .search-input::placeholder {
   font-size: 14px;
-  color: #6c757d;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.search-results-container {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  max-width:400px;
+  background-color: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  z-index: 1390;
+  max-height: 400px;
+  overflow-y: auto;
+  display: none;
 }
 
 
-/* Keyframe for icon fade-in animation */
-@keyframes fadeIn {
-  0% {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.search-results-container.show {
+  display: block;
+  animation: expandDown 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .filter-area {
@@ -99,74 +137,160 @@
   
 .filter-dropdown-btn {
   cursor: pointer;
-  background-color: #ffffff;
-  border: 1px solid #ccc;
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 20px;
   display: flex;
   align-items: center;
-  padding: 5px 10px;
+  padding: 5px 12px;
   font-size: 14px;
-  color: #6c757d;
+  color: rgba(0, 0, 0, 0.8);
   opacity: 0; /* Initially hidden */
   transform: translateY(10px); 
-  transition: background-color 0.3s ease, box-shadow 0.3s ease, opacity 0.4s ease, transform 0.4s ease; /* Adds transitions */
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
   pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .filter-dropdown-btn:focus {
   outline: none;
-  box-shadow: none;
-  background-color: #D3D3D3; /* Same gray as hover/active */
-  border-color: #A9A9A9;
-  color: #333333;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background-color: rgba(255, 255, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(0, 0, 0, 0.9);
 }
   
 .filter-dropdown-btn:hover {
-  background-color: #D3D3D3;
-  border-color: #a9a9a9;
-  color: #333333;
+  background-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
 
-.filter-dropdown-btn:active {
-  outline: none;
-  background-color: #D3D3D3; /* Gray when in active state */
-  border-color: #A9A9A9; /*Gray border */
-  color: #333333; /* Keep the text color consistent */
-}
+
 
 .filter-dropdown-menu {
   display: none; /* Hidden by default */
   position: absolute;
   top: 100%;
   left:0;
-  z-index: 1500; /* Ensure the dropdown always appears on top */
-  background-color: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 5px;
-  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
+  right:0;
+  z-index: 1500; /* Makes sure the dropdown always appears on top */
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   width: 150px;
 }
 
 .filter-dropdown-menu.show {
   display: block;
-  animation: fadeInUp 0.3s ease forwards;
+  animation: fadeInDown 0.3s ease forwards;
 }
 
-/*Dropdown Animation*/
-@keyframes fadeInUp {
-  from {
+
+.search-container.expanded .filter-dropdown-btn {
+  pointer-events: auto; /* Re-enable interaction */
+  animation: fadeInDown 0.4s ease forwards;
+  animation-delay: 0.2s; /* Delay the animation start */
+}
+
+.search-history-container {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  z-index: 1380;
+  padding: 10px 0;
+  margin-top: 5px;
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.search-history-header {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+  padding: 5px 15px;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.search-history-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+
+.search-history-item:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.search-history-icon {
+  margin-right: 10px;
+  opacity: 0.7;
+}
+
+.search-history-text {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.8);
+}
+
+.search-history-clear {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.5);
+  padding: 8px 0;
+  margin-top: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.search-history-clear:hover {
+  color: rgba(0, 0, 0, 0.8);
+}
+
+/* Keyframe for icon fade-in animation */
+@keyframes fadeIn {
+  0% {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
-  to {
+  100% {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-.search-container.expanded .filter-dropdown-btn {
-  pointer-events: auto; /* Re-enable interaction */
-  animation: fadeInUp 0.4s ease forwards;
-  animation-delay: 0.2s; /* Delay the animation start */
+@keyframes expandDown {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.8);
+    transform-origin: top;
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+    transform-origin: top;
+  }
 }
 
+@keyframes fadeInDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

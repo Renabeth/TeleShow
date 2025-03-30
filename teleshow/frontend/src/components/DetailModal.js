@@ -2,9 +2,11 @@
 import { React, useEffect, useState } from "react";
 import { Modal, Button, Spinner } from "react-bootstrap";
 import RecommendationList from "./RecommendationList";
-import { FaHeart, FaRegHeart, FaPlus } from "react-icons/fa";
+import { FaBell, FaRegBell, FaPlus } from "react-icons/fa";
 import axios from "axios";
 import "./DetailModal.css";
+import "./TVProgress";
+import TVProgress from "./TVProgress";
 
 const DetailModal = ({
   item,
@@ -15,16 +17,18 @@ const DetailModal = ({
   onRecommendationClick,
   isLoggedIn,
 }) => {
-  const [liked, setLiked] = useState(false);
+  const [followed, setFollowed] = useState(false);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false); //Shows watchlist selection
   const [watchlists, setWatchlists] = useState([]); //Array of user watchlists from firestore
   const [selectedWatchlist, setSelectedWatchlist] = useState(false); //Tracks selected watchlist
   const [newWatchlistName, setNewWatchlistName] = useState(""); //Name for watchlist
   const [addingToWatchlist, setAddingToWatchlist] = useState(false); //Loading indicator
   const image_url = " https://image.tmdb.org/t/p/w342"; // Base URL for TMDB image paths
+  const [showEpisodeTracker, setShowEpisodeTracker] = useState(false);
+
   useEffect(() => {
     if (item && isLoggedIn) {
-      checkIfLiked(item.tmdb.id, item.tmdb.media_type);
+      checkIfFollowed(item.tmdb.id, item.tmdb.media_type);
     }
   }, [item, isLoggedIn]);
 
@@ -36,13 +40,14 @@ const DetailModal = ({
 
   if (!item) return null;
 
-  const checkIfLiked = async (mediaId, mediaType) => {
+  //Check if the media is follow by user
+  const checkIfFollowed = async (mediaId, mediaType) => {
     try {
       const userId = sessionStorage.getItem("userId");
       if (!userId) return;
 
       const response = await axios.get(
-        `http://localhost:5000/interactions/check_liked`,
+        `http://localhost:5000/interactions/check_followed`,
         {
           params: {
             user_id: userId,
@@ -51,25 +56,27 @@ const DetailModal = ({
           },
         }
       );
-      setLiked(response.data.liked); //returns true if found and false if not
+      setFollowed(response.data.followed); //returns true if found and false if not
     } catch (error) {
       console.error("Error checking media status", error);
     }
   };
-  const handleLike = async (item) => {
+  //What happens when someone clicks the follow button.
+  //Adds keywords, genres, and production company.
+  //If valid, tv show is added to calendar.
+  const handleFollow = async (item) => {
     const userId = sessionStorage.getItem("userId");
 
-    const action = liked ? "unlike" : "like";
+    const action = followed ? "unfollow" : "follow";
 
     if (!userId) {
       // Handle not logged in state
-      alert("Please log in to like content");
+      alert("Please log in to follow content");
       return;
     }
-
+    //Pull information that can be used for recommendations from followed media or return empty array
     const genres =
       item.tmdb.genres?.map((genre) => ({
-        //Pull genres from liked media or return empty array
         id: genre.id,
         name: genre.name,
       })) || [];
@@ -80,6 +87,12 @@ const DetailModal = ({
         name: keyword.name,
       })) || [];
 
+    const producers =
+      item.tmdb.production_companies?.map((company) => ({
+        id: company.id,
+        name: company.name,
+      })) || [];
+
     const payload = {
       user_id: userId,
       media_id: item.tmdb.id,
@@ -87,20 +100,21 @@ const DetailModal = ({
       title: item.tmdb.title || item.tmdb.name,
       genres: genres,
       keywords: keywords,
+      producers,
       action: action,
     };
     const response = await axios.post(
-      `http://localhost:5000/interactions/media_liked`,
+      `http://localhost:5000/interactions/media_followed`,
       payload
     );
 
     if (response.data.status === "success") {
-      setLiked(!liked);
+      setFollowed(!followed);
     }
 
     console.log(response.data);
   };
-
+  //Gets the user watchlists from firestore using backend
   const fetchWatchlists = async () => {
     const userId = sessionStorage.getItem("userId");
     if (!userId) return;
@@ -116,7 +130,7 @@ const DetailModal = ({
       console.error("Error fetching watchlists:", error);
     }
   };
-
+  //Adds media to watchlist using backend
   const handleAddToWatchList = () => {
     if (!isLoggedIn) {
       alert("Please log in to add to watchlist");
@@ -131,7 +145,8 @@ const DetailModal = ({
     setNewWatchlistName("");
     setAddingToWatchlist("");
   };
-
+  //In the backend if a name matches an existing watchlist, media is added to that watchlist
+  //Else a new one is created
   const handleAddToSelectedWatchlist = async () => {
     const watchlistName = selectedWatchlist || newWatchlistName;
     if (!watchlistName.trim()) {
@@ -188,7 +203,7 @@ const DetailModal = ({
         onHide={onHide}
         centered
         size="lg"
-        dialogClassName="grey-modal"
+        dialogClassName="detail-modal"
       >
         <Modal.Header closeButton>
           <Modal.Title>{item?.tmdb?.title || item?.tmdb?.name}</Modal.Title>
@@ -208,22 +223,33 @@ const DetailModal = ({
                 </div>
               )}
               {isLoggedIn ? (
-                <div className="d-flex justify-content-between mt-2">
+                <div className="d-flex flex-wrap justify-content-between gap-2 mt-2">
                   <Button
-                    variant={liked ? "danger" : "outline-danger"}
-                    onClick={() => handleLike(item)}
-                    className="btn-like"
+                    variant={followed ? "danger" : "outline-danger"}
+                    onClick={() => handleFollow(item)}
+                    className="btn-follow flex-grow-0"
                   >
-                    {liked ? <FaHeart /> : <FaRegHeart />}
-                    {/*If liked changed to filled heart */}
+                    {followed ? <FaBell /> : <FaRegBell />}{" "}
+                    {followed ? "Following" : "Follow"}
                   </Button>
                   <Button
                     variant="outline-primary"
                     onClick={handleAddToWatchList}
-                    className="btn-watchlist"
+                    className="btn-watchlist flex-grow-0"
                   >
                     <FaPlus /> Watchlist
                   </Button>
+                  {item.tmdb.media_type === "tv" ? (
+                    <Button
+                      variant="outline-primary"
+                      className="mt-2 mb-2 w-auto px-3"
+                      onClick={() => setShowEpisodeTracker(true)}
+                    >
+                      View Episodes
+                    </Button>
+                  ) : (
+                    <p>{""}</p>
+                  )}
                 </div>
               ) : (
                 ""
@@ -232,6 +258,43 @@ const DetailModal = ({
 
             {/* Displays release dates for movies or first air date for tv */}
             <div className="col-md-8">
+              {item.tmdb.media_type === "tv" && followed && (
+                <div className="mt-3">
+                  {item.tmdb.status === "Returning Series" ||
+                  item.tmdb.in_production ? (
+                    <div className="alert alert-info">
+                      <small>
+                        <strong>Series Status:</strong> Ongoing
+                        {item.tmdb.next_episode_to_air ? (
+                          <>
+                            <br />
+                            <strong>Next Episode: </strong>S
+                            {item.tmdb.next_episode_to_air.season_number}E
+                            {item.tmdb.next_episode_to_air.episode_number} -{" "}
+                            {item.tmdb.next_episode_to_air.name}
+                            <br />
+                            <em>This show will appear in your TV Calendar</em>
+                          </>
+                        ) : (
+                          <>
+                            <br />
+                            <em>No upcoming episodes scheduled yet</em>
+                          </>
+                        )}
+                      </small>
+                    </div>
+                  ) : (
+                    <div className="alert alert-secondary">
+                      <small>
+                        <strong>Series Status:</strong>
+                        {item.tmdb.status || "Ended"}
+                        <br />
+                        <em>Finished shows don't appear in the TV Calendar</em>
+                      </small>
+                    </div>
+                  )}
+                </div>
+              )}
               <p>
                 <strong>Release Date: </strong>{" "}
                 {item.tmdb.release_date || item.tmdb.first_air_date ? (
@@ -247,16 +310,25 @@ const DetailModal = ({
               </p>
               <p>
                 {/* Displays runtime for movies or number of seasons for TV shows */}
-                <strong>Runtime/Seasons: </strong>{" "}
-                {item.tmdb.runtime || item.tmdb.number_of_seasons ? (
+                {/* Math.floor rounds a number down */}
+                {item.tmdb.runtime ? (
                   <>
-                    {item.tmdb.runtime ? `${item.tmdb.runtime} min` : ""}
-                    {item.tmdb.number_of_seasons
-                      ? ` / ${item.tmdb.number_of_seasons} seasons`
-                      : ""}
+                    <strong>Runtime: </strong>
+                    {`${Math.floor(item.tmdb.runtime / 60)}h ${
+                      item.tmdb.runtime % 60
+                    }m`}
                   </>
                 ) : (
-                  "N/A"
+                  ""
+                )}
+                {item.tmdb.runtime && item.tmdb.number_of_seasons ? " • " : ""}
+                {item.tmdb.number_of_seasons ? (
+                  <>
+                    <strong>Seasons: </strong>
+                    {`${item.tmdb.number_of_seasons} seasons`}
+                  </>
+                ) : (
+                  ""
                 )}
               </p>
               {/* Genres Section */}
@@ -272,8 +344,11 @@ const DetailModal = ({
                 )}
               </div>
               {/* Displays overview and tagline of the content */}
-              <p>{item.tmdb.tagline}</p>
-              <p>{item.tmdb.overview}</p>
+              <div className="overview-section">
+                {item.tmdb.tagline ? <p>*{item.tmdb.tagline}*</p> : <p>{""}</p>}
+
+                <p>{item.tmdb.overview}</p>
+              </div>
 
               {/*Cast information section*/}
               <div className="mt-3">
@@ -397,7 +472,7 @@ const DetailModal = ({
         show={showWatchlistModal}
         onHide={handleCloseWatchlistModal}
         centered
-        className="grey-modal"
+        className="detail-modal"
       >
         <Modal.Header closeButton>
           <Modal.Title>Add to Watchlist</Modal.Title>
@@ -410,6 +485,9 @@ const DetailModal = ({
             </div>
           ) : (
             <>
+              {/*Handles adding to wathlist */}
+              {/*If the user has watchlists, show a selection dropdown */}
+              {/*If not then they can create a new one with a new name */}
               {watchlists.length > 0 ? (
                 <div className="mb-3">
                   <label>Select Watchlist:</label>
@@ -462,6 +540,15 @@ const DetailModal = ({
           </Button>
         </Modal.Footer>
       </Modal>
+      {item && item.tmdb && item.tmdb.media_type === "tv" && (
+        <TVProgress
+          tvId={item.tmdb.id}
+          tvName={item.tmdb.name || item.tmdb.title}
+          isOpen={showEpisodeTracker}
+          onClose={() => setShowEpisodeTracker(false)}
+          isLoggedIn={isLoggedIn}
+        />
+      )}
     </>
   );
 };

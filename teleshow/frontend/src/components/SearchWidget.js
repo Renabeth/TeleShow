@@ -12,19 +12,31 @@ import SearchResultItem from "./SearchResultItem";
 import DetailModal from "./DetailModal";
 import "./SearchWidget.css";
 import { FiTv } from "react-icons/fi";
+import { GoSearch, GoClock } from "react-icons/go";
 
 const SearchWidget = () => {
+  axiosRetry(axios, {
+    retries: 3,
+    retryDelay: axiosRetry.exponentialDelay,
+  });
   const [query, setQuery] = useState(""); // Stores the search query input by user
+  const searchInputRef = useRef(null);
   const [filter_type, setFilterType] = useState("all"); //Filters output
-  const [results, setResults] = useState({ tmdb_movie: [], tmdb_tv: [] }); // Stores search results categorized by media type
+  const [results, setResults] = useState({}); // Stores search results categorized by media type
   const [loading, setLoading] = useState(false); // Tracks loading state during API requests
   const [selectedItem, setSelectedItem] = useState(null); // Stores detailed information about a selected item
   const SEARCH_TTL = 24 * 60 * 60 * 1000; //Sets the localStorage variables TTL to 24hours
   const [recommendations, setRecommendations] = useState([]); //Sets recommendation list
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const [showDropdown, setShowDropdown] = useState(false);
   const [loginStatus, setLoginStatus] = useState(false);
-  const handleExpand = () => setIsExpanded(true); //Logic for expanding search bar
+  const [queryHistory, setQueryHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const handleExpand = () => {
+    setIsExpanded(true);
+    // Focus the input box when expanded
+    if (searchInputRef.current) searchInputRef.current.focus();
+  };
   const handleCollapse = () => {
     //Logic for collapsing search bar
     if (!query) setIsExpanded(false);
@@ -64,7 +76,15 @@ const SearchWidget = () => {
 
   const handleFilterSelect = (filterType) => {
     setFilterType(filterType);
-    setShowDropdown(false);
+    //If theres a query it will be re-searched with the new filter
+    if (query.trim()) {
+      handleSearch(query, filterType);
+    } else if (queryHistory.length > 0) {
+      //If there is no query then the most recent search will be re-searched
+      const historyQuery = queryHistory[0];
+      setQuery(historyQuery);
+      handleSearch(historyQuery, filterType);
+    }
   };
 
   const hashObject = (obj) => {
@@ -79,13 +99,24 @@ const SearchWidget = () => {
     return Math.abs(hash).toString(16);
   };
   // Handles the search form submission. Makes an API request to fetch search results based on the query
-  const handleSearch = async (e) => {
+  const handleSearch = async (searchQuery, filterType) => {
     setLoading(true);
+    const currentQuery = searchQuery || query;
+    const currentFilterType = filterType || filter_type;
+    if (currentQuery.trim().length > 2) {
+      //React functional state update. As I understand. this is how u get previous states of vaiable
+      setQueryHistory((prev) => {
+        if (!prev.includes(currentQuery)) {
+          return [currentQuery, ...prev].slice(0, 10);
+        }
+        return prev;
+      });
+    }
     console.log("Search triggered"); //Debugging (REMOVE FROM FINAL)
     // Sets cache key for using filter filter type and normalized query
     const SEARCH_CACHE_KEY = (query, filter_type) =>
       `search-${filter_type}-${query.toLowerCase().trim()}`;
-    const cacheKey = SEARCH_CACHE_KEY(query, filter_type);
+    const cacheKey = SEARCH_CACHE_KEY(currentQuery, currentFilterType);
     const cache = localStorage.getItem(cacheKey);
 
     if (cache) {
@@ -97,6 +128,19 @@ const SearchWidget = () => {
           ? JSON.parse(LZString.decompress(data))
           : JSON.parse(data);
         setResults(decompressed);
+        if (decompressed.results) {
+          setResults({
+            unified: true,
+            allResults: decompressed.results,
+          });
+        } else if (decompressed.tmdb_movie) {
+          setResults({
+            unified: false,
+            tmdb_movie: decompressed.tmdb_movie || [],
+          });
+        } else {
+          setResults({ unified: false, tmdb_tv: decompressed.tmdb_tv || [] });
+        }
         setQuery(""); //Clears search bar on successfull search
         setShowDropdown(true);
         setLoading(false);
@@ -106,14 +150,12 @@ const SearchWidget = () => {
       }
     }
     try {
-      axiosRetry(axios, {
-        retries: 2,
-        retryDelay: axiosRetry.exponentialDelay,
-      }); //Handle server unreachable
+      //Handle server unreachable
       // Makes request to Flask API search endpoint with query and filter type
       const response = await axios.get(`http://localhost:5000/search`, {
-        params: { query, filter_type },
+        params: { query: currentQuery, filter_type: currentFilterType },
       });
+
       //Sets response to cache to limit API calls. Compresses for storage optimization
       localStorage.setItem(
         cacheKey,
@@ -123,14 +165,34 @@ const SearchWidget = () => {
           timestamp: Date.now(),
         })
       );
-      setResults(response.data || []); // Update results state with API response
-      setQuery(""); //Clears search bar on successfull search
+      // Update results state with API response
+      if (response.data.results) {
+        setResults({
+          unified: true,
+          allResults: response.data.results,
+        });
+      } else if (response.data.tmdb_movie) {
+        setResults({
+          unified: false,
+          tmdb_movie: response.data.tmdb_movie || [],
+        });
+      } else {
+        setResults({ unified: false, tmdb_tv: response.data.tmdb_tv || [] });
+      }
+
       setShowDropdown(true);
+      setQuery("");
       console.log(response.data); //Debugging (REMOVE FROM FINAL)
     } catch (error) {
       console.error("Error searching data: ", error);
       alert("Unable to connect to the server. Please try again later.");
       setQuery("");
+      setIsExpanded(true);
+      setTimeout(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+        }
+      }, 100);
     }
     setLoading(false);
   };
@@ -199,28 +261,17 @@ const SearchWidget = () => {
     const producer_ids =
       item.tmdb.production_companies?.map((company) => company.id).join(",") ||
       "Unknown";
-    const cast =
-      item.cast?.map((person) => person.name).join(",") ||
-      "No cast information";
-    const cast_ids =
-      item.cast?.map((person) => person.id).join(",") || "No cast information";
     const keyword_ids =
       item.tmdb.keywords?.map((keyword) => keyword.id).join(",") || "None";
-    const region =
-      item.tmdb.origin_country?.map((c, index) => c[index]).join(",") || "None";
 
     const payload = {
       //Recommendation factors passed
       id: item.tmdb.id,
       type: item.tmdb.media_type,
       overview: item.tmdb.overview,
-      tagline: item.tmdb.tagline || "",
       language: item.tmdb.original_language,
-      region,
       genre_ids,
       producer_ids,
-      cast,
-      cast_ids,
       keyword_ids,
     };
 
@@ -303,23 +354,39 @@ const SearchWidget = () => {
     }
   };
 
+  const handleHistoryItemClick = (historyItem) => {
+    handleSearch(historyItem, "all");
+  };
   return (
     <div ref={searchContainerRef} className="position-relative">
       <div onSubmit={(e) => e.preventDefault()}>
         <InputGroup
-          className={`search-container ${isExpanded ? "expanded" : ""}`} //Changes class depending on state
+          className={`search-container ${isExpanded ? "expanded" : ""} ${
+            showDropdown ? "results-visible" : ""
+          }`} //Changes class depending on state
         >
           {!isExpanded ? (
             <InputGroup.Text className="search-trigger" onClick={handleExpand}>
-              <FiTv className="search-icon" />
+              <GoSearch className="search-icon" />
             </InputGroup.Text>
           ) : (
             <Form.Control
+              ref={searchInputRef}
               type="search"
-              placeholder="Search movies and TV shows..."
+              placeholder="Search Movies and TV shows..."
               value={query}
               autoFocus
               onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => {
+                if (queryHistory.length > 0) {
+                  setShowHistory(true);
+                }
+              }}
+              onBlur={() => {
+                setTimeout(() => {
+                  setShowHistory(false);
+                }, 200);
+              }}
               className="search-input"
               onKeyDown={handleKeyPress}
             />
@@ -354,39 +421,80 @@ const SearchWidget = () => {
           </div>
         </InputGroup>
       </div>
+      {isExpanded && showHistory && queryHistory.length > 0 && (
+        <div className="search-history-container">
+          <div className="search-history-header">Recent Searches</div>
+          {queryHistory.map((historyItem, index) => (
+            <div
+              key={index}
+              className="search-history-item"
+              onClick={() => handleHistoryItemClick(historyItem)}
+            >
+              <GoClock className="search-history-icon" />
+              <span className="search-history-text">{historyItem}</span>
+            </div>
+          ))}
+          <div
+            className="search-history-clear"
+            onClick={() => setQueryHistory([])}
+          >
+            Clear History
+          </div>
+        </div>
+      )}
 
       {/*Results Dropdown*/}
       {showDropdown && results && (
-        <Dropdown.Menu
-          show={true}
-          className="w-100 mt-2 shadow-lg rounded-3 overflow-auto"
-          style={{ maxHeight: "400px", maxWidth: "500px" }}
-        >
-          {/* Movies Section */}
-          {results.tmdb_movie.length > 0 && (
+        <Dropdown.Menu show={true} className="search-results-container show">
+          {results.unified ? (
+            results.allResults && results.allResults.length > 0 ? (
+              <div className="search-result-item">
+                {results.allResults.map((item) => (
+                  <SearchResultItem
+                    key={`${item.media_type}-${item.id}`}
+                    item={item}
+                    onClick={handleResultClick}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="no-results">No results found</div>
+            )
+          ) : results.tmdb_movie || results.tmdb_tv ? (
             <>
-              <h6 className="px-3 mt-2">Movies</h6>
-              {results.tmdb_movie.map((movie) => (
-                <SearchResultItem
-                  key={movie.id}
-                  item={movie}
-                  onClick={handleResultClick}
-                />
-              ))}
+              {/* Movies Section */}
+              <div className="search-result-item">
+                {results.tmdb_movie && (
+                  <>
+                    <h6 className="px-3 mt-2">Movies</h6>
+                    {results.tmdb_movie.map((movie) => (
+                      <SearchResultItem
+                        key={movie.id}
+                        item={movie}
+                        onClick={handleResultClick}
+                      />
+                    ))}
+                  </>
+                )}
+              </div>
+              {/* TV Shows Section */}
+              <div className="search-result-item">
+                {results.tmdb_tv && (
+                  <>
+                    <h6 className="px-3 mt-2">TV Shows</h6>
+                    {results.tmdb_tv.map((tv) => (
+                      <SearchResultItem
+                        key={tv.id}
+                        item={tv}
+                        onClick={handleResultClick}
+                      />
+                    ))}
+                  </>
+                )}
+              </div>
             </>
-          )}
-          {/* TV Shows Section */}
-          {results.tmdb_tv.length > 0 && (
-            <>
-              <h6 className="px-3 mt-2">TV Shows</h6>
-              {results.tmdb_tv.map((tv) => (
-                <SearchResultItem
-                  key={tv.id}
-                  item={tv}
-                  onClick={handleResultClick}
-                />
-              ))}
-            </>
+          ) : (
+            <div className="no-results">No results found</div>
           )}
         </Dropdown.Menu>
       )}

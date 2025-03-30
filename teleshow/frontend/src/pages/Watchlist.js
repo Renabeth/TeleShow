@@ -2,6 +2,9 @@ import React from "react";
 import "../styles/Dashboard.css";
 import "../styles/Watchlist.css";
 import GetAverageRating from "../scripts/GetAverageRating.js";
+import TVProgressTracker from "../components/TVProgress.js";
+import TVCalendar from "../components/TVCalendar.js";
+import { FaList, FaCalendarAlt } from "react-icons/fa";
 
 import StarRate from "../components/starRate";
 
@@ -51,10 +54,10 @@ function Watchlist() {
   const [selectedWatchlistId, setSelectedWatchlistId] = useState("all");
   const [filteredMedia, setFilteredMedia] = useState([]);
   const [allWatchlistMedia, setAllWatchlistMedia] = useState([]);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const toggleDropdown = () => {
-    setDropdownOpen(!dropdownOpen);
-  };
+  const [currentTvShow, setCurrentTvShow] = useState(null);
+  const [showEpisodeTracker, setShowEpisodeTracker] = useState(false);
+  const [showCalendarView, setShowCalendarView] = useState(false);
+  const initializedItems = useRef(new Set());
 
   const [loggedIn, setLoggedIn] = useState(false);
   const [userID, setUserID] = useState("");
@@ -147,6 +150,7 @@ function Watchlist() {
   };
   //Gets media in specific watchlist
   const fetchWatchlistMedia = async (userId, watchlistId, watchlistName) => {
+    setLoading(true);
     try {
       const response = await axios.get(
         "http://localhost:5000/interactions/get-watchlist-media",
@@ -182,7 +186,6 @@ function Watchlist() {
     try {
       //Get all of the user's watchlists
       const watchlists = await fetchWatchlists(userId);
-      const initializedItems = new Set();
       setWatchlists(watchlists);
 
       if (watchlists.length === 0) {
@@ -192,7 +195,6 @@ function Watchlist() {
       }
       //Get all the media and combine
       let allMedia = [];
-
       for (const watchlist of watchlists) {
         const media = await fetchWatchlistMedia(
           userId,
@@ -201,33 +203,41 @@ function Watchlist() {
         );
         allMedia = [...allMedia, ...media];
       }
-      setAllWatchlistMedia(allMedia);
-
       for (const item of allMedia) {
-        const key = `${item.media_id}-${item.media_type}`;
-        if (!initializedItems.has(key)) {
-          initializedItems.add(key);
-          await initializeRating(userId, item.media_id, item.media_type);
-        }
+        const response = await fetchRatings(
+          userId,
+          item.media_id,
+          item.media_type
+        );
+        item.rating = response.rating;
+        item.averageRating = await GetAverageRating(
+          item.media_id,
+          item.media_type
+        );
       }
+      console.log(allMedia);
+      setAllWatchlistMedia(allMedia);
     } catch (error) {
       console.error("Error fetch all watchlist media:", error);
     }
     setLoading(false);
   };
 
-  const initializeRating = async (userId, mediaId, mediaType) => {
+  const fetchRatings = async (userId, mediaId, mediaType) => {
     try {
-      await axios.post(
-        "http://localhost:5000/interactions/initialize-ratings",
+      const response = await axios.get(
+        "http://localhost:5000/interactions/get-ratings",
         {
-          user_id: userId,
-          media_id: mediaId,
-          media_type: mediaType,
+          params: {
+            user_id: userId,
+            media_id: mediaId,
+            media_type: mediaType,
+          },
         }
       );
+      return response.data;
     } catch (error) {
-      console.error("Error initializing rating:", error);
+      console.error("Error getting rating:", error);
     }
   };
 
@@ -341,6 +351,14 @@ function Watchlist() {
         // And https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
         // And https://www.geeksforgeeks.org/react-bootstrap-select/
         */
+  };
+
+  const openEpisodeTracker = (item) => {
+    setCurrentTvShow({
+      id: item.media_id,
+      name: item.title,
+    });
+    setShowEpisodeTracker(true);
   };
 
   const returnToDashboard = () => {
@@ -472,7 +490,27 @@ function Watchlist() {
             {/* Help from https://www.rowy.io/blog/firestore-react-query */}
             {/* And https://react.dev/learn/rendering-lists#keeping-list-items-in-order-with-key */}
             {loading && <p>Loading...</p>}
-            {filteredMedia.length > 0 &&
+            {/* Tab Navigation between calendar and watchlists */}
+            <div className="media-view-tabs mb-4">
+              <ButtonGroup>
+                <Button
+                  variant={showCalendarView ? "outline-primary" : "primary"}
+                  onClick={() => setShowCalendarView(false)}
+                >
+                  <FaList className="me-2" />
+                  Watchlist
+                </Button>
+                <Button
+                  variant={showCalendarView ? "primary" : "outline-primary"}
+                  onClick={() => setShowCalendarView(true)}
+                >
+                  <FaCalendarAlt className="me-2" />
+                  TV Calendar
+                </Button>
+              </ButtonGroup>
+            </div>
+            {!showCalendarView ? (
+              filteredMedia.length > 0 &&
               filteredMedia.map((item) => (
                 <div
                   className={`watchlistItem ${
@@ -539,6 +577,19 @@ function Watchlist() {
                       >
                         View Information
                       </Button>
+                      {item.media_type === "tv" && (
+                        <Button
+                          variant="outline-info"
+                          size="sm"
+                          className="me-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEpisodeTracker(item);
+                          }}
+                        >
+                          <FaList className="me-1" /> Episodes
+                        </Button>
+                      )}
                       <Button
                         dialogClassName="watchBtn"
                         variant="success"
@@ -567,12 +618,25 @@ function Watchlist() {
                       userID={userID}
                       currentMediaID={item.media_id}
                       currentMediaType={item.media_type}
-                      initialRate={item.rating || 0}
-                      initialAvgRate={item.averageRating || 0}
+                      initialRate={item.rating}
+                      initialAvgRate={item.averageRating}
                     ></StarRate>
                   </div>
                 </div>
-              ))}
+              ))
+            ) : (
+              <TVCalendar isLoggedIn={loggedIn} />
+            )}
+
+            {currentTvShow && (
+              <TVProgressTracker
+                tvId={currentTvShow.id}
+                tvName={currentTvShow.name}
+                isOpen={showEpisodeTracker}
+                onClose={() => setShowEpisodeTracker(false)}
+                isLoggedIn={loggedIn}
+              />
+            )}
           </div>
         </div>
       </div>
