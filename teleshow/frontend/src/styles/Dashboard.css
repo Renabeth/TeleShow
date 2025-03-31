@@ -19,6 +19,7 @@
     max-width: 300px;
     height: auto;
     cursor: pointer;
+    border-radius: 5px;
 }
 
 @media (max-width: 800px) {

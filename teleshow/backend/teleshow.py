@@ -970,11 +970,10 @@ def get_recommendations():  # Unused data for better recommendations.
 
 @app.route("/user-recommendations", methods=["GET"])
 @limiter.limit(TMDB_RATE)
-@cache.cached(timeout=86400, make_cache_key=make_cache_key)
 def get_user_recommendations():
     user_id = request.args.get("user_id")
     if not user_id:
-        return jsonify({"error": "Used must be logged in"})
+        return jsonify({"error": "User must be logged in"})
 
     try:
         user_ref = users_ref.document(user_id)
@@ -1018,8 +1017,10 @@ def get_user_recommendations():
             tv_results, key=lambda x: x.get("popularity", 0), reverse=True
         )
 
+        # I have to sort the recommendations to see if a movie or tv show in watchlist is in it. If it is it has to be removed
+
         return jsonify(
-            {"movie_recs": sorted_movie_results[:4], "tv_recs": sorted_tv_results[:4]}
+            {"movie_recs": sorted_movie_results[:6], "tv_recs": sorted_tv_results[:6]}
         )
 
     except Exception as e:
@@ -1237,6 +1238,27 @@ def check_if_media_followed():
     followed_media_doc = user_ref.collection("followed_media").document(media_key).get()
 
     return jsonify({"followed": followed_media_doc.exists})
+
+
+@app.route("/interactions/get_followed", methods=["GET"])
+def get_followed_media():
+    user_id = request.args.get("user_id")
+
+    if not user_id:
+        return jsonify({"error": "User must be logged in"})
+
+    user_ref = users_ref.document(user_id)
+    if not user_ref.get().exists:
+        return jsonify({"error": "User not found"})
+
+    followed_media_ref = user_ref.collection("followed_media")
+    followed_media_doc = followed_media_ref.stream()
+    all_media = []
+
+    for doc in followed_media_doc:
+        all_media.append(doc.to_dict())
+
+    return jsonify({"followed": all_media})
 
 
 # FOR ADDING TO WATCHLIST

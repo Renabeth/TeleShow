@@ -264,7 +264,7 @@ const DetailModal = ({
                   item.tmdb.in_production ? (
                     <div className="alert alert-info">
                       <small>
-                        <strong>Series Status:</strong> Ongoing
+                        <strong>{`${item.tmdb.name} is Ongoing`}</strong>
                         {item.tmdb.next_episode_to_air ? (
                           <>
                             <br />
@@ -286,14 +286,20 @@ const DetailModal = ({
                   ) : (
                     <div className="alert alert-secondary">
                       <small>
-                        <strong>Series Status:</strong>
-                        {item.tmdb.status || "Ended"}
-                        <br />
                         <em>Finished shows don't appear in the TV Calendar</em>
                       </small>
                     </div>
                   )}
                 </div>
+              )}
+              {item.tmdb.media_type === "tv" ? (
+                <p>
+                  <strong>Series Status:</strong> {item.tmdb.status || "Ended"}
+                </p>
+              ) : (
+                <p>
+                  <strong>Status:</strong> {item.tmdb.status || "Unreleased"}
+                </p>
               )}
               <p>
                 <strong>Release Date: </strong>{" "}

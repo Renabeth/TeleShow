@@ -101,21 +101,21 @@ function Dashboard() {
     // Help from https://developer.themoviedb.org/reference/trending-movies
     const movieUrl =
       "https://api.themoviedb.org/3/trending/movie/day?language=en-US";
-
+    const user_id = sessionStorage.getItem("userId");
     // Worked with Moses on this -William
-    //const response = axios.get("http://localhost:5000/interactions/user-recommendations", {user_id: userID})
-    //console.log(response)
+    const response = await axios.get(
+      "http://localhost:5000/user-recommendations",
+      {
+        params: {
+          user_id,
+        },
+      }
+    );
 
-    // Help from https://www.youtube.com/watch?v=PGCMdiXRI6Y
-    const tvResponse = await fetch(tvUrl, options)
-      .then((tvResponse) => tvResponse.json())
-      .catch((error) => console.error(error));
-    setRecommendedTv(tvResponse.results);
+    console.log(response.data);
 
-    const movieResponse = await fetch(movieUrl, options)
-      .then((movieResponse) => movieResponse.json())
-      .catch((error) => console.error(error));
-    setRecommendedMovies(movieResponse.results);
+    setRecommendedMovies(response.data);
+    setRecommendedTv(response.data);
 
     setTvLoading(false);
     setMovieLoading(false);
@@ -685,7 +685,7 @@ function Dashboard() {
             {tvLoading && <p>Loading TV Recommendations...</p>}
             <div className="mediaBox">
               {recommendedTv &&
-                recommendedTv.slice(0, 4).map((tv) => (
+                recommendedTv.tv_recs?.map((tv) => (
                   <div key={tv.id} className="mediaCell">
                     {/* Help from https://stackoverflow.com/questions/29810914/react-js-onclick-cant-pass-value-to-method and https://upmostly.com/tutorials/pass-a-parameter-through-onclick-in-react */}
                     <img
@@ -703,7 +703,7 @@ function Dashboard() {
             {movieLoading && <p>Loading Movie Recommendations...</p>}
             <div className="mediaBox">
               {recommendedMovies &&
-                recommendedMovies.slice(0, 4).map((movie) => (
+                recommendedMovies.movie_recs?.map((movie) => (
                   <div key={movie.id} className="mediaCell">
                     {/* Help from https://stackoverflow.com/questions/29810914/react-js-onclick-cant-pass-value-to-method and https://upmostly.com/tutorials/pass-a-parameter-through-onclick-in-react */}
                     <img
