@@ -8,7 +8,7 @@ import SearchWidget from "../components/SearchWidget";
 
 // Credit to JustWatch as TMDB API watch providers data source
 
-import { useNavigate } from "react-router-dom";
+import { redirect, useNavigate } from "react-router-dom";
 
 // Help from https://developer.themoviedb.org/reference/trending-movies
 import axios from "axios";
@@ -719,6 +719,9 @@ function Dashboard() {
 
             <div>
               {/* Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/# */}
+              <Button variant="primary" onClick={() => navigate("/")}>
+                Home Page
+              </Button>
               <Button
                 onClick={toggleLightMode}
                 variant={`${isLightMode ? "dark" : "light"}`}

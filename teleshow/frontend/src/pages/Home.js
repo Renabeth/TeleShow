@@ -72,7 +72,7 @@ function HomePage() {
           <div className="search-widget-container">
             <SearchWidget />
           </div>
-          {!isLoggedIn && (
+          {!isLoggedIn ? (
             <div className="user-buttons">
               <button className="btn-login" onClick={handleLogin}>
                 Log in
@@ -81,6 +81,13 @@ function HomePage() {
                 Sign Up
               </button>
             </div>
+          ) : (
+            <button
+              className="dashboard-btn"
+              onClick={() => navigate("/dashboard")}
+            >
+              Dashboard
+            </button>
           )}
         </div>
       </div>
