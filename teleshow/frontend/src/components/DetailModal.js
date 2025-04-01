@@ -7,30 +7,47 @@ import axios from "axios";
 import "./DetailModal.css";
 import "./TVProgress";
 import TVProgress from "./TVProgress";
+import {
+  getDetails,
+  getRecommendations,
+  checkIfFollowed,
+  getWatchlists,
+} from "../API/Flask_API";
+import StarRate from "../components/starRate"; //Component Made Completely by Serena and William
+import GetAverageRating from "../scripts/GetAverageRating.js"; //Component Made Completely by Serena and William
+import FetchComments from "../components/FetchComments.js"; //Component Made by William
 
 const DetailModal = ({
-  item,
+  item: givenItem,
+  mediaId,
+  mediaType,
   show,
   onHide,
-  recommendations,
-  loading,
-  onRecommendationClick,
-  isLoggedIn,
+  displayName,
 }) => {
+  const [item, setItem] = useState(givenItem);
+  const [loading, setLoading] = useState(!givenItem && mediaId && mediaType);
+  const [rec_loading, setRecLoading] = useState(false);
+  const [recommendations, setRecommendations] = useState([]);
   const [followed, setFollowed] = useState(false);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false); //Shows watchlist selection
   const [watchlists, setWatchlists] = useState([]); //Array of user watchlists from firestore
   const [selectedWatchlist, setSelectedWatchlist] = useState(false); //Tracks selected watchlist
   const [newWatchlistName, setNewWatchlistName] = useState(""); //Name for watchlist
   const [addingToWatchlist, setAddingToWatchlist] = useState(false); //Loading indicator
-  const image_url = " https://image.tmdb.org/t/p/w342"; // Base URL for TMDB image paths
   const [showEpisodeTracker, setShowEpisodeTracker] = useState(false);
+  const image_url = " https://image.tmdb.org/t/p/w342"; // Base URL for TMDB image paths
+  const [userId, setUserId] = useState(sessionStorage.getItem("userId") || 0);
+
+  const isLoggedIn = !!sessionStorage.getItem("userId");
 
   useEffect(() => {
     if (item && isLoggedIn) {
-      checkIfFollowed(item.tmdb.id, item.tmdb.media_type);
+      checkIfFollowed(item.tmdb.id, item.tmdb.media_type).then((status) =>
+        setFollowed(status)
+      );
     }
-  }, [item, isLoggedIn]);
+  }, [item, isLoggedIn, userId]);
 
   useEffect(() => {
     if (showWatchlistModal && isLoggedIn) {
@@ -38,35 +55,70 @@ const DetailModal = ({
     }
   }, [showWatchlistModal, isLoggedIn]);
 
-  if (!item) return null;
+  //Had to use promise chaining so i could tie the rating data to the item info
+  useEffect(() => {
+    const fetchItemDetails = () => {
+      //If only the mediaId and mediaType are passed
+      if (!givenItem && mediaId && mediaType) {
+        let detailData;
+        setLoading(true);
 
-  //Check if the media is follow by user
-  const checkIfFollowed = async (mediaId, mediaType) => {
-    try {
-      const userId = sessionStorage.getItem("userId");
-      if (!userId) return;
+        getDetails(mediaId, mediaType)
+          .then((data) => {
+            detailData = data;
+            return fetchRating(
+              userId,
+              detailData.tmdb.id,
+              detailData.tmdb.media_type
+            );
+          })
+          .then((response) => {
+            detailData.tmdb.rating = response.rating;
+            return GetAverageRating(
+              detailData.tmdb.id,
+              detailData.tmdb.media_type
+            );
+          })
+          .then((avgRatingResponse) => {
+            detailData.tmdb.avgRating = avgRatingResponse;
+            setItem(detailData);
+            setLoading(false);
 
-      const response = await axios.get(
-        `http://localhost:5000/interactions/check_followed`,
-        {
-          params: {
-            user_id: userId,
-            media_id: mediaId,
-            media_type: mediaType,
-          },
-        }
-      );
-      setFollowed(response.data.followed); //returns true if found and false if not
-    } catch (error) {
-      console.error("Error checking media status", error);
-    }
-  };
+            setRecLoading(true);
+            return getRecommendations(detailData);
+          })
+          .then((recData) => {
+            setRecommendations(recData);
+            setRecLoading(false);
+          })
+          .catch((error) => {
+            console.error("Error fetching details:", error);
+            setLoading(false);
+            setRecLoading(false);
+          });
+      } else if (givenItem && !(mediaId && mediaType)) {
+        // If item given just get recommendations
+        setRecLoading(true);
+
+        getRecommendations(givenItem)
+          .then((recData) => {
+            setRecommendations(recData);
+            setRecLoading(false);
+          })
+          .catch((error) => {
+            console.error("Error fetching recommendations:", error);
+            setRecLoading(false);
+          });
+      }
+    };
+
+    fetchItemDetails();
+  }, [givenItem, mediaId, mediaType]);
+
   //What happens when someone clicks the follow button.
   //Adds keywords, genres, and production company.
   //If valid, tv show is added to calendar.
-  const handleFollow = async (item) => {
-    const userId = sessionStorage.getItem("userId");
-
+  const handleFollow = async () => {
     const action = followed ? "unfollow" : "follow";
 
     if (!userId) {
@@ -114,22 +166,13 @@ const DetailModal = ({
 
     console.log(response.data);
   };
-  //Gets the user watchlists from firestore using backend
+
+  // Fetch watchlists using the service
   const fetchWatchlists = async () => {
-    const userId = sessionStorage.getItem("userId");
-    if (!userId) return;
-
-    try {
-      const response = await axios.get(
-        "http://localhost:5000/interactions/get-watchlists",
-        { params: { user_id: userId } }
-      );
-
-      setWatchlists(response.data.watchlists || []);
-    } catch (error) {
-      console.error("Error fetching watchlists:", error);
-    }
+    const lists = await getWatchlists();
+    setWatchlists(lists);
   };
+
   //Adds media to watchlist using backend
   const handleAddToWatchList = () => {
     if (!isLoggedIn) {
@@ -153,7 +196,6 @@ const DetailModal = ({
       alert("Please select or create a watchlist");
       return;
     }
-    const userId = sessionStorage.getItem("userId");
     if (!userId) return;
 
     setAddingToWatchlist(true);
@@ -184,6 +226,52 @@ const DetailModal = ({
     } catch (error) {
       console.error("Error adding to watchlist:", error);
       alert("Failed to add to watchlist");
+    }
+  };
+
+  const handleRecClick = async (recItem) => {
+    let detailData;
+    try {
+      setLoading(true);
+      detailData = await getDetails(recItem.id, recItem.media_type);
+      setItem(detailData);
+      setRecommendations([]);
+    } catch (error) {
+      console.error("Error loading recommendations", error);
+    } finally {
+      setLoading(false);
+    }
+    try {
+      setRecLoading(true);
+      const recData = await getRecommendations(detailData);
+      setRecommendations(recData);
+    } catch (error) {
+      console.error("Error loading recommendations", error);
+    } finally {
+      setRecLoading(false);
+    }
+  };
+
+  const fetchRating = async (user_id, media_id, media_type) => {
+    if (!user_id || !isLoggedIn) {
+      console.log("No user ID available or user not logged in");
+      return { rating: null };
+    }
+    try {
+      const response = await axios.get(
+        "http://localhost:5000/interactions/get-ratings",
+        {
+          params: {
+            user_id,
+            media_id,
+            media_type,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching ratings:", error);
+      return { rating: null };
     }
   };
 
@@ -250,6 +338,37 @@ const DetailModal = ({
                   ) : (
                     <p>{""}</p>
                   )}
+                  <div className="media-interactions">
+                    {/* Serena and William Rating section */}
+                    <div className="rating-section">
+                      <h5>Leave a Rating:</h5>
+                      {isLoggedIn ? (
+                        <StarRate
+                          userID={userId}
+                          currentMediaID={item.tmdb.id}
+                          currentMediaType={item.tmdb.media_type}
+                          initialRate={item.tmdb.rating}
+                          initialAvgRate={item.tmdb.avgRating}
+                        />
+                      ) : (
+                        <p>Log in to rate this {item.tmdb.media_type}</p>
+                      )}
+                    </div>
+
+                    {/*William Comments section */}
+                    <div className="comments-section mt-4">
+                      {isLoggedIn ? (
+                        <FetchComments
+                          userID={userId}
+                          mediaId={item.tmdb.id}
+                          mediaType={item.tmdb.media_type}
+                          displayName={displayName}
+                        />
+                      ) : (
+                        <p>Log in to view and add comments</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ) : (
                 ""
@@ -311,7 +430,8 @@ const DetailModal = ({
               </p>
               {/* Displays rounded rating out of 10 */}
               <p>
-                <strong>Rating: </strong> {Math.round(item.tmdb.vote_average)}
+                <strong>TMDB Rating: </strong>{" "}
+                {Math.round(item.tmdb.vote_average)}
                 /10
               </p>
               <p>
@@ -455,10 +575,10 @@ const DetailModal = ({
             </div>
           </div>
           {/*Recommendations*/}
-          {recommendations && !loading ? (
+          {recommendations && !rec_loading ? (
             <RecommendationList
               recommendations={recommendations}
-              onRecommendationClick={onRecommendationClick}
+              onRecommendationClick={handleRecClick}
             />
           ) : (
             <div className="loading-spinner">

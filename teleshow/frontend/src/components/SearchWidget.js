@@ -13,23 +13,23 @@ import DetailModal from "./DetailModal";
 import "./SearchWidget.css";
 import { FiTv } from "react-icons/fi";
 import { GoSearch, GoClock } from "react-icons/go";
+import { getDetails, getRecommendations } from "../API/Flask_API";
 
 const SearchWidget = () => {
   axiosRetry(axios, {
     retries: 3,
     retryDelay: axiosRetry.exponentialDelay,
   });
+  const SEARCH_TTL = 24 * 60 * 60 * 1000;
   const [query, setQuery] = useState(""); // Stores the search query input by user
   const searchInputRef = useRef(null);
   const [filter_type, setFilterType] = useState("all"); //Filters output
   const [results, setResults] = useState({}); // Stores search results categorized by media type
-  const [loading, setLoading] = useState(false); // Tracks loading state during API requests
   const [selectedItem, setSelectedItem] = useState(null); // Stores detailed information about a selected item
-  const SEARCH_TTL = 24 * 60 * 60 * 1000; //Sets the localStorage variables TTL to 24hours
   const [recommendations, setRecommendations] = useState([]); //Sets recommendation list
   const [isExpanded, setIsExpanded] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [loginStatus, setLoginStatus] = useState(false);
   const [queryHistory, setQueryHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const handleExpand = () => {
@@ -57,19 +57,10 @@ const SearchWidget = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [handleCollapse]);
 
-  const checkLogin = () => {
-    const userId = sessionStorage.getItem("userId");
-    if (userId) {
-      setLoginStatus(true);
-      console.log("user is logged in");
-    }
-  };
-
   const handleKeyPress = (event) => {
     // Check if Enter key is pressed and query meets minimum length
     if (event.key === "Enter" && query.trim().length > 2) {
       handleSearch();
-      checkLogin();
       event.preventDefault();
     }
   };
@@ -87,17 +78,6 @@ const SearchWidget = () => {
     }
   };
 
-  const hashObject = (obj) => {
-    //For caching POST requests
-    const str = JSON.stringify(obj);
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32bit integer
-    }
-    return Math.abs(hash).toString(16);
-  };
   // Handles the search form submission. Makes an API request to fetch search results based on the query
   const handleSearch = async (searchQuery, filterType) => {
     setLoading(true);
@@ -201,131 +181,14 @@ const SearchWidget = () => {
     setShowDropdown(false);
     setLoading(true);
     setIsExpanded(false);
-    console.log("Fetching details for:", item.id, item.media_type);
-    const DETAILS_CACHE_KEY = (id, type) => `details-${type}-${id}`;
-    const cacheKey = DETAILS_CACHE_KEY(item.id, item.media_type);
-    const cache = localStorage.getItem(cacheKey);
-
-    if (cache) {
-      const { compressed, data, timestamp } = JSON.parse(cache);
-      if (Date.now() - timestamp < SEARCH_TTL) {
-        const decompressed = compressed
-          ? JSON.parse(LZString.decompress(data))
-          : JSON.parse(data);
-        console.log("Cache hit for details:", decompressed);
-        setSelectedItem(decompressed);
-        setLoading(false);
-        handleRecommendations(decompressed); // Cached data needs to be passed so recommendation handler still runs
-        return;
-      } else {
-        localStorage.removeItem(cacheKey);
-      }
-    }
 
     try {
-      // Makes request to Flask API details endpoint with item ID and media type
-      const response = await axios.get(`http://localhost:5000/search/details`, {
-        params: { id: item.id, type: item.media_type },
-      });
-
-      console.log("API response for details:", response.data); //Debugging
-
-      localStorage.setItem(
-        cacheKey,
-        JSON.stringify({
-          compressed: true,
-          data: LZString.compress(JSON.stringify(response.data)),
-          timestamp: Date.now(),
-        })
-      );
-
-      setSelectedItem(response.data || []); // Store detailed item information
-      handleRecommendations(response.data);
+      const detailData = await getDetails(item.id, item.media_type);
+      setSelectedItem(detailData);
     } catch (error) {
-      console.error("error fetching details: ", error);
+      console.error("Error fetching details: ", error);
     }
-    setLoading(false);
-  };
 
-  //Recommendation Handling
-  const handleRecommendations = async (item) => {
-    setLoading(true);
-    setRecommendations(null); //Remove shown recommendations from modal
-    console.log(
-      //Debugging
-      "Fetching recommendations for:",
-      item.tmdb.id,
-      item.tmdb.media_type
-    );
-    const genre_ids = item.tmdb.genres?.map((genre) => genre.id).join(",");
-    const producer_ids =
-      item.tmdb.production_companies?.map((company) => company.id).join(",") ||
-      "Unknown";
-    const keyword_ids =
-      item.tmdb.keywords?.map((keyword) => keyword.id).join(",") || "None";
-
-    const payload = {
-      //Recommendation factors passed
-      id: item.tmdb.id,
-      type: item.tmdb.media_type,
-      overview: item.tmdb.overview,
-      language: item.tmdb.original_language,
-      genre_ids,
-      producer_ids,
-      keyword_ids,
-    };
-
-    const payloadHash = hashObject(payload);
-
-    const REC_CACHE_KEY = (id, type, hash) =>
-      `recommendations-${type}-${id}-${hash}`;
-    const cacheKey = REC_CACHE_KEY(
-      item.tmdb.id,
-      item.tmdb.media_type,
-      payloadHash
-    );
-    const cache = localStorage.getItem(cacheKey);
-    console.log("Generated cacheKey:", cacheKey);
-
-    if (cache) {
-      const { compressed, data, timestamp } = JSON.parse(cache);
-      if (Date.now() - timestamp < SEARCH_TTL) {
-        const decompressed = compressed
-          ? JSON.parse(LZString.decompress(data))
-          : JSON.parse(data);
-        console.log("Cache hit for recommendations");
-        setRecommendations(decompressed.recommendations); //Recommendations are in an array within data
-        setLoading(false);
-        return;
-      } else {
-        localStorage.removeItem(cacheKey);
-      }
-    }
-    try {
-      const response = await axios.post(
-        `http://localhost:5000/recommendations`,
-        payload
-      );
-
-      console.log(
-        "API response for recommendations:",
-        item.tmdb.id,
-        item.tmdb.media_type
-      ); // debugging
-
-      localStorage.setItem(
-        cacheKey,
-        JSON.stringify({
-          compressed: true,
-          data: LZString.compress(JSON.stringify(response.data)),
-          timestamp: Date.now(),
-        })
-      );
-      setRecommendations(response.data.recommendations || []);
-      console.log(response.data.recommendations);
-    } catch (error) {
-      console.error("error fetching details: ", error);
-    }
     setLoading(false);
   };
 
@@ -505,10 +368,6 @@ const SearchWidget = () => {
           item={selectedItem}
           show={!!selectedItem}
           onHide={() => setSelectedItem(null)}
-          recommendations={recommendations}
-          onRecommendationClick={handleResultClick}
-          loading={loading}
-          isLoggedIn={loginStatus}
         />
       )}
     </div>

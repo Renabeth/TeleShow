@@ -2,15 +2,18 @@
 import React, { useRef, useState, useEffect } from "react";
 import "./MediaSlides.css";
 import { FaArrowAltCircleLeft, FaArrowAltCircleRight } from "react-icons/fa";
+import DetailModal from "./DetailModal";
 
 function MediaSlides({ items, autoplay }) {
   const slideRef = useRef(null);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
   const imageBaseUrl = "https://image.tmdb.org/t/p/w500";
 
   useEffect(() => {
     //Sets up the autoplay
-    //Every 5 seconds the slides scrolls left 300pixels
+    //Every 4 seconds the slides scrolls left 300pixels
     //If it reaches the end then it goes back to the beginning
     let interval;
     if (autoplay && items.length > 0) {
@@ -25,7 +28,7 @@ function MediaSlides({ items, autoplay }) {
             slideRef.current.scrollLeft = 0;
           }
         }
-      }, 5000);
+      }, 4000);
     }
 
     return () => {
@@ -33,11 +36,32 @@ function MediaSlides({ items, autoplay }) {
     };
   }, [autoplay, items]);
 
+  const handleItemClick = (item) => {
+    console.log("item clicked", item);
+    //Media type has to be set since it doesn't give it automatically.
+    if (item.title) {
+      item.media_type = "movie";
+    } else {
+      item.media_type = "tv";
+    }
+    setSelectedItem(item);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedItem(null);
+    setShowModal(false);
+  };
+
   return (
     <div className="media-slide-container">
       <div className="media-slide" ref={slideRef}>
-        {items.map((item) => (
-          <div key={item.id} className="slide-item">
+        {items.map((item, index) => (
+          <div
+            key={index}
+            className="slide-item"
+            onClick={() => handleItemClick(item)}
+          >
             <div className="slide-item-inner">
               <img
                 src={`${imageBaseUrl}${item.poster_path}`}
@@ -80,6 +104,14 @@ function MediaSlides({ items, autoplay }) {
       >
         <FaArrowAltCircleRight />
       </button>
+      {selectedItem && showModal && (
+        <DetailModal
+          mediaId={selectedItem.id}
+          mediaType={selectedItem.media_type}
+          show={showModal}
+          onHide={handleCloseModal}
+        />
+      )}
     </div>
   );
 }

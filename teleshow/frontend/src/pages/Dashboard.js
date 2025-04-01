@@ -5,6 +5,7 @@ import GetAverageRating from "../scripts/GetAverageRating.js";
 import FetchComments from "../components/FetchComments.js";
 import SetProviders from "../scripts/SetProviders.js";
 import SearchWidget from "../components/SearchWidget";
+import DetailModal from "../components/DetailModal";
 
 // Credit to JustWatch as TMDB API watch providers data source
 
@@ -76,6 +77,8 @@ function Dashboard() {
 
   const [modalRating, setModalRating] = useState(0);
   const [modalAverageRating, setModalAverageRating] = useState(0);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
   // Used to track if an item is already in a user's watchlist -WA
   const [watchlistDuplicate, setWatchListDuplicate] = useState(true);
@@ -459,6 +462,21 @@ function Dashboard() {
         alert(error);
       });
   };
+  const handleItemClick = (item) => {
+    console.log("item clicked", item);
+    if (item.title) {
+      item.media_type = "movie";
+    } else {
+      item.media_type = "tv";
+    }
+    setSelectedItem(item);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedItem(null);
+    setShowModal(false);
+  };
 
   return (
     // Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/#
@@ -692,7 +710,7 @@ function Dashboard() {
                       className="mediaPoster"
                       src={imgPath + tv.poster_path}
                       alt="media"
-                      onClick={async () => await showDetails(tv.id, "tv")}
+                      onClick={() => handleItemClick(tv)}
                     />
                     <p>{tv.name}</p>
                   </div>
@@ -710,7 +728,7 @@ function Dashboard() {
                       className="mediaPoster"
                       src={imgPath + movie.poster_path}
                       alt="media"
-                      onClick={async () => await showDetails(movie.id, "movie")}
+                      onClick={() => handleItemClick(movie)}
                     />
                     <p>{movie.title}</p>
                   </div>
@@ -744,6 +762,15 @@ function Dashboard() {
         {/* And https://react.dev/learn/rendering-lists#keeping-list-items-in-order-with-key */}
         {/* Loading could go here */}
       </div>
+      {selectedItem && showModal && (
+        <DetailModal
+          mediaId={selectedItem.id}
+          mediaType={selectedItem.media_type}
+          show={showModal}
+          onHide={handleCloseModal}
+          displayName={displayName}
+        />
+      )}
     </div>
   );
 }

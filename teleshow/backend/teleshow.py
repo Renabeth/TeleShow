@@ -839,8 +839,11 @@ def get_recommendations():  # Unused data for better recommendations.
     media_genre_id = list(
         map(int, media_genre_id)
     )  # Converts content to int and back to list
-    media_keyword_ids = data.get("keyword_ids", "").split(",")
-    media_keyword_ids = list(map(int, media_keyword_ids))
+    media_keyword_ids = data.get("keyword_ids", "").split(",") or []
+    try:
+        media_keyword_ids = list(map(int, media_keyword_ids))
+    except ValueError:
+        media_keyword_ids = []
 
     recs = []
     recommendations = []
@@ -1020,7 +1023,7 @@ def get_user_recommendations():
         # I have to sort the recommendations to see if a movie or tv show in watchlist is in it. If it is it has to be removed
 
         return jsonify(
-            {"movie_recs": sorted_movie_results[:6], "tv_recs": sorted_tv_results[:6]}
+            {"movie_recs": sorted_movie_results[:4], "tv_recs": sorted_tv_results[:4]}
         )
 
     except Exception as e:
@@ -1491,7 +1494,6 @@ def get_ratings():
             return jsonify(
                 {
                     "rating": 0,
-                    "averageRating": 0,
                     "message": "No rating found for this media",
                 }
             )
@@ -1502,7 +1504,6 @@ def get_ratings():
         return jsonify(
             {
                 "rating": rating_data.get("rating"),
-                "averageRating": rating_data.get("averageRating"),
                 "message": "Successfully found rating",
             }
         )
