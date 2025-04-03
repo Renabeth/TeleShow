@@ -704,7 +704,7 @@ def get_episode_progress():
 
 
 # GET CALENDAR ENTRIES
-@app.route("/tv/calendar", methods=["GET"])
+@app.route("/interactions/tv/calendar", methods=["GET"])
 def get_tv_calendar():
     user_id = request.args.get("user_id")
     if not user_id:
@@ -753,7 +753,7 @@ def get_tv_calendar():
 
 # UPDATE CALENDAR ENTRIES
 # Updates the calendar from collection information
-@app.route("/tv/update-calendar", methods=["POST"])
+@app.route("/interactions/tv/update-calendar", methods=["POST"])
 @limiter.limit(TMDB_RATE)
 def update_tv_calendar():
     data = request.get_json()

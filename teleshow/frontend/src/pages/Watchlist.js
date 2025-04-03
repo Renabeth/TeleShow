@@ -5,6 +5,7 @@ import GetAverageRating from "../scripts/GetAverageRating.js";
 import TVProgressTracker from "../components/TVProgress.js";
 import TVCalendar from "../components/TVCalendar.js";
 import { FaList, FaCalendarAlt } from "react-icons/fa";
+import DetailModal from "../components/DetailModal";
 
 import StarRate from "../components/starRate";
 
@@ -57,7 +58,6 @@ function Watchlist() {
   const [currentTvShow, setCurrentTvShow] = useState(null);
   const [showEpisodeTracker, setShowEpisodeTracker] = useState(false);
   const [showCalendarView, setShowCalendarView] = useState(false);
-  const initializedItems = useRef(new Set());
 
   const [loggedIn, setLoggedIn] = useState(false);
   const [userID, setUserID] = useState("");
@@ -90,6 +90,9 @@ function Watchlist() {
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
+
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
   //Updates filtered media when selection changes
   useEffect(() => {
@@ -263,7 +266,7 @@ function Watchlist() {
           setSelectedWatchlistId("all");
           fetchAllWatchlistMedia(userID);
         } else {
-          alert("Failed to delte watchlist.");
+          alert("Failed to delete watchlist.");
         }
       } catch (error) {
         console.error("Error deleting watchlist:", error);
@@ -311,9 +314,9 @@ function Watchlist() {
       const languages = tmdbData?.spoken_languages
         .map((language) => language.name)
         .join(",");
-      
+
       setModalLanguages(languages ? languages : "");
-      
+
       setModalProvidersBuy("");
       setModalProvidersFlatrate("");
       setModalProvidersRent("");
@@ -363,6 +366,17 @@ function Watchlist() {
 
   const returnToDashboard = () => {
     navigate("/dashboard");
+  };
+
+  const handleItemClick = (item) => {
+    console.log("item clicked", item);
+    setSelectedItem(item);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedItem(null);
+    setShowModal(false);
   };
 
   // From Dashboard.js
@@ -571,9 +585,7 @@ function Watchlist() {
                       <Button
                         dialogClassName="watchBtn"
                         variant="primary"
-                        onClick={() =>
-                          displayInformation(item.media_id, item.media_type)
-                        }
+                        onClick={() => handleItemClick(item)}
                       >
                         View Information
                       </Button>
@@ -640,6 +652,14 @@ function Watchlist() {
           </div>
         </div>
       </div>
+      {selectedItem && showModal && (
+        <DetailModal
+          mediaId={selectedItem.media_id}
+          mediaType={selectedItem.media_type}
+          show={showModal}
+          onHide={handleCloseModal}
+        />
+      )}
     </div>
   );
 }

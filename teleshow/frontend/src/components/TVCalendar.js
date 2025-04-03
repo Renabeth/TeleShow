@@ -30,9 +30,12 @@ const TVCalendar = ({ isLoggedIn }) => {
     }
 
     try {
-      const response = await axios.get(`http://localhost:5000/tv/calendar`, {
-        params: { user_id: userId },
-      });
+      const response = await axios.get(
+        `http://localhost:5000/interactions/tv/calendar`,
+        {
+          params: { user_id: userId },
+        }
+      );
 
       setCalendarItems(response.data.calendar || []);
     } catch (err) {
@@ -55,7 +58,7 @@ const TVCalendar = ({ isLoggedIn }) => {
     }
     try {
       const response = await axios.post(
-        `http://localhost:5000/tv/update-calendar`,
+        `http://localhost:5000/interactions/tv/update-calendar`,
         {
           user_id: userId,
         }

@@ -26,7 +26,6 @@ const SearchWidget = () => {
   const [filter_type, setFilterType] = useState("all"); //Filters output
   const [results, setResults] = useState({}); // Stores search results categorized by media type
   const [selectedItem, setSelectedItem] = useState(null); // Stores detailed information about a selected item
-  const [recommendations, setRecommendations] = useState([]); //Sets recommendation list
   const [isExpanded, setIsExpanded] = useState(true);
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -136,15 +135,6 @@ const SearchWidget = () => {
         params: { query: currentQuery, filter_type: currentFilterType },
       });
 
-      //Sets response to cache to limit API calls. Compresses for storage optimization
-      localStorage.setItem(
-        cacheKey,
-        JSON.stringify({
-          compressed: true,
-          data: LZString.compress(JSON.stringify(response.data)),
-          timestamp: Date.now(),
-        })
-      );
       // Update results state with API response
       if (response.data.results) {
         setResults({
@@ -162,7 +152,16 @@ const SearchWidget = () => {
 
       setShowDropdown(true);
       setQuery("");
-      console.log(response.data); //Debugging (REMOVE FROM FINAL)
+
+      //Sets response to cache to limit API calls. Compresses for storage optimization
+      localStorage.setItem(
+        cacheKey,
+        JSON.stringify({
+          compressed: true,
+          data: LZString.compress(JSON.stringify(response.data)),
+          timestamp: Date.now(),
+        })
+      );
     } catch (error) {
       console.error("Error searching data: ", error);
       alert("Unable to connect to the server. Please try again later.");
@@ -201,7 +200,7 @@ const SearchWidget = () => {
       // Get all keys from localStorage
       const keys = Object.keys(localStorage);
 
-      // Filter keys that belong to your app's cache
+      // Filter keys that match cache
       const cacheKeys = keys.filter(
         (key) =>
           key.startsWith("search-") ||
@@ -212,7 +211,6 @@ const SearchWidget = () => {
       // Remove all cache items
       cacheKeys.forEach((key) => localStorage.removeItem(key));
 
-      // Provide feedback to user
       alert("Cache cleared successfully!");
     }
   };

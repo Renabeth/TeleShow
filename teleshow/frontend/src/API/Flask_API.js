@@ -115,11 +115,7 @@ export const getRecommendations = async (item) => {
       payload
     );
 
-    console.log(
-      "API response for recommendations:",
-      item.tmdb.id,
-      item.tmdb.media_type
-    ); // debugging
+    console.log("API response for recommendations");
 
     localStorage.setItem(
       cacheKey,
@@ -129,7 +125,6 @@ export const getRecommendations = async (item) => {
         timestamp: Date.now(),
       })
     );
-    console.log(response.data.recommendations);
     return response.data.recommendations || [];
   } catch (error) {
     console.error("error fetching details: ", error);

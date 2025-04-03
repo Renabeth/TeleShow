@@ -7,12 +7,15 @@ import axiosRetry from "axios-retry";
 import MediaSlides from "../components/MediaSlides.js";
 import SearchWidget from "../components/SearchWidget.js";
 import "../styles/Home.css";
+import LZString from "lz-string";
 
 function HomePage() {
+  //Allow requests to retry after failure.
   axiosRetry(axios, {
     retries: 3,
     retryDelay: axiosRetry.exponentialDelay,
   });
+  const TREND_TTL = 24 * 60 * 60 * 1000;
   const [trendingMovies, setTrendingMovies] = useState([]);
   const [popularTV, setPopularTV] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -39,8 +42,36 @@ function HomePage() {
   const fetchTrendingContent = async () => {
     try {
       setLoading(true);
+      const TREND_CACHE_KEY = "todays-trending";
+      const cache = localStorage.getItem(TREND_CACHE_KEY);
+
+      if (cache) {
+        const { compressed, data, timestamp } = JSON.parse(cache);
+        if (Date.now() - timestamp < TREND_TTL) {
+          const decompressed = compressed
+            ? JSON.parse(LZString.decompress(data))
+            : JSON.parse(data);
+          setTrendingMovies(decompressed.movies);
+          setPopularTV(decompressed.tv);
+          console.log("Trending cache hit");
+          setLoading(false);
+          return;
+        }
+      } else {
+        sessionStorage.removeItem(TREND_CACHE_KEY);
+      }
 
       const response = await axios.get("http://localhost:5000/trending");
+
+      localStorage.setItem(
+        TREND_CACHE_KEY,
+        JSON.stringify({
+          compressed: true,
+          data: LZString.compress(JSON.stringify(response.data)),
+          timestamp: Date.now(),
+        })
+      );
+
       setTrendingMovies(response.data.movies);
       setPopularTV(response.data.tv);
 
