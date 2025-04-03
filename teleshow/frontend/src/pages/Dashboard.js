@@ -49,6 +49,7 @@ function Dashboard() {
   const [userID, setUserID] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const host = process.env.REACT_APP_NETWORK_HOST;
 
   const [currentMediaID, setCurrentMediaID] = useState(0);
   const [currentMediaType, setCurrentMediaType] = useState("");
@@ -106,14 +107,11 @@ function Dashboard() {
       "https://api.themoviedb.org/3/trending/movie/day?language=en-US";
     const user_id = sessionStorage.getItem("userId");
     // Worked with Moses on this -William
-    const response = await axios.get(
-      "http://localhost:5000/user-recommendations",
-      {
-        params: {
-          user_id,
-        },
-      }
-    );
+    const response = await axios.get(`${host}user-recommendations`, {
+      params: {
+        user_id,
+      },
+    });
 
     console.log(response.data);
 

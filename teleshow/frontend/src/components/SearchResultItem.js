@@ -22,7 +22,7 @@ const SearchResultItem = ({ item, onClick }) => {
         />
       ) : (
         <div className={`poster-placeholder ${item.media_type}`}>
-          {/* You can use your existing FiTv icon for TV shows */}
+          {/* Uses icons as placeholders */}
           {item.media_type === "tv" ? (
             <FiTv size={55} />
           ) : (

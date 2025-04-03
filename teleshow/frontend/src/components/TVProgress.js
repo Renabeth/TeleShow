@@ -22,6 +22,7 @@ const TVProgress = ({ tvId, tvName, isOpen, onClose, isLoggedIn }) => {
   const [error, setError] = useState(null);
   const [activeSeasonNumber, setActiveSeasonNumber] = useState(1);
   const [userProgress, setUserProgress] = useState({});
+  const host = process.env.REACT_APP_NETWORK_HOST;
 
   const userId = sessionStorage.getItem("userId");
   const image_url = "https://image.tmdb.org/t/p/w185";
@@ -48,7 +49,7 @@ const TVProgress = ({ tvId, tvName, isOpen, onClose, isLoggedIn }) => {
   //Gets the season number
   const fetchSeasons = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/tv/seasons`, {
+      const response = await axios.get(`${host}tv/seasons`, {
         params: { id: tvId },
       });
 
@@ -72,15 +73,12 @@ const TVProgress = ({ tvId, tvName, isOpen, onClose, isLoggedIn }) => {
   //Gets the episode numbers
   const fetchEpisodes = async () => {
     try {
-      const response = await axios.get(
-        `http://localhost:5000/tv/seasons/episodes`,
-        {
-          params: {
-            id: tvId,
-            season_number: activeSeasonNumber,
-          },
-        }
-      );
+      const response = await axios.get(`${host}tv/seasons/episodes`, {
+        params: {
+          id: tvId,
+          season_number: activeSeasonNumber,
+        },
+      });
 
       if (response.data.episodes) {
         setEpisodes(response.data.episodes);
@@ -97,7 +95,7 @@ const TVProgress = ({ tvId, tvName, isOpen, onClose, isLoggedIn }) => {
   const fetchProgress = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/tv/episode-progress`,
+        `${host}interactions/tv/get-episode-progress`,
         {
           params: {
             user_id: userId,
@@ -127,7 +125,7 @@ const TVProgress = ({ tvId, tvName, isOpen, onClose, isLoggedIn }) => {
 
     try {
       const response = await axios.post(
-        `http://localhost:5000/interactions/episode-progress`,
+        `${host}interactions/tv/set-episode-progress`,
         {
           user_id: userId,
           tv_id: tvId,

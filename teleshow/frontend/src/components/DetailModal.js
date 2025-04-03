@@ -38,6 +38,7 @@ const DetailModal = ({
   const [showEpisodeTracker, setShowEpisodeTracker] = useState(false);
   const image_url = " https://image.tmdb.org/t/p/w342"; // Base URL for TMDB image paths
   const [userId, setUserId] = useState(sessionStorage.getItem("userId") || 0);
+  const host = process.env.REACT_APP_NETWORK_HOST;
 
   const isLoggedIn = !!sessionStorage.getItem("userId");
 
@@ -56,6 +57,7 @@ const DetailModal = ({
   }, [showWatchlistModal, isLoggedIn]);
 
   //Had to use promise chaining so i could tie the rating data to the item info
+  //Otherwise it was giving me an issue where the item wasnt being set before attempted retreival
   useEffect(() => {
     const fetchItemDetails = () => {
       //If only the mediaId and mediaType are passed
@@ -156,7 +158,7 @@ const DetailModal = ({
       action: action,
     };
     const response = await axios.post(
-      `http://localhost:5000/interactions/media_followed`,
+      `${host}interactions/media_followed`,
       payload
     );
 
@@ -167,7 +169,7 @@ const DetailModal = ({
     console.log(response.data);
   };
 
-  // Fetch watchlists using the service
+  // Fetch watchlists using the backend
   const fetchWatchlists = async () => {
     const lists = await getWatchlists();
     setWatchlists(lists);
@@ -210,14 +212,11 @@ const DetailModal = ({
         poster_path: item.tmdb.poster_path,
       };
 
-      const response = await axios.post(
-        `http://localhost:5000/interactions/add-watchlist`,
-        {
-          user_id: userId,
-          watchlist_name: watchlistName,
-          media_info: mediaInfo,
-        }
-      );
+      const response = await axios.post(`${host}interactions/add-watchlist`, {
+        user_id: userId,
+        watchlist_name: watchlistName,
+        media_info: mediaInfo,
+      });
 
       if (response.data.status === "success") {
         alert(`Added to watchlist: ${watchlistName}`);
@@ -258,16 +257,13 @@ const DetailModal = ({
       return { rating: null };
     }
     try {
-      const response = await axios.get(
-        "http://localhost:5000/interactions/get-ratings",
-        {
-          params: {
-            user_id,
-            media_id,
-            media_type,
-          },
-        }
-      );
+      const response = await axios.get(`${host}interactions/get-ratings`, {
+        params: {
+          user_id,
+          media_id,
+          media_type,
+        },
+      });
       return response.data;
     } catch (error) {
       console.error("Error fetching ratings:", error);

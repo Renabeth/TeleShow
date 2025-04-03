@@ -8,7 +8,6 @@ function MediaSlides({ items, autoplay }) {
   const slideRef = useRef(null);
   const [selectedItem, setSelectedItem] = useState(null);
   const [showModal, setShowModal] = useState(false);
-
   const imageBaseUrl = "https://image.tmdb.org/t/p/w500";
 
   useEffect(() => {

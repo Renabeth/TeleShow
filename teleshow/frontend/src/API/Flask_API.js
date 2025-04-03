@@ -4,6 +4,7 @@ import axios from "axios";
 import LZString from "lz-string";
 //Sets the localStorage variables TTL to 24hours
 const SEARCH_TTL = 24 * 60 * 60 * 1000;
+const host = process.env.REACT_APP_NETWORK_HOST;
 
 export const hashObject = (obj) => {
   //For caching POST requests
@@ -38,7 +39,7 @@ export const getDetails = async (id, type) => {
 
   try {
     // Makes request to Flask API details endpoint with item ID and media type
-    const response = await axios.get(`http://localhost:5000/search/details`, {
+    const response = await axios.get(`${host}search/details`, {
       params: { id, type },
     });
 
@@ -110,10 +111,7 @@ export const getRecommendations = async (item) => {
     }
   }
   try {
-    const response = await axios.post(
-      `http://localhost:5000/recommendations`,
-      payload
-    );
+    const response = await axios.post(`${host}recommendations`, payload);
 
     console.log("API response for recommendations");
 
@@ -137,16 +135,13 @@ export const checkIfFollowed = async (mediaId, mediaType) => {
     const userId = sessionStorage.getItem("userId");
     if (!userId) return;
 
-    const response = await axios.get(
-      `http://localhost:5000/interactions/check_followed`,
-      {
-        params: {
-          user_id: userId,
-          media_id: mediaId,
-          media_type: mediaType,
-        },
-      }
-    );
+    const response = await axios.get(`${host}interactions/check_followed`, {
+      params: {
+        user_id: userId,
+        media_id: mediaId,
+        media_type: mediaType,
+      },
+    });
     return response.data.followed; //returns true if found and false if not
   } catch (error) {
     console.error("Error checking media status", error);

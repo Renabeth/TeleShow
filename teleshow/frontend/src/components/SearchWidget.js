@@ -13,7 +13,7 @@ import DetailModal from "./DetailModal";
 import "./SearchWidget.css";
 import { FiTv } from "react-icons/fi";
 import { GoSearch, GoClock } from "react-icons/go";
-import { getDetails, getRecommendations } from "../API/Flask_API";
+import { getDetails } from "../API/Flask_API";
 
 const SearchWidget = () => {
   axiosRetry(axios, {
@@ -31,6 +31,7 @@ const SearchWidget = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [queryHistory, setQueryHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  const host = process.env.REACT_APP_NETWORK_HOST;
   const handleExpand = () => {
     setIsExpanded(true);
     // Focus the input box when expanded
@@ -83,7 +84,7 @@ const SearchWidget = () => {
     const currentQuery = searchQuery || query;
     const currentFilterType = filterType || filter_type;
     if (currentQuery.trim().length > 2) {
-      //React functional state update. As I understand. this is how u get previous states of vaiable
+      //React functional state update. As I understand. this is how u get previous states of vaiables
       setQueryHistory((prev) => {
         if (!prev.includes(currentQuery)) {
           return [currentQuery, ...prev].slice(0, 10);
@@ -131,7 +132,7 @@ const SearchWidget = () => {
     try {
       //Handle server unreachable
       // Makes request to Flask API search endpoint with query and filter type
-      const response = await axios.get(`http://localhost:5000/search`, {
+      const response = await axios.get(`${host}search`, {
         params: { query: currentQuery, filter_type: currentFilterType },
       });
 

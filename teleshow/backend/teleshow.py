@@ -673,7 +673,7 @@ def get_season_episodes():
 # GET EPISODE PROGRESS AND SHOW WHICH EPISODES HAVE BEEN WATCHED
 # This gets the information from firebase while another function sets it
 # The interactions/episode-progress sets the progress information
-@app.route("/tv/episode-progress", methods=["GET"])
+@app.route("/interactions/tv/get-episode-progress", methods=["GET"])
 def get_episode_progress():
     user_id = request.args.get("user_id")
     tv_id = request.args.get("tv_id")
@@ -701,6 +701,78 @@ def get_episode_progress():
     except Exception as e:
         print(f"Error getting episode progress: {str(e)}")
         return jsonify({"error": f"Failed to get episode progress: {str(e)}"})
+
+
+# FOR UPDATING EPISODE PROGRESS FROM FIRESTORE FOR USER
+# This is the method that sets episode progress when user sets episode as watched
+@app.route("/interactions/tv/set-episode-progress", methods=["POST"])
+def update_episode_progress():
+    data = request.get_json()
+    user_id = data.get("user_id")
+    tv_id = data.get("tv_id")
+    season_number = data.get("season_number")
+    episode_number = data.get("episode_number")
+    watched = data.get("watched")
+
+    if not user_id or not tv_id or season_number is None or episode_number is None:
+        return jsonify({"error": "Missing requred parameteres"})
+
+    try:
+        user_ref = users_ref.document(user_id)
+        if not user_ref.get().exists:
+            return jsonify({"error": "User not found"})
+
+        tv_progress_key = f"tv_{tv_id}"
+
+        # Get users TV progress collection
+        tv_progress_ref = user_ref.collection("tv_progress").document(tv_progress_key)
+
+        # Check if document exists
+        tv_doc = tv_progress_ref.get()
+        if tv_doc.exists:
+            progress_data = tv_doc.to_dict()
+            # Get the seasons information from the firestore
+            seasons = progress_data.get("seasons", {})
+
+            # Convert season number to string for use as dictionary key
+            season_key = str(season_number)
+            if season_key not in seasons:
+                # Create new season field if it doesnt exist
+                seasons[season_key] = {"episodes": {}}
+
+            # Convert episode number to string for use as dictionary key
+            episode_key = str(episode_number)
+            # Create a new episode field initalized as what every watched is
+            seasons[season_key]["episodes"][episode_key] = {
+                "watched": watched,
+                "updated_at": firestore.SERVER_TIMESTAMP,
+            }
+
+            tv_progress_ref.update(
+                {"seasons": seasons, "updated_at": firestore.SERVER_TIMESTAMP}
+            )
+        # Create a new document if it doesn't exist
+        else:
+            tv_data = {
+                "tv_id": tv_id,
+                "seasons": {
+                    str(season_number): {
+                        "episodes": {
+                            str(episode_number): {
+                                "watched": watched,
+                                "updated_at": firestore.SERVER_TIMESTAMP,
+                            }
+                        }
+                    }
+                },
+                "created_at": firestore.SERVER_TIMESTAMP,
+                "updated_at": firestore.SERVER_TIMESTAMP,
+            }
+            tv_progress_ref.set(tv_data)
+        return jsonify({"status": "success", "message": "Episode progress updated"})
+    except Exception as e:
+        print(f"Error updating episode progress: {str(e)}")
+        return jsonify({"error": f"Failed to update episode progress: {str(e)}"})
 
 
 # GET CALENDAR ENTRIES
@@ -1038,78 +1110,6 @@ def cache_stats():
             "size": cache.cache._cache.__len__(),
         }
     )
-
-
-# FOR UPDATING EPISODE PROGRESS FROM FIRESTORE FOR USER
-# This is the method that sets episode progress when user sets episode as watched
-@app.route("/interactions/episode-progress", methods=["POST"])
-def update_episode_progress():
-    data = request.get_json()
-    user_id = data.get("user_id")
-    tv_id = data.get("tv_id")
-    season_number = data.get("season_number")
-    episode_number = data.get("episode_number")
-    watched = data.get("watched")
-
-    if not user_id or not tv_id or season_number is None or episode_number is None:
-        return jsonify({"error": "Missing requred parameteres"})
-
-    try:
-        user_ref = users_ref.document(user_id)
-        if not user_ref.get().exists:
-            return jsonify({"error": "User not found"})
-
-        tv_progress_key = f"tv_{tv_id}"
-
-        # Get users TV progress collection
-        tv_progress_ref = user_ref.collection("tv_progress").document(tv_progress_key)
-
-        # Check if document exists
-        tv_doc = tv_progress_ref.get()
-        if tv_doc.exists:
-            progress_data = tv_doc.to_dict()
-            # Get the seasons information from the firestore
-            seasons = progress_data.get("seasons", {})
-
-            # Convert season number to string for use as dictionary key
-            season_key = str(season_number)
-            if season_key not in seasons:
-                # Create new season field if it doesnt exist
-                seasons[season_key] = {"episodes": {}}
-
-            # Convert episode number to string for use as dictionary key
-            episode_key = str(episode_number)
-            # Create a new episode field initalized as what every watched is
-            seasons[season_key]["episodes"][episode_key] = {
-                "watched": watched,
-                "updated_at": firestore.SERVER_TIMESTAMP,
-            }
-
-            tv_progress_ref.update(
-                {"seasons": seasons, "updated_at": firestore.SERVER_TIMESTAMP}
-            )
-        # Create a new document if it doesn't exist
-        else:
-            tv_data = {
-                "tv_id": tv_id,
-                "seasons": {
-                    str(season_number): {
-                        "episodes": {
-                            str(episode_number): {
-                                "watched": watched,
-                                "updated_at": firestore.SERVER_TIMESTAMP,
-                            }
-                        }
-                    }
-                },
-                "created_at": firestore.SERVER_TIMESTAMP,
-                "updated_at": firestore.SERVER_TIMESTAMP,
-            }
-            tv_progress_ref.set(tv_data)
-        return jsonify({"status": "success", "message": "Episode progress updated"})
-    except Exception as e:
-        print(f"Error updating episode progress: {str(e)}")
-        return jsonify({"error": f"Failed to update episode progress: {str(e)}"})
 
 
 # FOR Following MEDIA IN SEARCH

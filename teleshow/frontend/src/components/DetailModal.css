@@ -75,7 +75,6 @@
   animation: fadeIn 0.3s ease-out 0.2s;
   animation-fill-mode: both;
 }
-  
 /* Style for cast sections */
 .detail-modal .cast-section {
   background-color: transparent;

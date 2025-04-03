@@ -21,6 +21,7 @@ function HomePage() {
   const [loading, setLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [autoplay, setAutoPlay] = useState(true);
+  const host = process.env.REACT_APP_NETWORK_HOST;
   const navigate = useNavigate();
   //Make the Title the focus when the user gets to the landing page.
   useEffect(() => {
@@ -61,7 +62,7 @@ function HomePage() {
         sessionStorage.removeItem(TREND_CACHE_KEY);
       }
 
-      const response = await axios.get("http://localhost:5000/trending");
+      const response = await axios.get(`${host}trending`);
 
       localStorage.setItem(
         TREND_CACHE_KEY,

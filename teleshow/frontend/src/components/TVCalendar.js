@@ -11,6 +11,7 @@ const TVCalendar = ({ isLoggedIn }) => {
   const [error, setError] = useState(null);
   const image_url = "https://image.tmdb.org/t/p/w185";
   const userId = sessionStorage.getItem("userId");
+  const host = process.env.REACT_APP_NETWORK_HOST;
 
   //If the user is logged in the calendar information is fetched from firebase
   useEffect(() => {
@@ -19,7 +20,7 @@ const TVCalendar = ({ isLoggedIn }) => {
     }
   }, [isLoggedIn]);
 
-  //Uses the /tv/calendar endpoints to get Calendar entries from firebase
+  //Uses the interactions/tv/calendar endpoints to get Calendar entries from firebase
   const fetchCalendar = async () => {
     setLoading(true);
     setError(null);
@@ -30,12 +31,9 @@ const TVCalendar = ({ isLoggedIn }) => {
     }
 
     try {
-      const response = await axios.get(
-        `http://localhost:5000/interactions/tv/calendar`,
-        {
-          params: { user_id: userId },
-        }
-      );
+      const response = await axios.get(`${host}interactions/tv/calendar`, {
+        params: { user_id: userId },
+      });
 
       setCalendarItems(response.data.calendar || []);
     } catch (err) {
@@ -46,7 +44,7 @@ const TVCalendar = ({ isLoggedIn }) => {
     }
   };
 
-  //Uses the /tv/update-calendar to update the calendar
+  //Uses the interactions/tv/update-calendar to update the calendar
   const updateCalendar = async () => {
     setLoading(true);
     setError(null);
@@ -58,7 +56,7 @@ const TVCalendar = ({ isLoggedIn }) => {
     }
     try {
       const response = await axios.post(
-        `http://localhost:5000/interactions/tv/update-calendar`,
+        `${host}interactions/tv/update-calendar`,
         {
           user_id: userId,
         }

@@ -58,6 +58,7 @@ function Watchlist() {
   const [currentTvShow, setCurrentTvShow] = useState(null);
   const [showEpisodeTracker, setShowEpisodeTracker] = useState(false);
   const [showCalendarView, setShowCalendarView] = useState(false);
+  const host = process.env.REACT_APP_NETWORK_HOST;
 
   const [loggedIn, setLoggedIn] = useState(false);
   const [userID, setUserID] = useState("");
@@ -137,12 +138,9 @@ function Watchlist() {
   const fetchWatchlists = async (userId) => {
     setLoading(true);
     try {
-      const response = await axios.get(
-        "http://localhost:5000/interactions/get-watchlists",
-        {
-          params: { user_id: userId },
-        }
-      );
+      const response = await axios.get(`${host}interactions/get-watchlists`, {
+        params: { user_id: userId },
+      });
       return response.data.watchlists || [];
     } catch (error) {
       console.error("Error fetching watchlists", error);
@@ -156,7 +154,7 @@ function Watchlist() {
     setLoading(true);
     try {
       const response = await axios.get(
-        "http://localhost:5000/interactions/get-watchlist-media",
+        `${host}interactions/get-watchlist-media`,
         {
           params: {
             user_id: userId,
@@ -228,16 +226,13 @@ function Watchlist() {
 
   const fetchRatings = async (userId, mediaId, mediaType) => {
     try {
-      const response = await axios.get(
-        "http://localhost:5000/interactions/get-ratings",
-        {
-          params: {
-            user_id: userId,
-            media_id: mediaId,
-            media_type: mediaType,
-          },
-        }
-      );
+      const response = await axios.get(`${host}interactions/get-ratings`, {
+        params: {
+          user_id: userId,
+          media_id: mediaId,
+          media_type: mediaType,
+        },
+      });
       return response.data;
     } catch (error) {
       console.error("Error getting rating:", error);
@@ -254,7 +249,7 @@ function Watchlist() {
     ) {
       try {
         const response = await axios.post(
-          "http://localhost:5000/interactions/delete-watchlist",
+          `${host}interactions/delete-watchlist`,
           {
             user_id: userID,
             watchlist_id: watchlistId,
@@ -278,7 +273,7 @@ function Watchlist() {
   const removeFromWatchlist = async (watchlistId, mediaId) => {
     try {
       const response = await axios.post(
-        "http://localhost:5000/interactions/remove-from-watchlist",
+        `${host}interactions/remove-from-watchlist`,
         {
           user_id: userID,
           watchlist_id: watchlistId,
@@ -301,7 +296,7 @@ function Watchlist() {
   const displayInformation = async (id, type) => {
     try {
       console.log(type);
-      const response = await axios.get("http://localhost:5000/search/details", {
+      const response = await axios.get(`${host}search/details`, {
         params: {
           id: id,
           type: type,
@@ -330,7 +325,7 @@ function Watchlist() {
   const updateStatus = async (watchlistId, mediaId, watchStatus) => {
     try {
       const response = await axios.post(
-        "http://localhost:5000/interactions/update-media-status",
+        `${host}interactions/update-media-status`,
         {
           user_id: userID,
           watchlist_id: watchlistId,
