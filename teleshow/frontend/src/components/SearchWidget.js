@@ -57,6 +57,11 @@ const SearchWidget = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [handleCollapse]);
 
+  useEffect(() => {
+    console.log("Query value updated to:", query);
+    // Perform any actions that depend on the updated query here
+  }, [query]);
+
   const handleKeyPress = (event) => {
     // Check if Enter key is pressed and query meets minimum length
     if (event.key === "Enter" && query.trim().length > 2) {
@@ -121,7 +126,6 @@ const SearchWidget = () => {
         } else {
           setResults({ unified: false, tmdb_tv: decompressed.tmdb_tv || [] });
         }
-        setQuery(""); //Clears search bar on successful search
         setShowDropdown(true);
         setLoading(false);
         return;
@@ -150,10 +154,7 @@ const SearchWidget = () => {
       } else {
         setResults({ unified: false, tmdb_tv: response.data.tmdb_tv || [] });
       }
-
       setShowDropdown(true);
-      setQuery("");
-
       //Sets response to cache to limit API calls. Compresses for storage optimization
       localStorage.setItem(
         cacheKey,
@@ -217,6 +218,7 @@ const SearchWidget = () => {
   };
 
   const handleHistoryItemClick = (historyItem) => {
+    setQuery(historyItem);
     handleSearch(historyItem, "all");
   };
   return (

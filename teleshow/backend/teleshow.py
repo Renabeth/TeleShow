@@ -18,6 +18,7 @@ import torch.nn.functional as F
 import firebase_admin  # Firebase imports that allow connection to firestore for user data
 from firebase_admin import credentials
 from firebase_admin import firestore
+from dotenv import load_dotenv
 
 # Generates a numerical representation (embedding) for the entire sentence or paragraph, enabling it to measure semantic similarity efficiently.
 from sentence_transformers import SentenceTransformer
@@ -50,6 +51,8 @@ INTERNAL_RATE = "200 per minute"
 
 base_url1 = "https://api.watchmode.com/v1"  # Base API urls used to create full urls for API calls.
 image_url = "https://image.tmdb.org/t/p/w500"  # Base Image urls
+
+load_dotenv()  # Explicit loading of .env file in working directory to avoid problems
 
 tmdb.API_KEY = os.getenv(
     "PY_TMDB_API_KEY"
@@ -516,36 +519,22 @@ def search():
         return jsonify({"test_results": "Successful Test"})
     else:
         try:
+            search = tmdb.Search()
+            search.multi(query=query)
+            search_results = search.results
+            for item in search_results:
+                print(item.get("media_type"))
             movie_results = []
             tv_results = []
-            if filter_type in ["all", "movie"]:  # Filters results
-                movie_search = tmdb.Search()  # Initializes tmdbsimple in variable
-                movie_search.movie(
-                    query=query
-                )  # Searchs tmdb API for movies that have query in there names.
-                movie_results = movie_search.results
+            person_results = []
+            for item in search_results:
+                if item.get("media_type") == "movie":
+                    movie_results.append(item)
+                elif item.get("media_type") == "tv":
+                    tv_results.append(item)
+                else:
+                    person_results.append(item)
 
-                for (
-                    movie
-                ) in (
-                    movie_results
-                ):  # Iterates through results and completes the incomplete poster path given in respoosne
-                    poster_path = movie.get("poster_path")
-                    if poster_path:
-                        movie["poster_url"] = f"{image_url}{poster_path}"
-                    movie["media_type"] = (
-                        "movie"  # assigns type key:value pairs to all results
-                    )
-            if filter_type in ["all", "tv"]:
-                tv_search = tmdb.Search()
-                tv_search.tv(query=query)
-                tv_results = tv_search.results
-
-                for tv in tv_results:
-                    poster_path = tv.get("poster_path")
-                    if poster_path:
-                        tv["poster_url"] = f"{image_url}{poster_path}"
-                    tv["media_type"] = "tv"
             if filter_type == "all":
                 all_results = []
 
@@ -556,6 +545,9 @@ def search():
                 for item in tv_results:
                     relavance = calculate_relevance(item, query)
                     all_results.append({"item": item, "relevance": relavance})
+
+                for item in person_results:
+                    all_results.append({"item": item, "relevance": 0})
 
                 all_results = sorted(
                     all_results, key=lambda x: x["relevance"], reverse=True
@@ -598,35 +590,38 @@ def details():
 
     elif item_type == "movie" or item_type == "tv":
         try:
-            if item_type == "movie":
-                media = tmdb.Movies(
-                    item_id
-                )  # Searches using the media id instead of name for a 1to1 result across tmdb and watchmode
-                keywords_data = media.keywords()
-                """"
-                watchmode_data = watchmode_search(
-                    item_id, item_type
-                )  # Passes the tmdb_id and type to watchmode search function"
+            media = tmdb.Movies(item_id) if item_type == "movie" else tmdb.TV(item_id)
+            tmdb_details = media.info(
+                append_to_response="keywords,credits"
+            )  # Gets detailed information from TMDB using append_to_response. Saves on quota
 
-                """  # Saving api queries during testing
-            elif item_type == "tv":
-                media = tmdb.TV(item_id)
-                keywords_data = media.keywords()
+            tmdb_details["media_type"] = (
+                item_type  # Saves item type to item since info() doesn't give it
+            )
 
-                # watchmode_data = watchmode_search(item_id, item_type)
+            if "keywords" in tmdb_details:
+                key = (
+                    "keywords" if item_type == "movie" else "results"
+                )  # Response for movie and show keywords is different depending
+                tmdb_details["keywords"] = tmdb_details["keywords"].get(key, [])
 
-            tmdb_details = media.info()  # Gets detailed information from TMDB
-            tmdb_details["media_type"] = item_type
-            tmdb_details["keywords"] = keywords_data.get(
-                "keywords", []
-            ) or keywords_data.get("results", [])
-            cast_data = media.credits()  # Get cast information
+            cast = (
+                tmdb_details.get("credits", {}).get("cast", [])[:12]
+                if "credits" in tmdb_details
+                else []
+            )  # Get the nested cast information
+            """"
+            watchmode_data = watchmode_search(
+                item_id, item_type
+            )  # Passes the tmdb_id and type to watchmode search function"
+
+            """  # Saving api queries during testing
 
             return jsonify(
                 {
                     "tmdb": tmdb_details or [],
                     "watchmode": [],
-                    "cast": cast_data.get("cast", [])[:12] or [],
+                    "cast": cast or [],
                 }
             )
         except Exception as e:
@@ -933,22 +928,22 @@ def get_recommendations():  # Unused data for better recommendations.
     recommendations = []
     unique_recs = []
     filtered_recs = []
-    x = set()
+    seen = set()
 
     # Get pool of recommendations
     try:
-        if media_type == "movie":
-            recs = tmdb.Movies(media_id).recommendations()
-            for result in recs.get("results"):
-                result["media_type"] = media_type
-        elif media_type == "tv":
-            recs = tmdb.TV(media_id).recommendations()
+        if media_type:
+            recs = (
+                tmdb.Movies(media_id).recommendations()
+                if media_type == "movie"
+                else tmdb.TV(media_id).recommendations()
+            )
             for result in recs.get("results"):
                 result["media_type"] = media_type
         if isinstance(recs, dict) and "results" in recs:
             recommendations.extend(recs.get("results"))
         else:
-            print(f"Unexpected response format: {recs}")  # Log unexpected cases
+            print(f"Unexpected case: {recs}")  # Log unexpected cases
             recommendations = []
     except Exception as e:
         print(f"Error getting recommendations: {str(e)}")
@@ -966,29 +961,36 @@ def get_recommendations():  # Unused data for better recommendations.
 
     for rec in recommendations:  # Prevent duplicate recommendations
         unique_key = f"{rec.get('id')}-{rec.get('media_type')}"
-        if unique_key not in x and rec.get("id") != int(
+        if unique_key not in seen and rec.get("id") != int(
             media_id
         ):  # Make sure we dont get the original media in recommendations
-            x.add(unique_key)
+            seen.add(unique_key)
             unique_recs.append(rec)
+    unique_recs = [
+        rec for rec in unique_recs if rec.get("popularity", 0) > 1.0
+    ]  # Remove recommendations with low popularity
+    for rec in unique_recs[:30]:  # Compare top 30 query items' overviews
+        media = (
+            tmdb.Movies(rec.get("id"))
+            if media_type == "movie"
+            else tmdb.TV(rec.get("id"))
+        )
 
-    for rec in unique_recs:  # Compare to all query items' overviews
-        if rec.get("media_type") == "movie":
-            media = tmdb.Movies(rec.get("id"))
-        elif rec.get("media_type") == "tv":
-            media = tmdb.TV(rec.get("id"))
-        else:
-            print("Recs: something went wrong")
+        rec_media_info = media.info(append_to_response="keywords")
 
-        rec_media_info = media.info()
+        # For the movie candidate, remove if their languages don't match
+        if (
+            rec_media_info.get("original_language") != media_language
+            and rec_media_info.get("media_type") == "movie"
+        ):
+            continue
 
-        keywords_data = media.keywords()
-        if rec.get("media_type") == "movie":
-            rec_keywords = [k["id"] for k in keywords_data.get("keywords")] or []
-        elif rec.get("media_type") == "tv":
-            rec_keywords = [k["id"] for k in keywords_data.get("results")] or []
+        key = "keywords" if rec.get("media_type") == "movie" else "results"
+        rec_keywords = [
+            k["id"] for k in rec_media_info.get("keywords", []).get(key, [])
+        ] or []  # Keywords is double nested in the response.
 
-        rec_genres = [r["id"] for r in rec_media_info.get("genres")] or []
+        rec_genres = [r.get("id") for r in rec_media_info.get("genres")] or []
 
         rec_info = rec_media_info.get("overview", "")
 
@@ -1008,13 +1010,6 @@ def get_recommendations():  # Unused data for better recommendations.
                 recency_score = 0.5
         except (ValueError, TypeError):
             recency_score = 0.5
-
-        # For the movie candidate, remove if their languages don't match
-        if (
-            rec_media_info.get("original_language") != media_language
-            and rec_media_info.get("media_type") == "movie"
-        ):
-            continue
 
         # Genre similarity check
         if not media_genre_id or not rec_genres:
@@ -1051,7 +1046,7 @@ def get_recommendations():  # Unused data for better recommendations.
         return jsonify({"recommendations": results or []})
     else:
         return jsonify(
-            {"recommendations": tmdb.Movies().popular()["results"][:8] or []}
+            {"recommendations": tmdb.Movies().popular()["results"][:16] or []}
         )
 
 

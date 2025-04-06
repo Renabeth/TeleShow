@@ -521,6 +521,7 @@ function Watchlist() {
               </ButtonGroup>
             </div>
             {!showCalendarView ? (
+              //...Converts to array
               filteredMedia.length > 0 &&
               [
                 ...new Map(

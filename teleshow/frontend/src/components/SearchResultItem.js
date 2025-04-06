@@ -5,7 +5,7 @@ import { FiTv } from "react-icons/fi";
 import { BiMovie } from "react-icons/bi";
 
 const SearchResultItem = ({ item, onClick }) => {
-  const image_url = `https://image.tmdb.org/t/p/w92${item.poster_path}`; // Base URL for TMDB image paths
+  const image_url = `https://image.tmdb.org/t/p/w500${item.poster_path}`; // Base URL for TMDB image paths
   const hasValidPoster = item.poster_path != null;
 
   return (
