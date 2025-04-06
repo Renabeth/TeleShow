@@ -332,7 +332,6 @@ const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
                       onClick={() => handleFollow(item)}
                       className="btn-follow flex-grow-0"
                     >
-                      {followed ? <FaBell /> : <FaRegBell />}{" "}
                       {followed ? "Liked" : "Like"}
                     </Button>
                   )}
