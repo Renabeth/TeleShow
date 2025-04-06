@@ -317,14 +317,26 @@ const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
               )}
               {isLoggedIn ? (
                 <div className="d-flex flex-wrap justify-content-between gap-2 mt-2">
-                  <Button
-                    variant={followed ? "danger" : "outline-danger"}
-                    onClick={() => handleFollow(item)}
-                    className="btn-follow flex-grow-0"
-                  >
-                    {followed ? <FaBell /> : <FaRegBell />}{" "}
-                    {followed ? "Following" : "Follow"}
-                  </Button>
+                  {item.tmdb.media_type === "tv" ? (
+                    <Button
+                      variant={followed ? "danger" : "outline-danger"}
+                      onClick={() => handleFollow(item)}
+                      className="btn-follow flex-grow-0"
+                    >
+                      {followed ? <FaBell /> : <FaRegBell />}{" "}
+                      {followed ? "Following" : "Follow"}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant={followed ? "danger" : "outline-danger"}
+                      onClick={() => handleFollow(item)}
+                      className="btn-follow flex-grow-0"
+                    >
+                      {followed ? <FaBell /> : <FaRegBell />}{" "}
+                      {followed ? "Liked" : "Like"}
+                    </Button>
+                  )}
+
                   <Button
                     variant="outline-primary"
                     onClick={handleAddToWatchList}
@@ -335,7 +347,7 @@ const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
                   {item.tmdb.media_type === "tv" ? (
                     <Button
                       variant="outline-primary"
-                      className="mt-2 mb-2 w-auto px-3"
+                      className="btn-episodes flex-grow-0"
                       onClick={() => setShowEpisodeTracker(true)}
                     >
                       View Episodes

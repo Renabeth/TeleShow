@@ -127,13 +127,23 @@
   border-radius: 5px;
 }
 
+.detail-modal .btn-episodes{
+  background-color: rgba(0, 79, 248, 0.3);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 15px;
+  border-radius: 5px;
+}
+
 .detail-modal .btn-follow,
-.detail-modal .btn-watchlist {
+.detail-modal .btn-watchlist, .detail-modal .btn-episodes{
   transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .detail-modal .btn-follow:hover,
-.detail-modal .btn-watchlist:hover {
+.detail-modal .btn-watchlist:hover, .detail-modal .btn-episodes:hover {
   opacity: 0.9;
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
