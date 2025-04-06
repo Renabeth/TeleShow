@@ -17,14 +17,7 @@ import StarRate from "../components/starRate"; //Component Made Completely by Se
 import GetAverageRating from "../scripts/GetAverageRating.js"; //Component Made Completely by Serena and William
 import FetchComments from "../components/FetchComments.js"; //Component Made by William
 
-const DetailModal = ({
-  item: givenItem,
-  mediaId,
-  mediaType,
-  show,
-  onHide,
-  displayName,
-}) => {
+const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
   const [item, setItem] = useState(givenItem);
   const [loading, setLoading] = useState(!givenItem && mediaId && mediaType);
   const [rec_loading, setRecLoading] = useState(false);
@@ -39,6 +32,7 @@ const DetailModal = ({
   const image_url = " https://image.tmdb.org/t/p/w342"; // Base URL for TMDB image paths
   const [userId, setUserId] = useState(sessionStorage.getItem("userId") || 0);
   const host = process.env.REACT_APP_NETWORK_HOST;
+  const displayName = sessionStorage.getItem("userName");
 
   const isLoggedIn = !!sessionStorage.getItem("userId");
 
@@ -223,8 +217,14 @@ const DetailModal = ({
         handleCloseWatchlistModal();
       }
     } catch (error) {
-      console.error("Error adding to watchlist:", error);
-      alert("Failed to add to watchlist");
+      if (error.response && error.response.data && error.response.data.error) {
+        alert(error.response.data.error);
+      } else {
+        console.error("Error adding to watchlist:", error);
+        alert("Failed to add to watchlist");
+      }
+    } finally {
+      setAddingToWatchlist(false);
     }
   };
 
@@ -287,7 +287,7 @@ const DetailModal = ({
         onHide={onHide}
         centered
         size="lg"
-        dialogClassName="detail-modal"
+        className="detail-modal"
       >
         <Modal.Header closeButton>
           <Modal.Title>{item?.tmdb?.title || item?.tmdb?.name}</Modal.Title>

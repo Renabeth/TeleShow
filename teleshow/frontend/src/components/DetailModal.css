@@ -1,6 +1,13 @@
 /*Written by Moses Pierre*/
 
 /*Sets the main background color and sets a fade-in animation*/
+/*Modal-content is an implied class. Its automatically set*/
+.detail-modal .modal-dialog{
+  max-width: 1000px !important;
+  width: 90%;
+  margin: 1.75rem auto;
+}
+
 .detail-modal .modal-content {
   background-color: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(12px);
@@ -64,6 +71,7 @@
   color: white;
   animation: fadeIn 0.3s ease-out 0.1s;
   animation-fill-mode: both;
+  padding:1.5rem;
 }
 /*Handles the body of the modal*/
 .detail-modal .modal-footer {

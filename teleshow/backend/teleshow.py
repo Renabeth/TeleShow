@@ -437,6 +437,18 @@ def add_to_watchlist(user_id, watchlist_name, media_info):
         )
         print(f"Created new watchlist '{watchlist_name}'")
 
+    # Check if the media already exists in the watchlist
+    media_id = media_info.get("id")
+    media_check = (
+        watchlist_doc_ref.collection("media")
+        .where("media_id", "==", media_id)
+        .limit(1)
+        .get()
+    )
+
+    if len(media_check) > 0:
+        return {"error": "Media already exists in watchlist"}
+
     # Media added to watchlist media subcollection
     media_ref = watchlist_doc_ref.collection("media").document()
 
@@ -1276,7 +1288,9 @@ def add_media_to_watchlist():
         return jsonify({"error": "Missing required parameters"})
 
     result = add_to_watchlist(user_id, watchlist_name, media_info)
-    if result:
+    if "error" in result:
+        return jsonify({"error": result["error"]})
+    elif result:
         return jsonify(
             {
                 "status": "success",

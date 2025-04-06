@@ -169,6 +169,7 @@ function Dashboard() {
         console.log("You appear to be signed in.");
         setIsLoggedIn(true);
         setDisplayName(user.displayName);
+        sessionStorage.setItem("userName", user.displayName);
         setUserID(uid);
 
         // Help from https://www.youtube.com/watch?v=PGCMdiXRI6Y
@@ -766,7 +767,6 @@ function Dashboard() {
           mediaType={selectedItem.media_type}
           show={showModal}
           onHide={handleCloseModal}
-          displayName={displayName}
         />
       )}
     </div>

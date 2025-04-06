@@ -2,7 +2,7 @@
 import React from "react";
 
 const RecommendationList = ({ recommendations, onRecommendationClick }) => {
-  const image_url = "https://image.tmdb.org/t/p/w185"; // Base URL for TMDB image paths
+  const image_url = "https://image.tmdb.org/t/p/w342"; // Base URL for TMDB image paths
 
   if (!recommendations || recommendations.length === 0) {
     return <p className="text-muted">No recommendations available.</p>;
