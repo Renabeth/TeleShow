@@ -121,7 +121,7 @@ const SearchWidget = () => {
         } else {
           setResults({ unified: false, tmdb_tv: decompressed.tmdb_tv || [] });
         }
-        setQuery(""); //Clears search bar on successfull search
+        setQuery(""); //Clears search bar on successful search
         setShowDropdown(true);
         setLoading(false);
         return;

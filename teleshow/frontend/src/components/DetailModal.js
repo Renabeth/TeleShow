@@ -94,9 +94,18 @@ const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
           });
       } else if (givenItem && !(mediaId && mediaType)) {
         // If item given just get recommendations
-        setRecLoading(true);
-
-        getRecommendations(givenItem)
+        setLoading(true);
+        fetchRating(userId, item.tmdb.id, item.tmdb.media_type)
+          .then((response) => {
+            item.tmdb.rating = response.rating;
+            return GetAverageRating(item.tmdb.id, item.tmdb.media_type);
+          })
+          .then((avgRatingResponse) => {
+            item.tmdb.avgRating = avgRatingResponse;
+            setLoading(false);
+            setRecLoading(true);
+            return getRecommendations(givenItem);
+          })
           .then((recData) => {
             setRecommendations(recData);
             setRecLoading(false);
