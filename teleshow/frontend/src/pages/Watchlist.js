@@ -586,9 +586,8 @@ function Watchlist() {
                       </Button>
                       {item.media_type === "tv" && (
                         <Button
-                          variant="outline-info"
                           size="sm"
-                          className="me-2"
+                          className="me-2 btn btn-info"
                           onClick={(e) => {
                             e.stopPropagation();
                             openEpisodeTracker(item);

@@ -649,7 +649,7 @@ def get_tv_seasons():
         seasons_data = tv_info.get("seasons")
 
         # Filter specials unless its the only one there (Some shows have season 0s)
-        if len(seasons_data) > 1:
+        if len(seasons_data) > 0:
             seasons_data = [s for s in seasons_data if s.get("season_number") != 0]
 
             return jsonify({"seasons": seasons_data})
