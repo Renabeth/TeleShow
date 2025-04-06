@@ -48,6 +48,7 @@ const TVProgress = ({ tvId, tvName, isOpen, onClose, isLoggedIn }) => {
 
   //Gets the season number
   const fetchSeasons = async () => {
+    setLoading(true);
     try {
       const response = await axios.get(`${host}tv/seasons`, {
         params: { id: tvId },
@@ -72,6 +73,7 @@ const TVProgress = ({ tvId, tvName, isOpen, onClose, isLoggedIn }) => {
 
   //Gets the episode numbers
   const fetchEpisodes = async () => {
+    setLoading(true);
     try {
       const response = await axios.get(`${host}tv/seasons/episodes`, {
         params: {

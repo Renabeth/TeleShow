@@ -352,10 +352,12 @@ function Watchlist() {
   };
 
   const openEpisodeTracker = (item) => {
+    setLoading(true);
     setCurrentTvShow({
       id: item.media_id,
       name: item.title,
     });
+    setLoading(false);
     setShowEpisodeTracker(true);
   };
 
@@ -520,7 +522,11 @@ function Watchlist() {
             </div>
             {!showCalendarView ? (
               filteredMedia.length > 0 &&
-              filteredMedia.map((item) => (
+              [
+                ...new Map(
+                  filteredMedia.map((item) => [item.media_id, item])
+                ).values(),
+              ].map((item) => (
                 <div
                   className={`watchlistItem ${
                     isLightMode ? "watchlistItemLight" : "watchlistItemDark"
