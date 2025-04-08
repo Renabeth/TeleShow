@@ -23,7 +23,7 @@ import { auth } from '../firebase'
 import Modal from 'react-bootstrap/Modal'
 
 // Help from https://www.freecodecamp.org/news/how-to-use-the-firebase-database-in-react/
-import { collection, addDoc, getDocs } from "firebase/firestore";
+import {collection, addDoc, getDocs, updateDoc} from "firebase/firestore";
 import { db } from "../firebase";
 
 // Help from https://firebase.google.com/docs/firestore/query-data/queries
@@ -43,6 +43,7 @@ import { BsCircleFill, BsBookmarkFill } from "react-icons/bs";
 
 // Help from https://www.youtube.com/watch?v=91LWShFZn40
 import { getAggregateFromServer, average } from "firebase/firestore";
+import fetchComments from "../components/FetchComments.js";
 
 function Dashboard() {
 
@@ -82,8 +83,20 @@ function Dashboard() {
   const [watchlistDuplicate, setWatchListDuplicate] = useState(true);
   const [reviewDuplicate, setReviewDuplicate] = useState(true);
 
+
+  // State to hold review textarea value
+  const [reviewText, setReviewText] = useState("");
+  const [reviewID, setReviewID] = useState(null);
+
+  const[review,setReview] = useState(false);
+  const handleReview= () => setReview(true);
+  const handleReviewClose = () => setReview(false);
+
+
   // Help from https://www.youtube.com/watch?v=PGCMdiXRI6Y
   const getRecommendations = async () => {
+
+
 
     // Help from https://www.rowy.io/blog/firestore-react-query
     setTvLoading(true)
@@ -301,6 +314,142 @@ function Dashboard() {
       handleShow()
   }
 
+
+  const displayReviewModal = async (id, type) => {
+
+    setCurrentMediaID(id)
+    setCurrentMediaType(type)
+
+    const options = {
+      method: 'GET',
+      url: `https://api.themoviedb.org/3/${type}/${id}?language=en-US`,
+      headers: {
+        accept: 'application/json',
+        Authorization: `Bearer ${process.env.REACT_APP_TMDB_READ_ACCESS_TOKEN}`
+      }
+    };
+
+
+    //Check if review exists
+    const reviewRef = collection(db, "Reviews")
+    const q = query(reviewRef, where("user_id", "==", userID), where("media_id", "==", id))
+    const querySnapshot = await getDocs(q)
+
+    if (!querySnapshot.empty) {
+      const existingReview = querySnapshot.docs[0].data()
+      setReviewText(existingReview.review)
+      setReviewID(querySnapshot.docs[0].id)
+    } else {
+      setReviewText("")
+      setReviewID(null)
+    }
+
+    await axios.request(options)
+        .then(res => {
+          console.log(res.data)
+          if (type === "tv") {
+            setModalTitle(res.data.name)
+          } else {
+            setModalTitle(res.data.title)
+          }
+          setModalOverview(res.data.overview)
+          setModalPoster(imgPath + res.data.poster_path)
+
+          // Help from https://www.w3schools.com/jsref/jsref_join.asp
+          // Copied from Dashboard.js
+          let languageArray = []
+          for(let i = 0; i < res.data.spoken_languages.length; i++) {
+            languageArray.push(res.data.spoken_languages[i].name)
+          }
+          setModalLanguages(languageArray.join(", "))
+        })
+        .catch(err => console.error(err))
+
+    handleReview()
+  }
+
+  // From FetchComments.js, handle change in textarea
+  const handleReviewChange = (e) => {
+    setReviewText(e.target.value);
+    const { name, value } = e.target;
+    setReviewData({
+      ...reviewData,
+      [name]: value,
+    })
+  };
+
+
+
+  // Submit review to Firestore
+  const handleReviewSubmit = async (e, currentMediaID, currentMediaType) => {
+    e.preventDefault()
+
+    if (reviewText.trim() === "") {
+      alert("Review cannot be empty!")
+      return
+    }
+
+    try {
+      if (reviewID) {
+        // Update existing review
+        const reviewRef = doc(db, "Reviews", reviewID)
+        await updateDoc(reviewRef, {
+          review: reviewText,
+          date_added: serverTimestamp(),
+        })
+        alert("Review updated successfully!")
+      } else {
+        // Add a new review if no previous review exists
+        const reviewRef = await addDoc(collection(db, "Reviews"), {
+          user_id: userID,
+          title: modalTitle,
+          media_type: currentMediaType,
+          media_id: currentMediaID,
+          review: reviewText,
+          date_added: serverTimestamp(),
+        })
+        console.log("Review added with ID: ", reviewRef.id)
+        alert("Review submitted successfully!")
+      }
+
+      // Clear textarea and reset after submission
+      setReviewText("")
+      setReviewID(null)
+    } catch (error) {
+      alert("Error submitting review. Please try again.")
+    }
+  };
+
+  const [displayReview, setDisplayReview] = useState("");
+  const fetchReview = async (mediaID) => {
+
+    try {
+      const reviewRef = collection(db, "Reviews");
+      const q = query(
+          reviewRef,
+          where("user_id", "==", userID),
+          where("media_id", "==", mediaID)
+      );
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const reviewData = querySnapshot.docs[0].data();
+        setDisplayReview(reviewData.review || "No review text found.");
+      } else {
+        setDisplayReview("No review found.");
+      }
+    } catch (error) {
+      console.error("Error fetching review:", error);
+      setDisplayReview("Error loading review.");
+    }
+  };
+
+
+  //From FetchComments.js
+  const [reviewData, setReviewData] = useState({
+    text: '',
+    remainingCharacters: 5000,
+  })
   // Help from https://www.freecodecamp.org/news/how-to-use-the-firebase-database-in-react/
   // And https://firebase.google.com/docs/firestore/query-data/queries#node.js_2
   // Adding media to watchlist
@@ -341,46 +490,6 @@ function Dashboard() {
   }
 
 
-  const writeReview = async (e) => {
-  const reviewRef = collection(db, "Reviews");
-    const checkForDuplicates = query(reviewRef, where('user_id', '==', userID), where('media_id', '==', currentMediaID), where('type', '==', currentMediaType));
-    const querySnapshot = await getDocs(checkForDuplicates);
-    let duplicates = 0; // This will check for duplicate userID / media ID combinations
-    querySnapshot.forEach((doc) => {
-      duplicates++;
-    })
-    if (duplicates > 0) {
-      alert("Please update your review before submitting.")
-    } else {
-      try {
-        const docRef = await addDoc(collection(db, "Reviews"), {
-          user_id: userID,
-          title: modalTitle,
-          type: currentMediaType,
-          media_id: currentMediaID,
-          review: reviewRef,
-
-          date_added: serverTimestamp(),
-
-          poster_path: modalPoster,
-        });
-        console.log("Wrote document with ID: ", docRef.id);
-        alert("Review added successfully.");
-        setReviewDuplicate(true)
-      } catch (e) {
-        console.error("Error adding review: ", e);
-      }
-    }
-    handleShow()
-
-  }
-
-
-  const toggleReviewModal = ({isOpen, onClose}) => {
-    if(!isOpen) {
-      return null;
-    }
-  }
 
     const removeFromWatchlist = async (e) => {
     e.preventDefault();
@@ -439,6 +548,47 @@ function Dashboard() {
             <Button variant="primary" onClick={() => navigate("/")}>Return to Login</Button>
           </>
           }
+          {/* review modal */}
+          <Modal show={review} onHide={handleReviewClose} backdrop="static" keyboard={false} dialogClassName="modal-85w">
+
+            {/* Help from https://stackoverflow.com/questions/76810663/react-modals-or-dialogs-doesnt-inherit-the-dark-mode-styles-tailwind */}
+            {/* And https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/# */}
+            <Modal.Header className={`${isLightMode ? 'head-light' : 'head-dark'}`} closeButton>
+              <Modal.Title>
+                { modalTitle || "None" }
+              </Modal.Title>
+            </Modal.Header>
+
+
+            {/* Help from https://stackoverflow.com/questions/76810663/react-modals-or-dialogs-doesnt-inherit-the-dark-mode-styles-tailwind */}
+            {/* And https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/# */}
+            <Modal.Body className={`modalBody ${isLightMode ? 'body-light' : 'body-dark'}`}>
+              <div className="modalBox">
+                <div className="modalLeft">
+                  <img className="modalPoster" id="modalPoster" src={modalPoster} alt="modal poster" />
+                </div>
+                <div className="modalRight">
+                  <h2>"Your Review"</h2>
+
+                  <form onSubmit ={(e)=> handleReviewSubmit(e, currentMediaID, currentMediaType)}>
+                            <textarea
+                                className={`commentTextBox ${displayMode==="lightMode" ? "textBox-light" : "textBox-dark" }`}
+                                rows={5}
+                                placeholder="Add a Review..."
+                                name="text"
+                                value={reviewText}
+                                onChange={handleReviewChange}
+                                maxLength={5000} />
+                    { `${reviewData.remainingCharacters - reviewData.text.length} characters remaining.` }
+
+                    <button className="watchlist-button secondary" type="submit" onClick={handleReviewClose}>Submit Review</button>
+                  </form>
+
+
+                </div>
+              </div>
+            </Modal.Body>
+          </Modal>
 
 
           {/* Help from https://react-bootstrap.netlify.app/docs/components/modal/ */}
@@ -475,7 +625,9 @@ function Dashboard() {
                       </button>
                   }
 
-               <button className="watchlist-button secondary" onClick={() =>alert("Reviews Coming Soon!")}>Write a Review</button>
+                  <Button className="watchlist-button secondary" variant="success" onClick={() => displayReviewModal(currentMediaID,currentMediaType)}>Write a Review</Button>
+
+
 
                   <p>Leave a Rating:</p>
 
@@ -536,6 +688,15 @@ function Dashboard() {
                   }
 
                   <hr/>
+
+
+                  {/*Display Reviews*/}
+                  <h3>Your Review</h3>
+                  <p>{displayReview}</p>
+
+
+                  <hr/>
+
 
                   {/* Help from https://www.geeksforgeeks.org/how-to-perform-form-validation-in-react/ */}
                   <FetchComments

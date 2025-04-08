@@ -514,6 +514,7 @@ function Watchlist() {
                 <Modal.Body className={`modalBody ${isLightMode ? 'body-light' : 'body-dark'}`}>
                     <div className="modalBox">
                         <div className="modalLeft">
+                            <img className="modalPoster" id="modalPoster" src={modalPoster} alt="modal poster" />
                         </div>
                         <div className="modalRight">
                             <h2>Write a Review</h2>
@@ -528,7 +529,7 @@ function Watchlist() {
                                 maxLength={5000} />
                             { `${reviewData.remainingCharacters - reviewData.text.length} characters remaining.` }
 
-                            <button className="watchlist-button secondary" type="submit" onClick={handleReviewClose}>Submit</button>
+                            <button className="watchlist-button secondary" type="submit" onClick={handleReviewClose}>Submit Review</button>
                         </form>
 
 
