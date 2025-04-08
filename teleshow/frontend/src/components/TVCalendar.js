@@ -133,7 +133,6 @@ const TVCalendar = ({ isLoggedIn }) => {
   return (
     <div className="tv-calendar">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>TV Show Calendar</h2>
         <Button
           variant="outline-primary"
           onClick={updateCalendar}
@@ -148,6 +147,7 @@ const TVCalendar = ({ isLoggedIn }) => {
         .sort()
         .map((date) => (
           <div key={date} className="date-group mb-4">
+            {/*Date Heading */}
             <h3 className="date-header">{formatDate(date)}</h3>
             <Row xs={1} md={2} lg={3} className="g-4">
               {dateGroups[date].map((item) => (

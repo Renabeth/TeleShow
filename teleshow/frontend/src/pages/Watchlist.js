@@ -1,6 +1,7 @@
 import React from "react";
 import "../styles/Dashboard.css";
 import "../styles/Watchlist.css";
+import { Spinner } from "react-bootstrap";
 import GetAverageRating from "../scripts/GetAverageRating.js";
 import TVProgressTracker from "../components/TVProgress.js";
 import TVCalendar from "../components/TVCalendar.js";
@@ -58,6 +59,8 @@ function Watchlist() {
   const [currentTvShow, setCurrentTvShow] = useState(null);
   const [showEpisodeTracker, setShowEpisodeTracker] = useState(false);
   const [showCalendarView, setShowCalendarView] = useState(false);
+  const [showWatchlistSelection, setShowWatchlistSelection] = useState(false);
+  const [selectedMediaForRemoval, setSelectedMediaForRemoval] = useState(null);
   const host = process.env.REACT_APP_NETWORK_HOST;
 
   const [loggedIn, setLoggedIn] = useState(false);
@@ -293,6 +296,24 @@ function Watchlist() {
     }
   };
 
+  const removeFromWatchlistHelper = (media) => {
+    if (selectedWatchlistId === "all") {
+      //When using the all watchlists filter
+      setSelectedMediaForRemoval(media);
+      setShowWatchlistSelection(true);
+    } else {
+      removeFromWatchlist(media.watchlist_id, media.media_id);
+    }
+  };
+
+  const watchlistForMediaRemoval = (watchlistId) => {
+    if (selectedMediaForRemoval) {
+      removeFromWatchlist(watchlistId, selectedMediaForRemoval.media_id);
+      setShowWatchlistSelection(false);
+      setSelectedMediaForRemoval(null);
+    }
+  };
+
   const displayInformation = async (id, type) => {
     try {
       console.log(type);
@@ -468,39 +489,8 @@ function Watchlist() {
           </h1>
           <br />
           <div id="watchlist" className="watchlist">
-            {watchlists.length > 0 && (
-              <div className="watchlist-filter">
-                <label className="watchlist-select">
-                  Filter by watchlist:{" "}
-                </label>
-                <Form.Select
-                  id="watchlist-select"
-                  value={selectedWatchlistId}
-                  onChange={(e) => setSelectedWatchlistId(e.target.value)}
-                >
-                  <option value="all">All Watchlists</option>
-                  {watchlists.map((list) => (
-                    <option key={list.id} value={list.id}>
-                      {list.name}
-                    </option>
-                  ))}
-                </Form.Select>
-                <div className="watchlist-management mt-3">
-                  {selectedWatchlistId !== "all" && (
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={(e) => deleteWatchlist(selectedWatchlistId, e)}
-                    >
-                      {`Delete This Watchlist`}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
             {/* Help from https://www.rowy.io/blog/firestore-react-query */}
             {/* And https://react.dev/learn/rendering-lists#keeping-list-items-in-order-with-key */}
-            {loading && <p>Loading...</p>}
             {/* Tab Navigation between calendar and watchlists */}
             <div className="media-view-tabs mb-4">
               <ButtonGroup>
@@ -520,123 +510,162 @@ function Watchlist() {
                 </Button>
               </ButtonGroup>
             </div>
-            {!showCalendarView ? (
-              //...Converts to array
-              filteredMedia.length > 0 &&
-              [
-                ...new Map(
-                  filteredMedia.map((item) => [item.media_id, item])
-                ).values(),
-              ].map((item) => (
-                <div
-                  className={`watchlistItem ${
-                    isLightMode ? "watchlistItemLight" : "watchlistItemDark"
-                  }`}
-                  key={item.id}
-                >
-                  <div className="watchlistPoster">
-                    <img
-                      src={`${imgPath}${item.poster_path}`}
-                      className="watchlistPosterImg"
-                      alt="watchlist item poster"
-                    />
-                  </div>
-                  <div className="watchlistContent">
-                    <h3>{item.title}</h3>
-                    {/* Help from https://stackoverflow.com/questions/52247445/how-do-i-convert-a-firestore-date-timestamp-to-a-js-date */}
-                    <p>
-                      Date Added:{" "}
-                      {item.added_at
-                        ? item.added_at.seconds
-                          ? new Date(
-                              item.added_at.seconds * 1000
-                            ).toDateString()
-                          : new Date(item.added_at).toDateString()
-                        : "Unknown Date"}
-                    </p>
-                    {/* Help from https://react.dev/reference/react-dom/components/select */}
-                    {/* And https://react-bootstrap.netlify.app/docs/forms/select/ */}
-                    {/* And https://www.geeksforgeeks.org/react-bootstrap-select/ */}
-                    Status:
+            {loading ? (
+              <div className="loading-spinner">
+                <Spinner animation="border" variant="primary" />
+                <span> Fetching Watchlist Items...</span>
+              </div>
+            ) : !showCalendarView ? (
+              <>
+                {watchlists.length > 0 && (
+                  <div className="watchlist-filter">
+                    <label className="watchlist-select">
+                      Filter by watchlist:{" "}
+                    </label>
                     <Form.Select
-                      data-bs-theme={`${isLightMode ? "light" : "dark"}`}
-                      style={{ width: "90%" }}
-                      defaultValue={item.status}
-                      name="watchStatus"
-                      // Help from https://stackoverflow.com/questions/61858177/how-can-i-get-the-value-from-react-bootstrap-form-select
-                      onChange={(e) =>
-                        updateStatus(
-                          item.watchlist_id,
-                          item.media_id,
-                          e.target.value
-                        )
-                      }
+                      id="watchlist-select"
+                      value={selectedWatchlistId}
+                      onChange={(e) => setSelectedWatchlistId(e.target.value)}
                     >
-                      <option value="Plan to watch">Plan to watch</option>
-                      <option value="Currently watching">
-                        Currently watching
-                      </option>
-                      <option value="On hold">On hold</option>
-                      <option value="Stopped watching">Stopped watching</option>
-                      <option value="Finished watching">
-                        Finished watching
-                      </option>
+                      <option value="all">All Watchlists</option>
+                      {watchlists.map((list) => (
+                        <option key={list.id} value={list.id}>
+                          {list.name}
+                        </option>
+                      ))}
                     </Form.Select>
-                    {/* Help from https://react-bootstrap.netlify.app/docs/components/button-group/ */}
-                    <ButtonGroup>
-                      <Button
-                        dialogClassName="watchBtn"
-                        variant="primary"
-                        onClick={() => handleItemClick(item)}
-                      >
-                        View Information
-                      </Button>
-                      {item.media_type === "tv" && (
+                    <div className="watchlist-management mt-3">
+                      {selectedWatchlistId !== "all" && (
                         <Button
+                          variant="danger"
                           size="sm"
-                          className="me-2 btn btn-info"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEpisodeTracker(item);
-                          }}
+                          onClick={(e) =>
+                            deleteWatchlist(selectedWatchlistId, e)
+                          }
                         >
-                          <FaList className="me-1" /> Episodes
+                          {`Delete This Watchlist`}
                         </Button>
                       )}
-                      <Button
-                        dialogClassName="watchBtn"
-                        variant="success"
-                        onClick={() =>
-                          alert(
-                            "Review functionality has not been implemented yet. We thank you for your patience."
-                          )
-                        }
-                      >
-                        Write a Review
-                      </Button>
-                      <Button
-                        dialogClassName="watchBtn"
-                        variant="danger"
-                        onClick={() =>
-                          removeFromWatchlist(item.watchlist_id, item.media_id)
-                        }
-                      >
-                        Remove from Watchlist
-                      </Button>
-                    </ButtonGroup>
-                    <br />
-                    <p>Your rating:</p>
-                    {/* Help from https://stackoverflow.com/questions/70344255/react-js-passing-one-components-variables-to-another-component-and-vice-versa */}
-                    <StarRate
-                      userID={userID}
-                      currentMediaID={item.media_id}
-                      currentMediaType={item.media_type}
-                      initialRate={item.rating}
-                      initialAvgRate={item.averageRating}
-                    ></StarRate>
+                    </div>
                   </div>
-                </div>
-              ))
+                )}
+                {/*...Converts to array*/}
+                {filteredMedia.length > 0 &&
+                  [
+                    ...new Map(
+                      filteredMedia.map((item) => [item.media_id, item])
+                    ).values(),
+                  ].map((item) => (
+                    <div
+                      className={`watchlistItem ${
+                        isLightMode ? "watchlistItemLight" : "watchlistItemDark"
+                      }`}
+                      key={item.id}
+                    >
+                      <div className="watchlistPoster">
+                        <img
+                          src={`${imgPath}${item.poster_path}`}
+                          className="watchlistPosterImg"
+                          alt="watchlist item poster"
+                        />
+                      </div>
+                      <div className="watchlistContent">
+                        <h3>{item.title}</h3>
+                        {/* Help from https://stackoverflow.com/questions/52247445/how-do-i-convert-a-firestore-date-timestamp-to-a-js-date */}
+                        <p>
+                          Date Added:{" "}
+                          {item.added_at
+                            ? item.added_at.seconds
+                              ? new Date(
+                                  item.added_at.seconds * 1000
+                                ).toDateString()
+                              : new Date(item.added_at).toDateString()
+                            : "Unknown Date"}
+                        </p>
+                        {/* Help from https://react.dev/reference/react-dom/components/select */}
+                        {/* And https://react-bootstrap.netlify.app/docs/forms/select/ */}
+                        {/* And https://www.geeksforgeeks.org/react-bootstrap-select/ */}
+                        Status:
+                        <Form.Select
+                          data-bs-theme={`${isLightMode ? "light" : "dark"}`}
+                          style={{ width: "90%" }}
+                          defaultValue={item.status}
+                          name="watchStatus"
+                          // Help from https://stackoverflow.com/questions/61858177/how-can-i-get-the-value-from-react-bootstrap-form-select
+                          onChange={(e) =>
+                            updateStatus(
+                              item.watchlist_id,
+                              item.media_id,
+                              e.target.value
+                            )
+                          }
+                        >
+                          <option value="Plan to watch">Plan to watch</option>
+                          <option value="Currently watching">
+                            Currently watching
+                          </option>
+                          <option value="On hold">On hold</option>
+                          <option value="Stopped watching">
+                            Stopped watching
+                          </option>
+                          <option value="Finished watching">
+                            Finished watching
+                          </option>
+                        </Form.Select>
+                        {/* Help from https://react-bootstrap.netlify.app/docs/components/button-group/ */}
+                        <ButtonGroup>
+                          <Button
+                            dialogClassName="watchBtn"
+                            variant="primary"
+                            onClick={() => handleItemClick(item)}
+                          >
+                            View Information
+                          </Button>
+                          {item.media_type === "tv" && (
+                            <Button
+                              size="sm"
+                              className="me-2 btn btn-info"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEpisodeTracker(item);
+                              }}
+                            >
+                              <FaList className="me-1" /> Episodes
+                            </Button>
+                          )}
+                          <Button
+                            dialogClassName="watchBtn"
+                            variant="success"
+                            onClick={() =>
+                              alert(
+                                "Review functionality has not been implemented yet. We thank you for your patience."
+                              )
+                            }
+                          >
+                            Write a Review
+                          </Button>
+                          <Button
+                            dialogClassName="watchBtn"
+                            variant="danger"
+                            onClick={() => removeFromWatchlistHelper(item)}
+                          >
+                            Remove from Watchlist
+                          </Button>
+                        </ButtonGroup>
+                        <br />
+                        <p>Your rating:</p>
+                        {/* Help from https://stackoverflow.com/questions/70344255/react-js-passing-one-components-variables-to-another-component-and-vice-versa */}
+                        <StarRate
+                          userID={userID}
+                          currentMediaID={item.media_id}
+                          currentMediaType={item.media_type}
+                          initialRate={item.rating}
+                          initialAvgRate={item.averageRating}
+                        ></StarRate>
+                      </div>
+                    </div>
+                  ))}
+              </>
             ) : (
               <TVCalendar isLoggedIn={loggedIn} />
             )}
@@ -653,6 +682,35 @@ function Watchlist() {
           </div>
         </div>
       </div>
+      <Modal
+        show={showWatchlistSelection}
+        onHide={() => setShowWatchlistSelection(false)}
+        backdrop="static"
+        keyboard={false}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Select Watchlist</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>
+            Select the watchlist from which to remove{" "}
+            {selectedMediaForRemoval?.title}
+          </p>
+          <Form.Select
+            onChange={(e) => watchlistForMediaRemoval(e.target.value)}
+            defaultValue=""
+          >
+            <option value="" disabled>
+              Select a watchlist
+            </option>
+            {watchlists.map((list) => (
+              <option key={list.id} value={list.id}>
+                {list.name}
+              </option>
+            ))}
+          </Form.Select>
+        </Modal.Body>
+      </Modal>
       {selectedItem && showModal && (
         <DetailModal
           mediaId={selectedItem.media_id}

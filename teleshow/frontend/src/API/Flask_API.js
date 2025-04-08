@@ -3,7 +3,7 @@
 import axios from "axios";
 import LZString from "lz-string";
 //Sets the localStorage variables TTL to 24hours
-const SEARCH_TTL = 24 * 60 * 60 * 1000;
+const SEARCH_TTL = 12 * 60 * 60 * 1000;
 const host = process.env.REACT_APP_NETWORK_HOST;
 
 export const hashObject = (obj) => {
@@ -44,15 +44,16 @@ export const getDetails = async (id, type) => {
     });
 
     console.log("API response for details:", response.data); //Debugging
-
-    localStorage.setItem(
-      cacheKey,
-      JSON.stringify({
-        compressed: true,
-        data: LZString.compress(JSON.stringify(response.data)),
-        timestamp: Date.now(),
-      })
-    );
+    if (response.data.tmdb && response.data.watchmode && response.data.cast) {
+      localStorage.setItem(
+        cacheKey,
+        JSON.stringify({
+          compressed: true,
+          data: LZString.compress(JSON.stringify(response.data)),
+          timestamp: Date.now(),
+        })
+      );
+    }
 
     return response.data || []; // Store detailed item information
   } catch (error) {
@@ -114,15 +115,16 @@ export const getRecommendations = async (item) => {
     const response = await axios.post(`${host}recommendations`, payload);
 
     console.log("API response for recommendations");
-
-    localStorage.setItem(
-      cacheKey,
-      JSON.stringify({
-        compressed: true,
-        data: LZString.compress(JSON.stringify(response.data)),
-        timestamp: Date.now(),
-      })
-    );
+    if (response.data.recommendations) {
+      localStorage.setItem(
+        cacheKey,
+        JSON.stringify({
+          compressed: true,
+          data: LZString.compress(JSON.stringify(response.data)),
+          timestamp: Date.now(),
+        })
+      );
+    }
     return response.data.recommendations || [];
   } catch (error) {
     console.error("error fetching details: ", error);

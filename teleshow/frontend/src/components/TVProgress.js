@@ -25,13 +25,14 @@ const TVProgress = ({ tvId, tvName, isOpen, onClose, isLoggedIn }) => {
   const host = process.env.REACT_APP_NETWORK_HOST;
 
   const userId = sessionStorage.getItem("userId");
-  const image_url = "https://image.tmdb.org/t/p/w185";
+  const image_url = "https://image.tmdb.org/t/p/w342";
 
   useEffect(() => {
     if (tvId && isOpen) {
       setLoading(true);
       setError(null);
-      fetchSeasons();
+      fetchSeasonData();
+      console.log("hi");
 
       if (isLoggedIn && userId) {
         fetchProgress();
@@ -39,58 +40,59 @@ const TVProgress = ({ tvId, tvName, isOpen, onClose, isLoggedIn }) => {
     }
   }, [tvId, isOpen, isLoggedIn, userId]);
 
-  useEffect(() => {
-    if (tvId && activeSeasonNumber !== null) {
-      setLoading(true);
-      fetchEpisodes();
-    }
-  }, [tvId, activeSeasonNumber]);
-
-  //Gets the season number
-  const fetchSeasons = async () => {
+  //Gets the season number and episodes
+  const fetchSeasonData = () => {
     setLoading(true);
-    try {
-      const response = await axios.get(`${host}tv/seasons`, {
+    axios
+      .get(`${host}tv/seasons`, {
         params: { id: tvId },
-      });
-
-      if (response.data.seasons) {
-        setSeasons(response.data.seasons);
-        if (response.data.seasons.length > 0) {
-          const firstSeason =
-            response.data.seasons?.find((s) => s.season_number === 1) ||
-            response.data.seasons[0];
-          setActiveSeasonNumber(firstSeason.season_number);
+      })
+      .then((seasonsResponse) => {
+        if (
+          !seasonsResponse.data.seasons ||
+          seasonsResponse.data.seasons.length === 0
+        ) {
+          console.log("No Seasons Found");
+          setLoading(false);
+          return;
         }
-      }
-    } catch (err) {
-      console.error("Error fetching TV seasons:", err);
-      setError("Failed to load seasons. Please try again");
-    } finally {
-      setLoading(false);
-    }
-  };
+        const seasonData = seasonsResponse.data.seasons;
+        setSeasons(seasonData);
+        const firstSeason =
+          seasonData.find((s) => s.season_number === 1) ||
+          seasonsResponse.data.seasons[0];
+        setActiveSeasonNumber(firstSeason.season_number);
 
-  //Gets the episode numbers
-  const fetchEpisodes = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get(`${host}tv/seasons/episodes`, {
-        params: {
-          id: tvId,
-          season_number: activeSeasonNumber,
-        },
+        const episodeResponse = seasonData.map((season) =>
+          axios
+            .get(`${host}tv/seasons/episodes`, {
+              params: {
+                id: tvId,
+                season_number: season.season_number,
+              },
+            })
+            .then((response) => ({
+              seasonNumber: season.season_number,
+              episodes: response.data.episodes || [],
+            }))
+        );
+
+        return Promise.all(episodeResponse);
+      })
+      .then((seasonEpisodes) => {
+        const episodesBySeason = {};
+        seasonEpisodes.forEach((item) => {
+          episodesBySeason[item.seasonNumber] = item.episodes;
+        });
+        setEpisodes(episodesBySeason);
+      })
+      .catch((err) => {
+        console.error("Error fetching TV Data:", err);
+        setError("Failed to load TV Data. Please try again");
+      })
+      .finally(() => {
+        setLoading(false);
       });
-
-      if (response.data.episodes) {
-        setEpisodes(response.data.episodes);
-      }
-    } catch (err) {
-      console.error("Error fetching episodes:", err);
-      setError("Failed to load episodes. Please try again.");
-    } finally {
-      setLoading(false);
-    }
   };
 
   //Gets user progress from firestore
@@ -160,7 +162,8 @@ const TVProgress = ({ tvId, tvName, isOpen, onClose, isLoggedIn }) => {
   //Calculates the season progress by taking the number of episodes in season and filtering the episodes marked as watched
   //Returns result for progressbar to register
   const calculateSeasonProgress = (seasonNumber) => {
-    if (!episodes || episodes.length === 0) return 0;
+    const episodesForSeason = episodes[seasonNumber] || [];
+    if (episodesForSeason.length === 0) return 0;
 
     const seasons = userProgress?.seasons || {};
     const season = seasons[seasonNumber];
@@ -173,7 +176,7 @@ const TVProgress = ({ tvId, tvName, isOpen, onClose, isLoggedIn }) => {
     const watchedCount = Object.values(season.episodes).filter(
       (ep) => ep.watched
     ).length;
-    return Math.round((watchedCount / episodes.length) * 100);
+    return Math.round((watchedCount / episodesForSeason.length) * 100);
   };
 
   //Apparently components can have multiple return functions. Just learned that.
@@ -191,13 +194,10 @@ const TVProgress = ({ tvId, tvName, isOpen, onClose, isLoggedIn }) => {
           <Tab
             key={`season-${season.season_number}`}
             eventKey={season.season_number}
-            title={`Season${season.season_number}`}
-            className="nav-link"
+            title={`Season ${season.season_number}`}
           >
-            <div className="mb-3">
-              {season.overview && (
-                <p className="text-muted">{season.overview}</p>
-              )}
+            <div className="season-info mb-3">
+              {season.overview && <p>{season.overview}</p>}
               {/*Progress bar render will show how far a user is in season at a glance */}
               <ProgressBar
                 now={calculateSeasonProgress(activeSeasonNumber)}
@@ -213,23 +213,17 @@ const TVProgress = ({ tvId, tvName, isOpen, onClose, isLoggedIn }) => {
   };
   //Displays the episdes
   const renderEpisodeList = () => {
+    const episodesForSeason = episodes[activeSeasonNumber] || [];
     if (loading) {
       return <div className="text-center py-3">Loading episodes...</div>;
     }
-    if (error) {
-      return <Alert variant="danger">{error}</Alert>;
-    }
-    if (!episodes || episodes.length === 0) {
-      return (
-        <div className="text-center py-3">
-          No episodes found for this season.
-        </div>
-      );
+    if (episodesForSeason.length === 0) {
+      return <Alert variant="info">No episodes found for this season</Alert>;
     }
 
     return (
       <ListGroup className="episode-list">
-        {episodes.map((episode) => {
+        {episodesForSeason.map((episode) => {
           const watched = isEpisodeWatched(
             activeSeasonNumber,
             episode.episode_number
@@ -237,7 +231,7 @@ const TVProgress = ({ tvId, tvName, isOpen, onClose, isLoggedIn }) => {
 
           return (
             <ListGroup.Item
-              key={`episode-${episodes.id}`}
+              key={`episode-${activeSeasonNumber}-${episode.episode_number}`}
               className="episode-item d-flex"
             >
               <div>
@@ -256,7 +250,7 @@ const TVProgress = ({ tvId, tvName, isOpen, onClose, isLoggedIn }) => {
                   </div>
                 )}
               </div>
-              <div className="flex-grow-1">
+              <div className=" episode-title flex-grow-1">
                 <h5>
                   {episode.episode_number}. {episode.name}
                   {watched && (
@@ -265,14 +259,14 @@ const TVProgress = ({ tvId, tvName, isOpen, onClose, isLoggedIn }) => {
                     </Badge>
                   )}
                 </h5>
-                <p className="text-muted small">{episode.air_date}</p>
+                <p>{episode.air_date}</p>
                 <p>{episode.overview || "No overview available"}</p>
 
                 {isLoggedIn && (
                   <div className="mt-2">
                     {watched ? (
                       <Button
-                        variant="outline-secondary"
+                        variant="success"
                         size="sm"
                         onClick={() =>
                           markEpisodeWatched(
@@ -282,12 +276,12 @@ const TVProgress = ({ tvId, tvName, isOpen, onClose, isLoggedIn }) => {
                           )
                         }
                       >
-                        <FaRegCircle className="me-1" />
+                        <FaCheckCircle className="me-1" />
                         Mark as Unwatched
                       </Button>
                     ) : (
                       <Button
-                        variant="primary"
+                        variant="dark"
                         size="sm"
                         onClick={() =>
                           markEpisodeWatched(
@@ -297,7 +291,7 @@ const TVProgress = ({ tvId, tvName, isOpen, onClose, isLoggedIn }) => {
                           )
                         }
                       >
-                        <FaCheckCircle className="me-1" />
+                        <FaRegCircle className="me-1" />
                         Mark as Watched
                       </Button>
                     )}
@@ -317,24 +311,32 @@ const TVProgress = ({ tvId, tvName, isOpen, onClose, isLoggedIn }) => {
       onHide={onClose}
       size="lg"
       centered
-      className="text-dark tv-progress-modal"
+      className="tv-progress-modal"
     >
       <Modal.Header closeButton>
         <Modal.Title>{tvName} - Episodes</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {loading && seasons.length === 0 ? (
+        {error && <Alert variant="danger">{error}</Alert>}
+        {loading ? (
           <div className="text-center py-5">
             <div className="spinner-border" role="status">
               <span className="visually-hidden">Loading...</span>
             </div>
+            <p className="mt-2">Loading episode data...</p>
           </div>
         ) : (
-          renderSeasonTabs()
+          <>
+            {seasons.length > 0 ? (
+              renderSeasonTabs()
+            ) : (
+              <Alert variant="info">No seasons found for this TV show</Alert>
+            )}
+          </>
         )}
       </Modal.Body>
       <ModalFooter>
-        <Button varirant="secondary" onClick={onClose}>
+        <Button variant="secondary" onClick={onClose}>
           Close
         </Button>
       </ModalFooter>

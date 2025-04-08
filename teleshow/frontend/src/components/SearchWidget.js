@@ -20,7 +20,7 @@ const SearchWidget = () => {
     retries: 3,
     retryDelay: axiosRetry.exponentialDelay,
   });
-  const SEARCH_TTL = 24 * 60 * 60 * 1000;
+  const SEARCH_TTL = 12 * 60 * 60 * 1000;
   const [query, setQuery] = useState(""); // Stores the search query input by user
   const searchInputRef = useRef(null);
   const [filter_type, setFilterType] = useState("all"); //Filters output

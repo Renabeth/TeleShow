@@ -81,89 +81,49 @@ users_ref = db.collection(
 @limiter.limit(WATCHMODE_RATE)
 def watchmode_search(tmdb_id, type):  # Function takes tmdb id and type (movie or tv)
     url = f"{base_url1}/search/"  # Endpoint url building
-    if type == "movie":
-        params = {
-            "apiKey": api_key1,
-            "search_field": "tmdb_movie_id",  # If type is 'movie', search field is set to the tmdb_movie_id endpoint
-            "search_value": tmdb_id,
-        }  # The value being passed
+    search_field = "tmdb_movie_id" if type == "movie" else "tmdb_tv_id"
+    params = {
+        "apiKey": api_key1,
+        "search_field": search_field,  # If type is 'movie', search field is set to the tmdb_movie_id endpoint
+        "search_value": tmdb_id,
+    }  # The value being passed
 
-        response = requests.get(url, params=params)  # Request made to API endpoint
+    response = requests.get(url, params=params)  # Request made to API endpoint
 
-        if (
-            response.status_code == 200
-        ):  # Watchmode code 200 means request was successful
-            results = response.json().get("title_results", [])
+    if response.status_code == 200:  # Watchmode code 200 means request was successful
+        results = response.json().get("title_results", [])
 
-            if results and isinstance(
-                results, list
-            ):  # Iterates through the results given and gets data under ID key from results
-                title_id = results[0].get("id")
-                sources_url = f"{base_url1}/title/{title_id}/sources/"  # ID key used to query the sources endpoint
-                sources_params = {"apiKey": api_key1}
-                sources_response = requests.get(sources_url, params=sources_params)
+        if results and isinstance(
+            results, list
+        ):  # Iterates through the results given and gets data under ID key from results
+            title_id = results[0].get("id")
+            sources_url = f"{base_url1}/title/{title_id}/sources/"  # ID key used to query the sources endpoint
+            sources_params = {"apiKey": api_key1}
+            sources_response = requests.get(sources_url, params=sources_params)
 
-                if sources_response.status_code == 200:
-                    sources = sources_response.json()
-                    us_sources = [
-                        source
-                        for source in sources
-                        if source.get("region", "").upper() == "US"
-                    ]
-                    return sorted(
-                        us_sources, key=lambda x: x["name"]
-                    )  # If all is successful, dictionary of sources are returned
-                else:
-                    print(
-                        f"Watchmode source API Error: {sources_response.status_code} - {sources_response.text}"
-                    )
-                    cache.delete_memoized(watchmode_search, tmdb_id, type)
-                    return []
+            if sources_response.status_code == 200:
+                sources = sources_response.json()
+                us_sources = [
+                    source
+                    for source in sources
+                    if source.get("region", "").upper() == "US"
+                ]
+                return sorted(
+                    us_sources, key=lambda x: x["name"]
+                )  # If all is successful, dictionary of sources are returned
             else:
+                print(
+                    f"Watchmode source API Error: {sources_response.status_code} - {sources_response.text}"
+                )
                 cache.delete_memoized(watchmode_search, tmdb_id, type)
                 return []
         else:
-            print(f"WatchMode API Error: {response.status_code} - {response.text}")
             cache.delete_memoized(watchmode_search, tmdb_id, type)
             return []
-
-    elif type == "tv":
-        params = {
-            "apiKey": api_key1,
-            "search_field": "tmdb_tv_id",  # If type is 'tv', search field is set to the tmdb_tv_id endpoint
-            "search_value": tmdb_id,
-        }
-        response = requests.get(url, params=params)
-
-        if response.status_code == 200:
-            results = response.json().get("title_results", [])
-            if results and isinstance(results, list):
-                title_id = results[0].get("id")
-                sources_url = f"{base_url1}/title/{title_id}/sources/"
-                sources_params = {"apiKey": api_key1}
-                sources_response = requests.get(sources_url, params=sources_params)
-
-                if sources_response.status_code == 200:
-                    sources = sources_response.json()
-                    us_sources = [
-                        source
-                        for source in sources
-                        if source.get("region", "").upper() == "US"
-                    ]
-                    return sorted(us_sources, key=lambda x: x["name"])
-                else:  # If there are any errors an empty array will be returned
-                    print(
-                        f"Watchmode source API Error: {sources_response.status_code} - {sources_response.text}"
-                    )
-                    cache.delete_memoized(watchmode_search, tmdb_id, type)
-                    return []
-            else:
-                cache.delete_memoized(watchmode_search, tmdb_id, type)
-                return []
-        else:
-            print(f"WatchMode API Error: {response.status_code} - {response.text}")
-            cache.delete_memoized(watchmode_search, tmdb_id, type)
-            return []
+    else:
+        print(f"WatchMode API Error: {response.status_code} - {response.text}")
+        cache.delete_memoized(watchmode_search, tmdb_id, type)
+        return []
 
 
 def make_cache_key():  # Recommendations' POST method means url isn't unique. I had to make a unique key to cache recs.
@@ -175,13 +135,22 @@ def make_cache_key():  # Recommendations' POST method means url isn't unique. I 
 
 # COMPARES TWO OVERVIEWS AND TAGLINES
 @cache.memoize(3600)
-def calculate_similarity(overview1, overview2):
+def calculate_similarity(media_info, recommendations_list):
     # Turns text into numerical vector representations
-    embedding1 = model.encode(overview1, convert_to_tensor=True, batch_size=16)
-    embedding2 = model.encode(overview2, convert_to_tensor=True, batch_size=16)
+    # Get all the overviews at once
+    all_overviews = [media_info] + [
+        rec.get("overview", "") for rec in recommendations_list if rec.get("overview")
+    ]
 
     # Performs consine calculation to find how similiar text segments are. 1 = identical and close to 0 means different
-    return F.cosine_similarity(embedding1.unsqueeze(0), embedding2.unsqueeze(0)).item()
+    # Encode all the overviews
+    all_embeddings = model.encode(all_overviews, convert_to_tensor=True, batch_size=16)
+    source = all_embeddings[0].unsqueeze(0)
+    targets = all_embeddings[1:]
+
+    similarities = F.cosine_similarity(source, targets)
+
+    return similarities.tolist()
 
 
 # FUNCTION FOR CALCULATING RELEVANCE FOR SEARCH RESULT SORTING
@@ -592,7 +561,7 @@ def details():
         try:
             media = tmdb.Movies(item_id) if item_type == "movie" else tmdb.TV(item_id)
             tmdb_details = media.info(
-                append_to_response="keywords,credits"
+                append_to_response="keywords,credits,videos,images"
             )  # Gets detailed information from TMDB using append_to_response. Saves on quota
 
             tmdb_details["media_type"] = (
@@ -606,21 +575,19 @@ def details():
                 tmdb_details["keywords"] = tmdb_details["keywords"].get(key, [])
 
             cast = (
-                tmdb_details.get("credits", {}).get("cast", [])[:12]
+                tmdb_details.get("credits", {}).get("cast", [])
                 if "credits" in tmdb_details
                 else []
             )  # Get the nested cast information
-            """"
+
             watchmode_data = watchmode_search(
                 item_id, item_type
             )  # Passes the tmdb_id and type to watchmode search function"
 
-            """  # Saving api queries during testing
-
             return jsonify(
                 {
                     "tmdb": tmdb_details or [],
-                    "watchmode": [],
+                    "watchmode": watchmode_data or [],
                     "cast": cast or [],
                 }
             )
@@ -969,7 +936,14 @@ def get_recommendations():  # Unused data for better recommendations.
     unique_recs = [
         rec for rec in unique_recs if rec.get("popularity", 0) > 1.0
     ]  # Remove recommendations with low popularity
-    for rec in unique_recs[:30]:  # Compare top 30 query items' overviews
+
+    text_sim = 0  # Overview similarity check
+    recs_to_compare = [rec for rec in unique_recs if rec.get("overview")]
+
+    similarity_scores = calculate_similarity(media_info, recs_to_compare)
+
+    for i, rec in enumerate(recs_to_compare):
+        text_sim = similarity_scores[i]
         media = (
             tmdb.Movies(rec.get("id"))
             if media_type == "movie"
@@ -991,8 +965,6 @@ def get_recommendations():  # Unused data for better recommendations.
         ] or []  # Keywords is double nested in the response.
 
         rec_genres = [r.get("id") for r in rec_media_info.get("genres")] or []
-
-        rec_info = rec_media_info.get("overview", "")
 
         rec_release_date = rec_media_info.get("release_date") or rec_media_info.get(
             "first_air_date"
@@ -1019,10 +991,6 @@ def get_recommendations():  # Unused data for better recommendations.
             if genre_sim:
                 genre_sim = max(genre_sim, 0.2)
 
-        text_sim = calculate_similarity(
-            media_info, rec_info
-        )  # Overview similarity check
-
         if media_keyword_ids and rec_keywords:  # Keyword similarity check
             keyword_sim = jaccardSim(media_keyword_ids, rec_keywords)
         else:
@@ -1041,7 +1009,7 @@ def get_recommendations():  # Unused data for better recommendations.
         )
 
     filtered_recs = sorted(filtered_recs, key=lambda x: -x["score"])
-    results = [item["rec"] for item in filtered_recs[:16]]
+    results = [item["rec"] for item in filtered_recs[:20]]
     if results:
         return jsonify({"recommendations": results or []})
     else:
@@ -1068,6 +1036,41 @@ def get_user_recommendations():
         keywords_doc = interests_collection.document("keywords").get()
         companies_doc = interests_collection.document("production_companies").get()
 
+        # Get ids of media already in watchlists
+        watchlist_media_ids = []
+        watchlist_movie_ids = []
+        watchlist_tv_ids = []
+        watchlists = []
+        watchlist_docs = user_ref.collection("watchlists").stream()
+        # Get the watchlist ids from firebase
+        for doc in watchlist_docs:
+            watchlists.append({"id": doc.id})
+
+        # Use the watchlist ids to get the media for each watchlist
+        for item in watchlists:
+            id = item.get("id")
+            media_docs = (
+                user_ref.collection("watchlists")
+                .document(id)
+                .collection("media")
+                .stream()
+            )
+            # The media ids from the media collection
+            for doc in media_docs:
+                media_data = doc.to_dict()
+                watchlist_media_ids.append(
+                    {
+                        "media_id": media_data.get("media_id"),
+                        "media_type": media_data.get("media_type"),
+                    }
+                )
+
+        for item in watchlist_media_ids:
+            if item.get("media_type") == "movie":
+                watchlist_movie_ids.append(item.get("media_id"))
+            else:
+                watchlist_tv_ids.append(item.get("media_id"))
+
         # Get the user interests data from the collection
         if genres_doc.exists or keywords_doc.exists or companies_doc.exists:
             user_genres = [g.get("id") for g in genres_doc.to_dict().get("items", [])]
@@ -1092,11 +1095,21 @@ def get_user_recommendations():
             user_genres, user_keywords, user_companies, "tv"
         )
 
+        filtered_movie_results = [
+            movie
+            for movie in movie_results
+            if movie.get("id") not in watchlist_movie_ids
+        ]
+
+        filtered_tv_results = [
+            tv for tv in tv_results if tv.get("id") not in watchlist_tv_ids
+        ]
+
         sorted_movie_results = sorted(
-            movie_results, key=lambda x: x.get("popularity", 0), reverse=True
+            filtered_movie_results, key=lambda x: x.get("popularity", 0), reverse=True
         )
         sorted_tv_results = sorted(
-            tv_results, key=lambda x: x.get("popularity", 0), reverse=True
+            filtered_tv_results, key=lambda x: x.get("popularity", 0), reverse=True
         )
 
         # I have to sort the recommendations to see if a movie or tv show in watchlist is in it. If it is it has to be removed

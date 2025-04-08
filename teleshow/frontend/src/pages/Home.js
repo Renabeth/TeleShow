@@ -63,16 +63,16 @@ function HomePage() {
       }
 
       const response = await axios.get(`${host}trending`);
-
-      localStorage.setItem(
-        TREND_CACHE_KEY,
-        JSON.stringify({
-          compressed: true,
-          data: LZString.compress(JSON.stringify(response.data)),
-          timestamp: Date.now(),
-        })
-      );
-
+      if (response.data.movies && response.data.tv) {
+        localStorage.setItem(
+          TREND_CACHE_KEY,
+          JSON.stringify({
+            compressed: true,
+            data: LZString.compress(JSON.stringify(response.data)),
+            timestamp: Date.now(),
+          })
+        );
+      }
       setTrendingMovies(response.data.movies);
       setPopularTV(response.data.tv);
 

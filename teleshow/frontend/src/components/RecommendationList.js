@@ -10,7 +10,6 @@ const RecommendationList = ({ recommendations, onRecommendationClick }) => {
 
   return (
     <div className="mt-4">
-      <h4 className="mb-3">More Like This</h4>
       <div className="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
         {recommendations?.map((rec) => (
           <div key={rec.id} className="col">
