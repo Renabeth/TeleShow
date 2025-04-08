@@ -1,0 +1,154 @@
+/* Episode tracker modal styling */
+
+.tv-progress-modal .modal-dialog{
+    max-width: 1000px !important;
+    width: 90%;
+    margin: 1.75rem auto;
+}
+.tv-progress-modal .modal-content {
+    background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+/* Season tabs styling */
+.tv-progress-modal .nav-tabs {
+    background-color: rgba(105, 105, 105, 0.3);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+  
+.tv-progress-modal .nav-tabs .nav-link {
+    background: linear-gradient(to right, #a3a3ff, #ffffff);
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 0;
+    transition: all 0.3s ease;
+}
+
+.tv-progress-modal .nav-tabs .nav-link.active {
+  background: linear-gradient(to right, #a3a3ff, #ffffff) !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-color: rgba(60, 60, 60, 0.4) !important;
+  border-bottom: 2px solid #a3a3ff !important;
+  box-shadow: 0 -3px 5px rgba(0,0,0,0.1);
+}
+
+  
+.tv-progress-modal .nav-tabs .nav-link:hover:not(.active) {
+    background-color: rgba(112, 112, 112, 0.3);
+}
+  
+  
+  /* Episode list styling */
+.tv-progress-modal .episode-list {
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 15px;
+}
+  
+.tv-progress-modal .episode-item {
+  background-color: rgba(128, 128, 128, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-left: 5px solid transparent;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  animation: fadeInUp 0.4s ease-out;
+}
+  
+.tv-progress-modal .episode-item:hover {
+  box-shadow: 0 8px 15px rgba(0,0,0,0.3);
+}
+  
+  /* Watched episode styling */
+.tv-progress-modal .episode-item.watched {
+    border-left: 5px solid #4CAF50;
+}
+  
+  /* Episode thumbnail */
+.tv-progress-modal .episode-thumbnail {
+    width: 220px; 
+    height: auto;
+    border-radius: 8px;
+    margin-right: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.tv-progress-modal .episode-thumbnail:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* Progress bar styling */
+.tv-progress-modal .progress {
+    height: 10px;
+  background-color: rgba(85, 85, 85, 0.3);
+  margin-top: 8px;
+  margin-bottom: 15px;
+  border-radius: 5px;
+}
+  
+.tv-progress-modal .progress-bar {
+    background-color: rgba(76, 175, 80,0.8);
+  transition: width 0.6s ease;
+  border-radius: 5px;
+}
+
+.tv-progress-modal .modal-header {
+    background-color: rgba(105, 105, 105, 0.3);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1rem 1.5rem;
+}
+
+.tv-progress-modal .modal-title {
+    background: linear-gradient(to right, #a3a3ff, #ffffff);
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(163, 163, 255, 0.5);
+    letter-spacing: 0.5px;
+}
+  
+.tv-progress-modal .modal-footer {
+    background-color: rgba(105, 105, 105, 0.3);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+@keyframes fadeIn {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+}
+  
+@keyframes fadeInUp {
+    0% {
+      opacity: 0;
+      transform: translateY(15px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+}
+ 
