@@ -1,5 +1,8 @@
 /*Written by Moses Pierre*/
 /*https://moderncss.dev/*/
+@import url('https://fonts.cdnfonts.com/css/satoshi');
+@import url('https://fonts.cdnfonts.com/css/inter');
+
 .search-container {
   position: relative;
   display: flex;
@@ -19,14 +22,16 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   margin:0;
   background-clip:padding-box;
+  font-family: 'Inter',sans-serif;
+  font-weight: 400;
 }
   
   
 .search-container.expanded {
   width: 400px; 
   background-color: rgba(255, 255, 255, 0.15); /* Translucent background. rgba allows for color and blur definition*/
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   padding: 5px 20px; /* Space for input */
   overflow: visible;
   animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -120,6 +125,23 @@
   max-height: 400px;
   overflow-y: auto;
   display: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.1);
+}
+
+.search-result-item h6 {
+  font-family: 'Satoshi', sans-serif;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: white;
+}
+
+.no-results {
+  padding: 15px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
 }
 
 
@@ -152,6 +174,8 @@
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
   pointer-events: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-family: 'Satoshi', sans-serif;
+  font-weight: 500;
 }
 
 .filter-dropdown-btn:focus {
@@ -220,6 +244,7 @@
   padding: 5px 15px;
   margin-bottom: 5px;
   font-weight: 500;
+  font-family: 'Satoshi', sans-serif;
 }
 
 .search-history-item {
@@ -241,7 +266,9 @@
 
 .search-history-text {
   font-size: 14px;
-  color: rgba(0, 0, 0, 0.8);
+  color: rgba(255, 255, 255, 0.6);
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
 }
 
 .search-history-clear {
@@ -253,6 +280,8 @@
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   cursor: pointer;
   transition: color 0.2s ease;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
 }
 
 .search-history-clear:hover {

@@ -108,8 +108,16 @@ def watchmode_search(tmdb_id, type):  # Function takes tmdb id and type (movie o
                     for source in sources
                     if source.get("region", "").upper() == "US"
                 ]
+                unique_sources = []
+                seen = set()
+
+                for s in us_sources:
+                    key = (s.get("name"), s.get("type"), s.get("price"))
+                    if key not in seen:
+                        seen.add(key)
+                        unique_sources.append(s)
                 return sorted(
-                    us_sources, key=lambda x: x["name"]
+                    unique_sources, key=lambda x: x["name"]
                 )  # If all is successful, dictionary of sources are returned
             else:
                 print(
@@ -595,52 +603,34 @@ def details():
             return jsonify({"error": str(e)}), 500
 
 
-# GET SEASONS FOR TV SHOWS
-@app.route("/tv/seasons", methods=["GET"])
+# GET SEASON INFORMATION FOR TV SHOWS
+@app.route("/tv/all_episodes", methods=["GET"])
 @limiter.limit(TMDB_RATE)
 @cache.cached(query_string=True)
-def get_tv_seasons():
+def get_all_tv_episodes():
     tv_id = request.args.get("id")
 
     if not tv_id:
-        return jsonify({"error": "Tv show ID is required"})
+        return jsonify({"error": "TV Show ID is required"})
 
     try:
+        # Getting the seasons for the tv show
         tv = tmdb.TV(tv_id)
         tv_info = tv.info()
-        seasons_data = tv_info.get("seasons")
+        seasons_data = tv_info.get("seasons", [])
 
-        # Filter specials unless its the only one there (Some shows have season 0s)
         if len(seasons_data) > 0:
             seasons_data = [s for s in seasons_data if s.get("season_number") != 0]
 
-            return jsonify({"seasons": seasons_data})
-
+        # Getting the episodes for the season
+        episodes_by_season = {}
+        for season in seasons_data:
+            season_number = season.get("season_number")
+            tv_seasons = tmdb.TV_Seasons(tv_id, season_number)
+            season_info = tv_seasons.info()
+            episodes_by_season[season_number] = season_info.get("episodes", [])
+        return jsonify({"seasons": seasons_data, "episodes": episodes_by_season})
     except Exception as e:
-        print(f"Error fetching TV seasons: {str(e)}")
-        return jsonify({"error": str(e)})
-
-
-# GET EPISODES FOR SEASONS
-@app.route("/tv/seasons/episodes", methods=["GET"])
-@limiter.limit(TMDB_RATE)
-@cache.cached(query_string=True)
-def get_season_episodes():
-    tv_id = request.args.get("id")
-    season_number = request.args.get("season_number")
-
-    if not tv_id or not season_number:
-        return jsonify({"error": "TV show ID and season number are required"})
-
-    try:
-        # I got the seasons from the previous endpoint
-        # So now all i do is pass the season number and tv id to the TV_Seasons endpoint to get the episodes
-        tv_seasons = tmdb.TV_Seasons(tv_id, season_number)
-        season = tv_seasons.info()
-
-        return jsonify({"episodes": season.get("episodes", [])})
-    except Exception as e:
-        print(f"Error fetching season episodes: {str(e)}")
         return jsonify({"error": str(e)})
 
 
@@ -1019,6 +1009,7 @@ def get_recommendations():  # Unused data for better recommendations.
 
 
 @app.route("/user-recommendations", methods=["GET"])
+@cache.cached(timeout=300)
 @limiter.limit(TMDB_RATE)
 def get_user_recommendations():
     user_id = request.args.get("user_id")
@@ -1115,7 +1106,7 @@ def get_user_recommendations():
         # I have to sort the recommendations to see if a movie or tv show in watchlist is in it. If it is it has to be removed
 
         return jsonify(
-            {"movie_recs": sorted_movie_results[:4], "tv_recs": sorted_tv_results[:4]}
+            {"movie_recs": sorted_movie_results, "tv_recs": sorted_tv_results}
         )
 
     except Exception as e:

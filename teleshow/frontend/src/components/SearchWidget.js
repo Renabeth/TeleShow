@@ -51,6 +51,7 @@ const SearchWidget = () => {
       ) {
         handleCollapse();
         setShowDropdown(false);
+        setQuery("");
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -285,27 +286,30 @@ const SearchWidget = () => {
           </div>
         </InputGroup>
       </div>
-      {isExpanded && showHistory && queryHistory.length > 0 && (
-        <div className="search-history-container">
-          <div className="search-history-header">Recent Searches</div>
-          {queryHistory.map((historyItem, index) => (
+      {isExpanded &&
+        showHistory &&
+        queryHistory.length > 0 &&
+        !showDropdown && (
+          <div className="search-history-container">
+            <div className="search-history-header">Recent Searches</div>
+            {queryHistory.map((historyItem, index) => (
+              <div
+                key={index}
+                className="search-history-item"
+                onClick={() => handleHistoryItemClick(historyItem)}
+              >
+                <GoClock className="search-history-icon" />
+                <span className="search-history-text">{historyItem}</span>
+              </div>
+            ))}
             <div
-              key={index}
-              className="search-history-item"
-              onClick={() => handleHistoryItemClick(historyItem)}
+              className="search-history-clear"
+              onClick={() => setQueryHistory([])}
             >
-              <GoClock className="search-history-icon" />
-              <span className="search-history-text">{historyItem}</span>
+              Clear History
             </div>
-          ))}
-          <div
-            className="search-history-clear"
-            onClick={() => setQueryHistory([])}
-          >
-            Clear History
           </div>
-        </div>
-      )}
+        )}
 
       {/*Results Dropdown*/}
       {showDropdown && results && (

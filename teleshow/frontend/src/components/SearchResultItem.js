@@ -30,11 +30,14 @@ const SearchResultItem = ({ item, onClick }) => {
           )}
         </div>
       )}
-      <div className="fw-bold">{item.title || item.name} </div>
-      <div className="text-muted small">
-        {item.release_date?.substring(0, 4) ||
-          item.first_air_date?.substring(0, 4) ||
-          "Unknown Year"}
+      <div className="fw-bold">
+        {item.title || item.name}
+        <br></br>
+        <p className="text-muted">
+          {item.release_date?.substring(0, 4) ||
+            item.first_air_date?.substring(0, 4) ||
+            "Unknown Year"}
+        </p>
       </div>
     </Dropdown.Item>
   );

@@ -177,11 +177,6 @@ const TVCalendar = ({ isLoggedIn }) => {
                         </div>
                       </Card.Body>
                     </div>
-                    {item.overview && (
-                      <Card.Footer>
-                        <small className="text-muted">{item.overview}</small>
-                      </Card.Footer>
-                    )}
                   </Card>
                 </Col>
               ))}

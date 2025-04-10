@@ -3,7 +3,6 @@ import "../styles/Dashboard.css";
 import "../styles/Watchlist.css";
 import { Spinner } from "react-bootstrap";
 import GetAverageRating from "../scripts/GetAverageRating.js";
-import TVProgressTracker from "../components/TVProgress.js";
 import TVCalendar from "../components/TVCalendar.js";
 import { FaList, FaCalendarAlt } from "react-icons/fa";
 import DetailModal from "../components/DetailModal";
@@ -54,6 +53,7 @@ import { getAggregateFromServer, average } from "firebase/firestore";
 function Watchlist() {
   const [watchlists, setWatchlists] = useState([]);
   const [selectedWatchlistId, setSelectedWatchlistId] = useState("all");
+  const [tabOpen, setTabOpen] = useState("overview");
   const [filteredMedia, setFilteredMedia] = useState([]);
   const [allWatchlistMedia, setAllWatchlistMedia] = useState([]);
   const [currentTvShow, setCurrentTvShow] = useState(null);
@@ -386,9 +386,10 @@ function Watchlist() {
     navigate("/dashboard");
   };
 
-  const handleItemClick = (item) => {
+  const handleItemClick = (item, tab) => {
     console.log("item clicked", item);
     setSelectedItem(item);
+    setTabOpen(tab);
     setShowModal(true);
   };
 
@@ -465,7 +466,6 @@ function Watchlist() {
           {loggedIn ? "Logged in" : "Logged out"}
           <br />
           <br />
-
           {/* Help from https://react-bootstrap.netlify.app/docs/components/buttons/ */}
           {/* And https://www.geeksforgeeks.org/how-to-change-button-text-on-click-in-reactjs/# */}
           <Button
@@ -481,12 +481,6 @@ function Watchlist() {
           </Button>
         </div>
         <div className="watchlistRight">
-          <h1
-            className="watchlistHeader"
-            style={{ textAlign: "center", cursor: "pointer" }}
-          >
-            Your Watchlist
-          </h1>
           <br />
           <div id="watchlist" className="watchlist">
             {/* Help from https://www.rowy.io/blog/firestore-react-query */}
@@ -499,7 +493,7 @@ function Watchlist() {
                   onClick={() => setShowCalendarView(false)}
                 >
                   <FaList className="me-2" />
-                  Watchlist
+                  Watchlists
                 </Button>
                 <Button
                   variant={showCalendarView ? "primary" : "outline-primary"}
@@ -627,7 +621,7 @@ function Watchlist() {
                               className="me-2 btn btn-info"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                openEpisodeTracker(item);
+                                handleItemClick(item, "episodes");
                               }}
                             >
                               <FaList className="me-1" /> Episodes
@@ -669,16 +663,6 @@ function Watchlist() {
             ) : (
               <TVCalendar isLoggedIn={loggedIn} />
             )}
-
-            {currentTvShow && (
-              <TVProgressTracker
-                tvId={currentTvShow.id}
-                tvName={currentTvShow.name}
-                isOpen={showEpisodeTracker}
-                onClose={() => setShowEpisodeTracker(false)}
-                isLoggedIn={loggedIn}
-              />
-            )}
           </div>
         </div>
       </div>
@@ -717,6 +701,7 @@ function Watchlist() {
           mediaType={selectedItem.media_type}
           show={showModal}
           onHide={handleCloseModal}
+          initialTab={tabOpen}
         />
       )}
     </div>

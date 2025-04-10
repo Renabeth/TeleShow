@@ -1,7 +1,15 @@
 //Written by Moses Pierre
 import { React, useEffect, useState } from "react";
-import { Modal, Button, Spinner, Tabs, Tab } from "react-bootstrap";
-import RecommendationList from "./RecommendationList";
+import {
+  Modal,
+  Button,
+  Spinner,
+  Tabs,
+  Tab,
+  ProgressBar,
+  ListGroup,
+  ListGroupItem,
+} from "react-bootstrap";
 import {
   FaBell,
   FaRegBell,
@@ -9,11 +17,11 @@ import {
   FaHeart,
   FaRegHeart,
   FaPlay,
+  FaCheckCircle,
+  FaRegCircle,
 } from "react-icons/fa";
 import axios from "axios";
 import "./DetailModal.css";
-import "./TVProgress";
-import TVProgress from "./TVProgress";
 import {
   getDetails,
   getRecommendations,
@@ -24,7 +32,14 @@ import StarRate from "../components/starRate"; //Component Made by Serena and Wi
 import GetAverageRating from "../scripts/GetAverageRating.js"; //Component Made by Serena and William
 import FetchComments from "../components/FetchComments.js"; //Component Made by William
 
-const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
+const DetailModal = ({
+  item: givenItem,
+  mediaId,
+  mediaType,
+  show,
+  onHide,
+  initialTab = "overview",
+}) => {
   const features = [
     {
       title: "Search",
@@ -75,14 +90,19 @@ const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
   const [selectedWatchlist, setSelectedWatchlist] = useState(false); //Tracks selected watchlist
   const [newWatchlistName, setNewWatchlistName] = useState(""); //Name for watchlist
   const [addingToWatchlist, setAddingToWatchlist] = useState(false); //Loading indicator
-  const [showEpisodeTracker, setShowEpisodeTracker] = useState(false);
+  const [seasons, setSeasons] = useState([]);
+  const [loadingEpisodes, setLoadingEpisodes] = useState(false);
+  const [episodes, setEpisodes] = useState([]);
+  const [error, setError] = useState(null);
+  const [activeSeasonNumber, setActiveSeasonNumber] = useState(1);
+  const [userProgress, setUserProgress] = useState({});
   const image_url = " https://image.tmdb.org/t/p/w500"; // Base URL for TMDB image paths
   const [userId, setUserId] = useState(sessionStorage.getItem("userId") || 0);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(initialTab);
   const host = process.env.REACT_APP_NETWORK_HOST;
   const displayName = sessionStorage.getItem("userName");
-
   const isLoggedIn = !!sessionStorage.getItem("userId");
+
   useEffect(() => {
     if (item && isLoggedIn) {
       checkIfFollowed(item.tmdb.id, item.tmdb.media_type).then((status) =>
@@ -96,9 +116,21 @@ const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
   }
   useEffect(() => {
     if (show) {
-      setActiveTab("overview");
+      setActiveTab(initialTab);
     }
-  }, [show]);
+  }, [show, initialTab]);
+
+  useEffect(() => {
+    if (activeTab === "episodes" && item?.tmdb?.media_type === "tv") {
+      fetchSeasonData();
+      setError(null);
+      setLoadingEpisodes(true);
+    }
+
+    if (isLoggedIn && userId) {
+      fetchProgress();
+    }
+  }, [activeTab, item]);
 
   useEffect(() => {
     if (showWatchlistModal && isLoggedIn) {
@@ -337,6 +369,169 @@ const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
     }
   };
 
+  //Gets the season number and episodes
+  const fetchSeasonData = () => {
+    setLoadingEpisodes(true);
+    axios
+      .get(`${host}/tv/all_episodes`, {
+        params: { id: item.tmdb.id },
+      })
+      .then((response) => {
+        if (!response.data.seasons || response.data.seasons.length === 0) {
+          console.log("No Seasons Found");
+          setLoadingEpisodes(false);
+          return;
+        }
+        const seasonData = response.data.seasons;
+        setSeasons(seasonData);
+        setEpisodes(response.data.episodes || {});
+        const firstSeason =
+          seasonData.find((s) => s.season_number === 1) ||
+          response.data.seasons[0];
+        setActiveSeasonNumber(firstSeason.season_number);
+      })
+      .catch((err) => {
+        console.error("Error fetching TV Data:", err);
+        setError("Failed to load TV Data. Please try again");
+      })
+      .finally(() => {
+        setLoadingEpisodes(false);
+      });
+  };
+
+  //Gets user progress from firestore
+  const fetchProgress = async () => {
+    try {
+      const response = await axios.get(
+        `${host}interactions/tv/get-episode-progress`,
+        {
+          params: {
+            user_id: userId,
+            tv_id: item.tmdb.id,
+          },
+        }
+      );
+
+      if (response.data.progress) {
+        setUserProgress(response.data.progress);
+      }
+    } catch (err) {
+      console.error("Error fetching user progress:", err);
+    }
+  };
+
+  //Marks episode as watched in firestore
+  const markEpisodeWatched = async (
+    seasonNumber,
+    episodeNumber,
+    watched = true,
+    refresh = true
+  ) => {
+    if (!isLoggedIn || !userId) {
+      alert("Please log in to track your progress");
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `${host}interactions/tv/set-episode-progress`,
+        {
+          user_id: userId,
+          tv_id: item.tmdb.id,
+          season_number: seasonNumber,
+          episode_number: episodeNumber,
+          watched: watched,
+        }
+      );
+      //Update local progress
+      if (refresh && response.data.status === "success") {
+        fetchProgress();
+      }
+    } catch (err) {
+      console.error("Error updating episode progress:", err);
+      alert("Failed to update your progress. Please try again.");
+    }
+  };
+
+  const markAllAsWatched = async (seasonNumber, watched = true) => {
+    if (!isLoggedIn || !userId) {
+      alert("Please log in to track your progress");
+      return;
+    }
+
+    setLoadingEpisodes(true);
+
+    try {
+      // Get all episodes for the current season
+      const episodesForSeason = episodes[seasonNumber] || [];
+      console.log(
+        `Marking ${episodesForSeason.length} episodes as ${
+          watched ? "watched" : "unwatched"
+        }`
+      );
+
+      for (const episode of episodesForSeason) {
+        await markEpisodeWatched(
+          seasonNumber,
+          episode.episode_number,
+          watched,
+          false
+        );
+      }
+
+      // Refresh progress data after all updates
+      setTimeout(async () => {
+        await fetchProgress();
+        alert(
+          `Successfully ${
+            watched ? "watched" : "unwatched"
+          } all episodes in Season ${seasonNumber}`
+        );
+      }, 1000);
+
+      // Show success message
+    } catch (err) {
+      console.error(
+        `Error ${watched ? "watching" : "unwatching"} all episodes:`,
+        err
+      );
+      alert(`Failed to update your progress. Please try again.`);
+    } finally {
+      setLoadingEpisodes(false);
+    }
+  };
+
+  //Checks if episode is watched on firestore
+  const isEpisodeWatched = (seasonNumber, episodeNumber) => {
+    const seasons = userProgress?.seasons || {};
+    const season = seasons[seasonNumber];
+    if (!season) return false;
+
+    const episodes = season.episodes || {};
+    const episode = episodes[episodeNumber];
+    return episode?.watched || false;
+  };
+
+  //Calculates the season progress by taking the number of episodes in season and filtering the episodes marked as watched
+  //Returns result for progressbar to register
+  const calculateSeasonProgress = (seasonNumber) => {
+    const episodesForSeason = episodes[seasonNumber] || [];
+    if (episodesForSeason.length === 0) return 0;
+
+    const seasons = userProgress?.seasons || {};
+    const season = seasons[seasonNumber];
+    if (!season || !season.episodes) return 0;
+
+    console.log("Episodes:", episodes);
+    console.log("User Progress:", userProgress);
+    //Pulls the object values from season
+    //Filters where the episodes watched property is true
+    const watchedCount = Object.values(season.episodes).filter(
+      (ep) => ep.watched
+    ).length;
+    return Math.round((watchedCount / episodesForSeason.length) * 100);
+  };
+
   if (loading) {
     return (
       <div className="text-center py-3">
@@ -381,19 +576,6 @@ const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
                       No Image Available
                     </div>
                   )}
-                  <div>
-                    {item.tmdb.media_type === "tv" ? (
-                      <Button
-                        variant="outline-primary"
-                        className="btn-episodes flex-grow-0"
-                        onClick={() => setShowEpisodeTracker(true)}
-                      >
-                        Episodes
-                      </Button>
-                    ) : (
-                      <p>{""}</p>
-                    )}
-                  </div>
                   {isLoggedIn ? (
                     <div className="d-flex flex-wrap justify-content-between gap-2 mt-2">
                       {item.tmdb.media_type === "tv" ? (
@@ -441,7 +623,7 @@ const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
                         Log in to rate this{" "}
                         {item.tmdb.media_type === "movie"
                           ? item.tmdb.media_type
-                          : `${item.tmdb.media_type} show`}
+                          : "tv show"}
                       </p>
                     )}
                   </div>
@@ -575,6 +757,165 @@ const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
                 </div>
               </div>
             </Tab>
+            {/*Episodes tab for TV shows */}
+            {item.tmdb?.media_type === "tv" && (
+              <Tab eventKey="episodes" title="Episodes">
+                {loadingEpisodes ? (
+                  <div className="text-center p-4">
+                    <Spinner animation="border" />
+                    <p className="mt-2"> Loading episode data...</p>
+                  </div>
+                ) : (
+                  <div className="episodes-container">
+                    {/*Season Selection */}
+                    <div className="season-tabs mb-4">
+                      <h4>Seasons</h4>
+                      <div className="d-flex flex-wrap gap-2">
+                        {seasons.map((s) => (
+                          <Button
+                            key={s.season_number}
+                            variant={
+                              activeSeasonNumber === s.season_number
+                                ? "primary"
+                                : "outline-primary"
+                            }
+                            onClick={() =>
+                              setActiveSeasonNumber(s.season_number)
+                            }
+                            className="d-flex flex-column align-items-center"
+                            style={{ minWidth: "120px" }}
+                          >
+                            <div>Season {s.season_number}</div>
+                            {isLoggedIn && (
+                              <ProgressBar
+                                now={calculateSeasonProgress(s.season_number)}
+                                label={`${calculateSeasonProgress(
+                                  s.season_number
+                                )}%`}
+                                style={{
+                                  width: "100%",
+                                  height: "15px",
+                                  fontSize: "12px",
+                                }}
+                                className="progress"
+                              />
+                            )}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                    {/*Episodes List */}
+                    <div className="episode-list">
+                      <div className="d-flex justify-content-between align-items-center mb-3">
+                        <h4>Season {activeSeasonNumber} Episodes</h4>
+                        {isLoggedIn && (
+                          <div className="batch-actions d-flex gap-2">
+                            <Button
+                              variant="success"
+                              size="sm"
+                              onClick={() =>
+                                markAllAsWatched(activeSeasonNumber, true)
+                              }
+                              disabled={loadingEpisodes}
+                            >
+                              <FaCheckCircle className="me-1" /> Watch All
+                            </Button>
+                            <Button
+                              variant="outline-secondary"
+                              size="sm"
+                              onClick={() =>
+                                markAllAsWatched(activeSeasonNumber, false)
+                              }
+                              disabled={loadingEpisodes}
+                            >
+                              <FaRegCircle className="me-1" /> Unwatch All
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      <ListGroup>
+                        {(episodes[activeSeasonNumber] || []).map((e) => (
+                          <ListGroup.Item
+                            key={e.id}
+                            className={`episode-item d-flex gap-3 align-items-start py-3 ${
+                              isEpisodeWatched(
+                                activeSeasonNumber,
+                                e.episode_number
+                              )
+                                ? "watched"
+                                : ""
+                            }`}
+                          >
+                            <div>
+                              {e.still_path ? (
+                                <img
+                                  src={`${image_url}${e.still_path}`}
+                                  alt={`Episode ${e.episode_number}`}
+                                  className="episode-thumbnail"
+                                />
+                              ) : (
+                                <div
+                                  className="d-flex align-items-center justify-content-center bg-light text-muted"
+                                  style={{
+                                    width: "220px",
+                                    height: "110px",
+                                    borderradius: "8px",
+                                    marginRight: "20px",
+                                  }}
+                                >
+                                  no image available
+                                </div>
+                              )}
+                            </div>
+                            <div className="episode-info flex-grow-1">
+                              <div className="d-flex justify-content-between">
+                                <h5 className="mb-1">
+                                  {e.episode_number}. {e.name}
+                                </h5>
+                                <small>{e.air_date}</small>
+                              </div>
+                              <p className="mb-1">
+                                {e.overview || "No overview available"}
+                              </p>
+                            </div>
+                            {isLoggedIn && (
+                              <div
+                                className="watch-toggle"
+                                onClick={() =>
+                                  markEpisodeWatched(
+                                    activeSeasonNumber,
+                                    e.episode_number,
+                                    !isEpisodeWatched(
+                                      activeSeasonNumber,
+                                      e.episode_number
+                                    )
+                                  )
+                                }
+                              >
+                                {isEpisodeWatched(
+                                  activeSeasonNumber,
+                                  e.episode_number
+                                ) ? (
+                                  <FaCheckCircle
+                                    size={24}
+                                    className="text-success"
+                                  />
+                                ) : (
+                                  <FaRegCircle
+                                    size={24}
+                                    className="text-muted"
+                                  />
+                                )}
+                              </div>
+                            )}
+                          </ListGroup.Item>
+                        ))}
+                      </ListGroup>
+                    </div>
+                  </div>
+                )}
+              </Tab>
+            )}
 
             {/*Cast information section*/}
             <Tab eventKey="cast" title="Cast">
@@ -663,7 +1004,7 @@ const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
                                   </a>
                                 </td>
                                 <td>{service.type}</td>
-                                <td>{service.price || " "}</td>
+                                <td>{service.price || "sub"}</td>
                                 <td>{service.region}</td>
                               </tr>
                             ))}
@@ -694,12 +1035,45 @@ const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
               </Tab>
             )}
             {/*Recommendations*/}
-            <Tab eventKey="recommendations" title="Recommended">
+            <Tab eventKey="similar" title="Similar">
               {recommendations && !rec_loading ? (
-                <RecommendationList
-                  recommendations={recommendations}
-                  onRecommendationClick={handleRecClick}
-                />
+                <div className="mt-4">
+                  <div className="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
+                    {recommendations?.map((rec) => (
+                      <div key={rec.id} className="col">
+                        <div
+                          className="card h-100 shadow-sm hover-shadow-lg transition recommendation-item"
+                          onClick={() => handleRecClick(rec)}
+                          role="button"
+                        >
+                          {rec.poster_path && (
+                            <img
+                              src={`${image_url}${rec.poster_path}`}
+                              className="card-img-top"
+                              alt={rec.title || rec.name}
+                              loading="lazy"
+                            />
+                          )}
+                          <div className="card-body">
+                            <h5 className="card-title text-truncate recommendation-title">
+                              {rec.title || rec.name}
+                            </h5>
+                            <div className="d-flex justify-content-between small mb-2">
+                              <span className="badge bg-primary recommendation-details">
+                                {rec.release_date?.split("-")[0] ||
+                                  rec.first_air_date?.split("-")[0]}
+                              </span>
+                              <span className="badge bg-success recommendation-details">
+                                <i className="bi bi-star-fill me-1"></i>
+                                {Math.round(rec.vote_average)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ) : (
                 <div className="loading-spinner">
                   <Spinner animation="border" variant="primary" />
@@ -933,15 +1307,6 @@ const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
           </Button>
         </Modal.Footer>
       </Modal>
-      {item && item.tmdb && item.tmdb.media_type === "tv" && (
-        <TVProgress
-          tvId={item.tmdb.id}
-          tvName={item.tmdb.name || item.tmdb.title}
-          isOpen={showEpisodeTracker}
-          onClose={() => setShowEpisodeTracker(false)}
-          isLoggedIn={isLoggedIn}
-        />
-      )}
     </>
   );
 };

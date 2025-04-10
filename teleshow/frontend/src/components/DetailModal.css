@@ -1,22 +1,28 @@
 /*Written by Moses Pierre*/
-
+@import url('https://fonts.cdnfonts.com/css/satoshi');
+@import url('https://fonts.cdnfonts.com/css/inter');
 /*Sets the main background color and sets a fade-in animation*/
 /*Modal-content is an implied class. Its automatically set*/
-.detail-modal .modal-dialog{
-  max-width: 1000px !important;
-  width: 90%;
-  margin: 1.75rem auto;
+
+.detail-modal p,
+.detail-modal .text-muted,
+.detail-modal .overview-section,
+.detail-modal .feature-description,
+.detail-modal label,
+.detail-modal select,
+.detail-modal input,
+.detail-modal table {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
 }
 
-.detail-modal .modal-content {
-  background-color: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 12px;
-  animation: fadeIn 0.4s ease-out;
+.detail-modal h3, 
+.detail-modal h4, 
+.detail-modal h5 {
+  font-family: 'Satoshi', sans-serif;
+  font-weight: 600;
 }
+
 /*Styles for form elements inside the modal*/
 .detail-modal select,
 .detail-modal input {
@@ -40,6 +46,50 @@
   margin-bottom: 5px;
 }
 
+.detail-modal .badge {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+}
+
+.detail-modal .figure-caption {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  color:white;
+}
+
+.detail-modal .modal-dialog{
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  max-width: 70vh !important;
+  width: 90%;
+  margin: 2vh auto;
+}
+
+.detail-modal .modal-title{
+  font-family: 'Satoshi', sans-serif;
+  font-weight: 700;
+}
+
+.detail-modal .modal-body{
+  overflow-y: auto;
+  max-height: calc(70vh - 130px);
+  scrollbar-width: thin;
+  scrollbar-color:rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.1) ;
+  padding:1.5rem;
+}
+
+.detail-modal .modal-content {
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  animation: fadeIn 0.4s ease-out;
+  max-height: 70vh;
+}
+
 /*Handles modal opening*/
 /*cubic-bezier is an animation timing function. each number corresponds to a x and y coordinate x=time y=motion*/
 .modal.fade .modal-dialog {
@@ -54,6 +104,11 @@
   opacity: 1;
 }
 
+.detail-modal .modal .modal-title {
+  font-family: 'Satoshi', sans-serif;
+  font-weight: 700;
+}
+
 /*Handles top section of modal*/
 .detail-modal .modal-header {
   background-color: rgba(105, 105, 105, 0.3);
@@ -63,7 +118,7 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   animation: fadeIn 0.3s ease-out;
 }
-/*Handles the moddle content section of the modal*/
+/*Handles the middle content section of the modal*/
 .detail-modal .modal-body {
   background-color: rgba(128, 128, 128, 0.2);
   backdrop-filter: blur(10px);
@@ -73,6 +128,7 @@
   animation-fill-mode: both;
   padding:1.5rem;
 }
+
 /*Handles the body of the modal*/
 .detail-modal .modal-footer {
   background-color: rgba(105, 105, 105, 0.3);
@@ -83,10 +139,10 @@
   animation: fadeIn 0.3s ease-out 0.2s;
   animation-fill-mode: both;
 }
+
 /* Style for cast sections */
 .detail-modal .cast-section {
   background-color: transparent;
-  color: white;
 }
   
 /* Style for individual cast cards with animation*/
@@ -94,7 +150,6 @@
   background-color: rgba(128, 128, 128, 0.3);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  color: white;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   animation: fadeInUp 0.4s ease-out;
@@ -102,8 +157,13 @@
 }
 
 .detail-modal .cast-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-2px);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+.detail-modal .btn {
+  font-family: 'Satoshi', sans-serif;
+  font-weight: 500;
 }
 
 .detail-modal .btn-follow {
@@ -129,25 +189,14 @@
   border-radius: 5px;
 }
 
-.detail-modal .btn-episodes{
-  background-color: rgba(25, 0, 248, 0.3);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  margin-top: 5px;
-  margin-bottom: 5px;
-  padding: 8px 15px;
-  border-radius: 5px;
-}
 
 .detail-modal .btn-follow,
-.detail-modal .btn-watchlist, .detail-modal .btn-episodes{
+.detail-modal .btn-watchlist{
   transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .detail-modal .btn-follow:hover,
-.detail-modal .btn-watchlist:hover, .detail-modal .btn-episodes:hover {
+.detail-modal .btn-watchlist:hover{
   opacity: 0.9;
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
@@ -177,33 +226,63 @@
   color: rgba(255, 255, 255, 0.8);
 }
 
-/*Table row animation for purchase information*/
-.detail-modal table tr {
-  animation: fadeInRight 0.4s ease-out;
-  animation-fill-mode: both;
-  transition: background-color 0.2s ease;
+.detail-modal .table-responsive {
+  background-color: rgba(128, 128, 128, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 15px 0;
 }
 
-.detail-modal table tr:hover {
-  background-color: rgba(255, 255, 255, 0.15);
+.detail-modal .table {
+  margin-bottom: 0;
+  color: white;
 }
 
-/*.nav is applied to tabs by default*/
-.detail-modal .nav-link {
-  background: linear-gradient(to right, #a3a3ff, #ffffff);
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+.detail-modal .table thead th {
+  background-color: rgba(105, 105, 105, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  font-family: 'Satoshi', sans-serif;
+  font-weight: 600;
+  padding: 12px 15px;
+}
+
+.detail-modal .table td {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 10px 15px;
+  vertical-align: middle;
+}
+
+
+.detail-modal .table .btn-outline-primary:hover {
+  background-color: rgba(25, 0, 248, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.detail-modal .nav-tabs .nav-link {
+  font-family: 'Satoshi', sans-serif;
+  font-weight: 500;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 0;
   transition: all 0.3s ease;
 }
 
 
-.detail-modal .nav-link.active {
+.detail-modal .nav-tabs .nav-link.active {
   background: linear-gradient(to right, #a3a3ff, #ffffff) !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   background-color: rgba(60, 60, 60, 0.4) !important;
   border-bottom: 2px solid #a3a3ff !important;
-  opacity: 1;
+  box-shadow: 0 -3px 5px rgba(0,0,0,0.1);
 }
 
 /* Feature list container */
@@ -234,6 +313,8 @@
 
 /* Feature title styling */
 .feature-title {
+  font-family: 'Satoshi', sans-serif;
+  font-weight: 600;
   background: linear-gradient(to right,#a3a3ff, #ffffff );
   background-clip:text;
   -webkit-text-fill-color: transparent;
@@ -258,6 +339,11 @@
   height: 100%;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   animation: fadeInUp 0.4s ease-out;
+}
+
+.detail-modal .video-card h5 {
+  font-family: 'Satoshi', sans-serif;
+  font-weight: 600;
 }
 
 .detail-modal .video-card:hover {
@@ -290,6 +376,129 @@
   color: white;
   font-size: 24px;
 }
+
+.detail-modal .season-tabs {
+  margin-bottom: 20px;
+}
+
+.detail-modal .season-tabs h4 {
+  font-family: 'Satoshi', sans-serif;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.detail-modal .season-tabs button {
+  font-family: 'Satoshi', sans-serif;
+  font-weight: 500;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 6px !important;
+  transition: all 0.3s ease;
+  background-color: transparent;
+  margin: 3px;
+}
+
+.detail-modal .season-tabs button:hover {
+  background-color: rgba(112, 112, 112, 0.3);
+  transform: translateY(-2px);
+}
+
+.detail-modal .season-tabs button.btn-primary {
+  background: rgba(60, 60, 60, 0.4) !important;
+  border-bottom: 2px solid #a3a3ff !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+
+
+  /* Episode thumbnail */
+  .detail-modal .episode-thumbnail {
+    width: 220px; 
+    height: auto;
+    border-radius: 8px;
+    margin-right: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.detail-modal .episode-thumbnail:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+  /* Episode list styling */
+  .detail-modal .episode-list {
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 15px;
+}
+
+.detail-modal .episode-item {
+  background-color: rgba(128, 128, 128, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-left: 5px solid transparent;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  animation: fadeInUp 0.4s ease-out;
+}
+
+.detail-modal .episode-item:hover {
+  box-shadow: 0 8px 15px rgba(0,0,0,0.3);
+}
+
+.detail-modal .episode-list .episode-info{
+  color: white;
+}
+
+  /* Progress bar styling */
+.detail-modal .progress {
+  height: 10px;
+  background-color: rgba(85, 85, 85, 0.3);
+  margin-top: 8px;
+  margin-bottom: 15px;
+  border-radius: 5px;
+}
+    
+.detail-modal .progress-bar {
+  background-color: rgba(76, 175, 80,0.8);
+  transition: width 0.6s ease;
+  border-radius: 5px;
+}
+
+/* Episode watch toggle */
+.detail-modal .watch-toggle {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+  transition: transform 0.2s ease;
+}
+
+.detail-modal .watch-toggle:hover {
+  transform: scale(1.1);
+}
+
+.batch-actions {
+  margin-left: auto;
+}
+
+.batch-actions .btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.detail-modal .episode-item.watched {
+  border-left: 5px solid #4CAF50;
+}
+
+
 
 @keyframes fadeIn {
   0% {
