@@ -1177,7 +1177,7 @@ def get_recommendations():  # Unused data for better recommendations.
         )
 
     filtered_recs = sorted(filtered_recs, key=lambda x: -x["score"])
-    results = [item["rec"] for item in filtered_recs[:20]]
+    results = [item["rec"] for item in filtered_recs[:24]]
     if results:
         return jsonify({"recommendations": results or []})
     else:
