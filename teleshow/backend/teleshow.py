@@ -13,6 +13,7 @@ from flask_limiter.util import get_remote_address
 import requests  # For sending requests to urls
 import os  # Used to find file paths
 import datetime
+import time
 import torch  # Enabler of machine learning. Allows for the dot
 import torch.nn.functional as F
 import firebase_admin  # Firebase imports that allow connection to firestore for user data
@@ -61,7 +62,7 @@ api_key1 = os.getenv("PY_WATCHMODE_API_KEY")  # Saves the watchmode API to a var
 
 
 model = SentenceTransformer(
-    "all-MiniLM-L12-v2"
+    "paraphrase-MiniLM-L3-v2"
 )  # Sets the pre-trained learning model for Sentence Transformer
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -143,22 +144,38 @@ def make_cache_key():  # Recommendations' POST method means url isn't unique. I 
 
 # COMPARES TWO OVERVIEWS AND TAGLINES
 @cache.memoize(3600)
-def calculate_similarity(media_info, recommendations_list):
+def calculate_similarity(media_title, media_overview, recommendations_list):
     # Turns text into numerical vector representations
-    # Get all the overviews at once
-    all_overviews = [media_info] + [
-        rec.get("overview", "") for rec in recommendations_list if rec.get("overview")
+    rec_titles = [
+        rec.get("title", "") or rec.get("name", "") for rec in recommendations_list
     ]
-
+    rec_overviews = [rec.get("overview", "") for rec in recommendations_list]
     # Performs consine calculation to find how similiar text segments are. 1 = identical and close to 0 means different
     # Encode all the overviews
-    all_embeddings = model.encode(all_overviews, convert_to_tensor=True, batch_size=16)
-    source = all_embeddings[0].unsqueeze(0)
-    targets = all_embeddings[1:]
+    # Title similarity
+    title_embeddings = model.encode(
+        [media_title] + rec_titles, convert_to_tensor=True, batch_size=16
+    )
+    title_source = title_embeddings[0].unsqueeze(0)
+    title_targets = title_embeddings[1:]
+    title_similarities = F.cosine_similarity(title_source, title_targets).tolist()
 
-    similarities = F.cosine_similarity(source, targets)
+    # Overview similarity
+    overview_embeddings = model.encode(
+        [media_overview] + rec_overviews, convert_to_tensor=True, batch_size=16
+    )
+    overview_source = overview_embeddings[0].unsqueeze(0)
+    overview_targets = overview_embeddings[1:]
+    overview_similarities = F.cosine_similarity(
+        overview_source, overview_targets
+    ).tolist()
 
-    return similarities.tolist()
+    combined_similarities = [
+        (title_similarities[i] * 0.4) + (overview_similarities[i] * 0.6)
+        for i in range(len(title_similarities))
+    ]
+
+    return combined_similarities
 
 
 # FUNCTION FOR CALCULATING RELEVANCE FOR SEARCH RESULT SORTING
@@ -226,65 +243,221 @@ def calculate_relevance(item, query):
 
 # FUNCTION FOR EXPANDING POOL FOR RECOMMENDATIONS
 @cache.memoize(3600)
-def expand_pool_with_discover(
-    media_genres, media_keywords, media_producers, media_type
+def create_pool_with_discover(
+    media_genres,
+    media_keywords,
+    media_producers,
+    media_type,
+    release_year=None,
+    vote_average=None,
+    media_id=None,
+    language="en",
 ):
     discover = tmdb.Discover()
-    params = {
-        "page": 1,
-        "original_language": "en",
+    discover_results = []
+    seen_ids = set()
+    if media_id:
+        seen_ids.add(f"{media_id}-{media_type}")
+    base_params = {
+        "with_original_language": language,
+        "without_genres": "99,10770",  # Excludes documentaries and TV movies
+        "vote_count.gte": 75,
+        "sort_by": "popularity.desc",
     }
     # Sends the properties of the media through discover endpoint
     if media_genres:
-        params["with_genres"] = "|".join(map(str, media_genres))
-    if media_producers:
-        params["with_companies"] = "|".join(map(str, media_producers))
+        base_params["with_genres"] = "|".join(map(str, media_genres))
 
-    discover_results = []
-    seen_ids = set()
+    if vote_average:
+        base_params["vote_average.gte"] = max(vote_average - 1.5, 5.5)
+
+    if len(media_producers) > 0:
+        base_params["with_companies"] = "|".join(map(str, media_producers))
+
+    if release_year:
+        year = int(release_year)
+        if media_type == "movie":
+            base_params["primary_release_date.gte"] = f"{year-8}-01-01"
+            base_params["primary_release_date.lte"] = f"{year+8}-12-31"
+        else:  # TV shows
+            base_params["first_air_date.gte"] = f"{year-8}-01-01"
+            base_params["first_air_date.lte"] = f"{year+8}-12-31"
+
     try:
         # Start initial search with genres and producers
-        initial_results = []
-        for page in range(1, 3):
+        genre_results = []
+        for page in range(1, 4):
+            params = base_params.copy()
             params["page"] = page
             results = (
                 discover.movie(**params)
                 if media_type == "movie"
                 else discover.tv(**params)
             )
-            initial_results.extend(results.get("results", []))
 
-            # If there are too many results, slim them down by adding the keywords check
-            if len(initial_results) > 100 and media_keywords:
-                params["with_keywords"] = "|".join(map(str, media_keywords))
-
-            for page in range(1, 5):
-                results = (
-                    discover.movie(**params)
-                    if media_type == "movie"
-                    else discover.tv(**params)
-                )
-            for r in results.get("results"):
+            for r in results.get("results", []):
                 r["media_type"] = media_type
                 unique_key = f"{r['id']}-{media_type}"
                 if unique_key not in seen_ids:  # Deduplication check
                     seen_ids.add(unique_key)
-                    discover_results.append(r)
-        print(f"Added {len(discover_results)} Discover result")
-        return discover_results
+                    genre_results.append(r)
+
+        discover_results.extend(genre_results)
+        print(f"Added {len(genre_results)} genre-based results")
+        # Sleeps for 200ms to avoid rate limiting
+        time.sleep(0.2)
+
+        # Then keyword search
+        if media_keywords:
+            keyword_results = []
+            keyword_batch = []
+            if len(media_keywords) > 3:
+                for keyword in media_keywords[:3]:
+                    # take the first three keywords first
+                    keyword_batch.append([keyword])
+                # Ties the rest together
+                keyword_batch.append(media_keywords[3:])
+            else:
+                keyword_batch = [media_keywords]
+
+            for k in keyword_batch:
+                keyword_params = {
+                    "with_original_language": language,
+                    "with_keywords": "|".join(map(str, k)),
+                    "vote_count.gte": 50,
+                    "sort_by": "popularity.desc",
+                }
+
+                for page in range(1, 3):
+                    keyword_params["page"] = page
+                    try:
+                        results = (
+                            discover.movie(**keyword_params)
+                            if media_type == "movie"
+                            else discover.tv(**keyword_params)
+                        )
+
+                        for r in results.get("results", []):
+                            r["media_type"] = media_type
+                            unique_key = f"{r['id']}-{media_type}"
+                            if unique_key not in seen_ids:
+                                seen_ids.add(unique_key)
+                                keyword_results.append(r)
+                    except Exception as keyword_error:
+                        print(f"Error with keyword batch {k}: {str(keyword_error)}")
+                        continue
+            discover_results.extend(keyword_results)
+            print(f"Added {len(keyword_results)} keyword-based results")
+            time.sleep(0.2)
+
+        if media_producers:
+            producer_results = []
+            producer_params = {
+                "with_original_language": language,
+                "with_companies": "|".join(map(str, media_producers)),
+                "vote_count.gte": 50,
+                "sort_by": "vote_count.desc",
+            }
+            for page in range(1, 3):
+                producer_params["page"] = page
+                try:
+                    results = (
+                        discover.movie(**producer_params)
+                        if media_type == "movie"
+                        else discover.tv(**producer_params)
+                    )
+                    time.sleep(0.2)
+
+                    for r in results.get("results", []):
+                        r["media_type"] = media_type
+                        unique_key = f"{r['id']}-{media_type}"
+                        if unique_key not in seen_ids:
+                            seen_ids.add(unique_key)
+                            producer_results.append(r)
+                except Exception as producer_error:
+                    print(f"Error with producer query: {str(producer_error)}")
+                    continue
+
+            discover_results.extend(producer_results)
+            print(f"Added {len(producer_results)} producer-based results")
+        # If there aren't enough results get some high quality (high average vote score) content to fill in the space
+        if len(discover_results) < 40:
+            quality_params = {
+                "with_original_language": language,
+                "vote_average.gte": 7.5,
+                "vote_count.gte": 300,
+                "sort_by": "vote_average.desc",
+            }
+
+            if media_genres and len(media_genres) > 0:
+                # Uses primary genre for matching
+                quality_params["with_genres"] = str(media_genres[0])
+
+            quality_results = []
+            for page in range(1, 2):
+                quality_params["page"] = page
+                try:
+                    results = (
+                        discover.movie(**quality_params)
+                        if media_type == "movie"
+                        else discover.tv(**quality_params)
+                    )
+
+                    for r in results.get("results", []):
+                        r["media_type"] = media_type
+                        unique_key = f"{r['id']}-{media_type}"
+                        if unique_key not in seen_ids:
+                            seen_ids.add(unique_key)
+                            quality_results.append(r)
+                except Exception as quality_error:
+                    print(f"Error with quality query: {str(quality_error)}")
+                    continue
+            discover_results.extend(quality_results)
+            print(f"Added {len(quality_results)} quality-based results")
+            time.sleep(0.2)
+        # Scores results before returning
+        scored_results = []
+        for item in discover_results:
+            # Calculates base score from popularity and vote average
+            base_score = (
+                item.get("popularity", 0) * 0.6 + item.get("vote_average", 0) * 0.4
+            )
+
+            # Genre matching bonus
+            genre_bonus = 0
+            if media_genres and "genre_ids" in item:
+                common_genres = set(media_genres).intersection(
+                    set(item.get("genres", []))
+                )
+                genre_bonus = len(common_genres) * 5  # 5 points per matching genre
+
+            # Recency bonus for newer content
+            recency_bonus = 0
+            item_date = item.get("release_date") or item.get("first_air_date")
+            if item_date and release_year:
+                try:
+                    item_year = int(item_date[:4])
+                    target_year = int(release_year)
+                    year_diff = abs(item_year - target_year)
+                    if year_diff <= 3:
+                        recency_bonus = 15 - (year_diff * 3)
+                except ValueError:
+                    pass
+
+            final_score = base_score + genre_bonus + recency_bonus
+
+            # Adds score to the item
+            item["relevance_score"] = final_score
+            scored_results.append(item)
+
+        # Sorts by relevance score
+        sorted_results = sorted(
+            scored_results, key=lambda x: x.get("relevance_score", 0), reverse=True
+        )
+        return sorted_results[:100]
     except Exception as e:
         print(f"Error using Discover endpoint: {str(e)}")
         return []
-
-
-# Jaccard Similarity = |Intersection| / |Union|
-# Intersection is the elements that appear in both
-# Union is all the elements
-def jaccardSim(item1, item2):
-    common = set(item1).intersection(set(item2))
-    sim = len(common) / len(set(item1).union(set(item2)))
-
-    return sim
 
 
 # FUNCTION FOR UPDATING USER INTERESTS IN FIRESTORE
@@ -587,15 +760,16 @@ def details():
                 if "credits" in tmdb_details
                 else []
             )  # Get the nested cast information
-
+            """
             watchmode_data = watchmode_search(
                 item_id, item_type
             )  # Passes the tmdb_id and type to watchmode search function"
+            """
 
             return jsonify(
                 {
                     "tmdb": tmdb_details or [],
-                    "watchmode": watchmode_data or [],
+                    "watchmode": [],
                     "cast": cast or [],
                 }
             )
@@ -866,14 +1040,26 @@ def update_tv_calendar():
 @cache.cached(timeout=86400, make_cache_key=make_cache_key)
 def get_recommendations():  # Unused data for better recommendations.
     data = request.get_json()
-    media_id = data.get("id")
+    media_id = int(data.get("id"))
+    media_title = data.get("title")
     media_type = data.get("type")
+    release_year = data.get("release_year")
+    if release_year:
+        release_year = str(release_year)
     media_overview = data.get("overview", "No overview available")
-    media_language = data.get("language", "")
-    media_producer_id = data.get("producer_ids", "Unknown").split(",")
-    media_genre_id = data.get("genre_ids", "").split(",")
-    media_genre_id = list(
-        map(int, media_genre_id)
+    media_vote_average = data.get("vote_average")
+    if media_vote_average:
+        media_vote_average = float(media_vote_average)
+    media_language = data.get("language", "en")
+    media_producer_ids = data.get("producer_ids").split(",")
+    if len(media_producer_ids) > 0:
+        media_producer_ids = list(map(int, media_producer_ids))
+    else:
+        media_producer_ids = []
+    media_genre_ids = data.get("genre_ids", "").split(",")
+
+    media_genre_ids = list(
+        map(int, media_genre_ids)
     )  # Converts content to int and back to list
     media_keyword_ids = data.get("keyword_ids", "").split(",") or []
     try:
@@ -881,45 +1067,32 @@ def get_recommendations():  # Unused data for better recommendations.
     except ValueError:
         media_keyword_ids = []
 
-    recs = []
     recommendations = []
     unique_recs = []
     filtered_recs = []
     seen = set()
-
-    # Get pool of recommendations
-    try:
-        if media_type:
-            recs = (
-                tmdb.Movies(media_id).recommendations()
-                if media_type == "movie"
-                else tmdb.TV(media_id).recommendations()
-            )
-            for result in recs.get("results"):
-                result["media_type"] = media_type
-        if isinstance(recs, dict) and "results" in recs:
-            recommendations.extend(recs.get("results"))
-        else:
-            print(f"Unexpected case: {recs}")  # Log unexpected cases
-            recommendations = []
-    except Exception as e:
-        print(f"Error getting recommendations: {str(e)}")
-
-    media_info = media_overview
+    genre_sim = 0
+    text_sim = 0
+    keyword_sim = 0
+    popularity_factor = 0
 
     recommendations.extend(
-        expand_pool_with_discover(
-            media_genre_id,
+        create_pool_with_discover(
+            media_genre_ids,
             media_keyword_ids,
-            media_producer_id,
+            media_producer_ids,
             media_type,
+            release_year,
+            media_vote_average,
+            media_id,
+            media_language,
         )
     )
 
     for rec in recommendations:  # Prevent duplicate recommendations
         unique_key = f"{rec.get('id')}-{rec.get('media_type')}"
-        if unique_key not in seen and rec.get("id") != int(
-            media_id
+        if (
+            unique_key not in seen and rec.get("id") != media_id
         ):  # Make sure we dont get the original media in recommendations
             seen.add(unique_key)
             unique_recs.append(rec)
@@ -927,10 +1100,11 @@ def get_recommendations():  # Unused data for better recommendations.
         rec for rec in unique_recs if rec.get("popularity", 0) > 1.0
     ]  # Remove recommendations with low popularity
 
-    text_sim = 0  # Overview similarity check
     recs_to_compare = [rec for rec in unique_recs if rec.get("overview")]
 
-    similarity_scores = calculate_similarity(media_info, recs_to_compare)
+    similarity_scores = calculate_similarity(
+        media_title, media_overview, recs_to_compare
+    )
 
     for i, rec in enumerate(recs_to_compare):
         text_sim = similarity_scores[i]
@@ -956,42 +1130,46 @@ def get_recommendations():  # Unused data for better recommendations.
 
         rec_genres = [r.get("id") for r in rec_media_info.get("genres")] or []
 
-        rec_release_date = rec_media_info.get("release_date") or rec_media_info.get(
-            "first_air_date"
-        )
-
-        try:
-            if rec_release_date:
-                release_date = datetime.datetime.strptime(
-                    rec_release_date, "%Y-%m-%d"
-                ).date()
-                current_date = datetime.datetime.now().date()
-                age_in_years = (current_date - release_date).days / 365.0
-                recency_score = max(0, 1 - (age_in_years / 10))
-            else:
-                recency_score = 0.5
-        except (ValueError, TypeError):
-            recency_score = 0.5
-
         # Genre similarity check
-        if not media_genre_id or not rec_genres:
+        # Jaccard Similarity = |Intersection| / |Union|
+        # Intersection is the elements that appear in both
+        # Union is all the elements
+        if not media_genre_ids or not rec_genres:
             genre_sim = 0.1
         else:
-            genre_sim = jaccardSim(media_genre_id, rec_genres)
-            if genre_sim:
-                genre_sim = max(genre_sim, 0.2)
+            common_genres = set(media_genre_ids).intersection(set(rec_genres))
+            total_genres = set(media_genre_ids).union(set(rec_genres))
+            genre_sim = len(common_genres) / len(total_genres) if total_genres else 0
+            if common_genres:
+                min_score = min(0.2 + (len(common_genres) * 0.1), 0.6)
+                genre_sim = max(genre_sim, min_score)
 
         if media_keyword_ids and rec_keywords:  # Keyword similarity check
-            keyword_sim = jaccardSim(media_keyword_ids, rec_keywords)
+            common_keywords = set(media_keyword_ids).intersection(set(rec_keywords))
+            total_keywords = set(media_keyword_ids).union(set(rec_keywords))
+            keyword_sim = (
+                len(common_keywords) / len(total_keywords) if total_keywords else 0
+            )
+            if common_keywords:
+                keyword_sim = max(keyword_sim, 0.3)
         else:
             keyword_sim = 0
 
+        genre_sim = min(genre_sim, 1.0)
+        text_sim = min(text_sim, 1.0)
+        keyword_sim = min(keyword_sim, 1.0)
+        popularity_factor = min(rec_media_info.get("popularity", 0) / 100, 1.0)
+
         total_score = (
-            (genre_sim * 0.3)  # Genre importance: 30%
-            + (text_sim * 0.35)  # Text similarity importance: 35%
-            + (keyword_sim * 0.2)  # Keyword importance: 20%
-            + (rec_media_info.get("popularity", 0) * 0.1)  # Popularity importance: 10%
-            + (recency_score * 0.05)  # Recency importance 5%
+            (genre_sim * 0.35)  # Genre importance: 35%
+            + (text_sim * 0.30)  # Text similarity importance: 30%
+            + (keyword_sim * 0.25)  # Keyword importance: 20%
+            + (popularity_factor * 0.10)  # Popularity importance: 10%
+        )
+
+        total_score = min(total_score * 10, 10)
+        print(
+            f"ID: {rec.get('id')} - Title: {rec.get('title') or rec.get('name')} - Score: {total_score:.2f}"
         )
 
         filtered_recs.append(  # Recommendations are given weight based on importance
@@ -1079,10 +1257,10 @@ def get_user_recommendations():
 
         # Passes to the expand pool function to get search results for interests
         # Same function used to make the recommendation pool bigger in general recommendations
-        movie_results = expand_pool_with_discover(
+        movie_results = create_pool_with_discover(
             user_genres, user_keywords, user_companies, "movie"
         )
-        tv_results = expand_pool_with_discover(
+        tv_results = create_pool_with_discover(
             user_genres, user_keywords, user_companies, "tv"
         )
 

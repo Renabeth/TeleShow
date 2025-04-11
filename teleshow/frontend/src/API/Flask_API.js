@@ -72,16 +72,21 @@ export const getRecommendations = async (item) => {
   const genre_ids = item.tmdb.genres?.map((genre) => genre.id).join(",");
   const producer_ids =
     item.tmdb.production_companies?.map((company) => company.id).join(",") ||
-    "Unknown";
+    [];
   const keyword_ids =
-    item.tmdb.keywords?.map((keyword) => keyword.id).join(",") || "None";
+    item.tmdb.keywords?.map((keyword) => keyword.id).join(",") || [];
 
   const payload = {
     //Recommendation factors passed
     id: item.tmdb.id,
+    title: item.tmdb.title || item.tmdb.name,
     type: item.tmdb.media_type,
     overview: item.tmdb.overview,
     language: item.tmdb.original_language,
+    vote_average: item.tmdb.vote_average,
+    release_year:
+      item.tmdb.release_date?.split("-")[0] ||
+      item.tmdb.first_air_date?.split("-")[0],
     genre_ids,
     producer_ids,
     keyword_ids,
