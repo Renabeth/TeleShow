@@ -778,7 +778,7 @@ Other Resources used/referred to:
 - https://stackoverflow.com/questions/49873223/why-does-my-firebase-onauthstatechanged-trigger-multiple-times-react-native
 - https://cloud.google.com/blog/products/databases/aggregate-with-sum-and-avg-in-firestore
 - https://nithinkvarrier.medium.com/sum-and-average-in-firestore-leverage-getaggregatefromserver-in-the-latest-update-november-2023-06fd10f92347
-- https://firebase.google.com/docs/firestore/query-data/indexing 
+- https://firebase.google.com/docs/firestore/query-data/indexing
 - https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/#
 - https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/#
 
