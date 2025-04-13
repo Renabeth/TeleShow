@@ -92,6 +92,7 @@ function Dashboard() {
   const handleReview= () => setReview(true);
   const handleReviewClose = () => setReview(false);
 
+  const [submittedReview, setSubmittedReview] = useState("");
 
   // Help from https://www.youtube.com/watch?v=PGCMdiXRI6Y
   const getRecommendations = async () => {
@@ -309,6 +310,7 @@ function Dashboard() {
         setWatchListDuplicate(false)
       }
 
+
       // Help from https://www.geeksforgeeks.org/how-to-use-modal-component-in-reactjs/#
       // And https://react-bootstrap.netlify.app/docs/components/modal/
       handleShow()
@@ -366,23 +368,21 @@ function Dashboard() {
         .catch(err => console.error(err))
 
     handleReview()
+
+
+
   }
 
   // From FetchComments.js, handle change in textarea
   const handleReviewChange = (e) => {
     setReviewText(e.target.value);
-    const { name, value } = e.target;
-    setReviewData({
-      ...reviewData,
-      [name]: value,
-    })
-  };
+    const {name, value} = e.target;
 
-
-
+  }
   // Submit review to Firestore
   const handleReviewSubmit = async (e, currentMediaID, currentMediaType) => {
     e.preventDefault()
+
 
     if (reviewText.trim() === "") {
       alert("Review cannot be empty!")
@@ -420,36 +420,36 @@ function Dashboard() {
     }
   };
 
-  const [displayReview, setDisplayReview] = useState("");
-  const fetchReview = async (mediaID) => {
+  //--------------------------------------------------
+  async function loadUserReview(userID, currentMediaID) {
+    const reviewsRef = collection(db, "Reviews");
+    const q = query(reviewsRef, where("user_id", "==", userID), where("media_id", "==", currentMediaID));
 
     try {
-      const reviewRef = collection(db, "Reviews");
-      const q = query(
-          reviewRef,
-          where("user_id", "==", userID),
-          where("media_id", "==", mediaID)
-      );
       const querySnapshot = await getDocs(q);
 
-      if (!querySnapshot.empty) {
-        const reviewData = querySnapshot.docs[0].data();
-        setDisplayReview(reviewData.review || "No review text found.");
-      } else {
-        setDisplayReview("No review found.");
-      }
+      let reviewText = "No review yet.";
+      querySnapshot.forEach((doc) => {
+        if (doc.exists()) {
+          const data = doc.data();
+          reviewText = data.reviewText || "No review text available.";
+        }
+      });
+
+      document.getElementById('review').innerText = reviewText;
+
     } catch (error) {
-      console.error("Error fetching review:", error);
-      setDisplayReview("Error loading review.");
+      console.log("Error fetching review:", error);
+      document.getElementById('review').innerText = "Failed to load review.";
     }
-  };
+  }
 
-
-  //From FetchComments.js
+  //From FetchComments.js, display remaining characters for reviews
   const [reviewData, setReviewData] = useState({
     text: '',
     remainingCharacters: 5000,
   })
+
   // Help from https://www.freecodecamp.org/news/how-to-use-the-firebase-database-in-react/
   // And https://firebase.google.com/docs/firestore/query-data/queries#node.js_2
   // Adding media to watchlist
@@ -692,7 +692,7 @@ function Dashboard() {
 
                   {/*Display Reviews*/}
                   <h3>Your Review</h3>
-                  <p>{displayReview}</p>
+                  <p>{loadUserReview(userID,currentMediaID).toString()+"Leave a review to display it here!"}</p>
 
 
                   <hr/>
