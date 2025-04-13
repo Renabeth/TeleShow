@@ -8,7 +8,7 @@ import {auth, db} from '../firebase'
 
 // Help from https://firebase.google.com/docs/firestore/quickstart
 // And https://www.rowy.io/blog/firestore-timestamp
-import { collection, serverTimestamp, getDoc, getDocs, query, where, limit } from "firebase/firestore"
+import { collection, serverTimestamp, getDoc, getDocs, query, where, limit, setDoc, doc } from "firebase/firestore"
 
 
 function Login() {
@@ -24,6 +24,16 @@ function Login() {
     signInWithEmailAndPassword(auth, email, password)
     .then((userCredential) => {
       const user = userCredential.user;
+                                                 //Moses' Changes
+      sessionStorage.setItem('userId',user.uid); //Sends the user id to session storage for further use
+      const userDocRef = doc(db,"users-test", user.uid);
+      setDoc(userDocRef,{ // On login saves user to firestore database
+        email:email,
+        displayName: user.displayName || email.split('@')[0],
+        createdAt: serverTimestamp()
+      },{merge:true}) 
+      .then(() => console.log("User document created successfully with ID:", user.uid))
+      .catch((error) => console.error("Error creating user document:", error));
 
       navigate("/dashboard")
       alert("Log-in successful.")
