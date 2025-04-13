@@ -87,6 +87,7 @@ const Footer = () => {
         </div>
         <div className="contact-item">Steave Marie Joseph</div>
       </div>
+      <p>Credit to JustWatch as TMDB API watch providers data source.</p>
       <p>2025.</p>
     </header>
   );
