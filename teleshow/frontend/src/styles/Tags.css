@@ -1,0 +1,60 @@
+.tagDisplay {
+    display: flex;
+    margin: 0 auto;
+    width: 99%;
+}
+
+.tagColumn {
+    flex: 47%;
+}
+
+.tag {
+    width: 85%;
+    padding: 8px;
+    font-size: 16px;
+    border-radius: 16px;
+    margin-bottom: 5px;
+}
+
+.userTag {
+    background-color: royalblue;
+}
+
+.customTag {
+    background-color: green;
+}
+
+.tagSelect {
+    width: 75%;
+}
+
+.tagGroup, .firstDisplay {
+    margin-bottom: 20px;
+}
+
+.customTagGroup {
+    display: flex;
+    margin-bottom: 20px;
+    align-items: center;
+    justify-content: space-evenly;
+}
+
+.customTagGroupLeft {
+    flex: 16%;
+}
+
+.customTagGroupEntry {
+    flex: 56%;
+}
+
+.customTagEntry {
+    width: 90%;
+}
+
+.customTagGroupBtn {
+    flex: 16%;
+}
+
+.unselectableOption {
+    color: lightgrey;
+}

@@ -6,7 +6,7 @@ import { collection, addDoc, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 
 // Help from https://firebase.google.com/docs/firestore/query-data/queries
-import { query, where, limit, orderBy } from "firebase/firestore";
+import { query, where, limit } from "firebase/firestore";
 
 // Help from https://www.rowy.io/blog/firestore-timestamp
 import { serverTimestamp } from 'firebase/firestore'
@@ -50,8 +50,8 @@ const FetchComments = (props) => {
         const c = query(
             commentsRef,
             where('media_id', '==', props.mediaId),
-            where('media_type', '==', props.mediaType),
-            orderBy('score')
+            where('media_type', '==', props.mediaType)/*,
+            orderBy('score')*/
         )
         const commentSnapshot = await getDocs(c)
         const commentRes = []

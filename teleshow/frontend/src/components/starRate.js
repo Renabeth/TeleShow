@@ -77,9 +77,11 @@ export default function StarRate(props) {
         await updateDoc(doc(db, "Ratings", docId), {
           rating: currentRate,
         });
+        console.log("Rating updated successfully.");
         alert("Rating updated successfully.");
       } catch (error) {
         console.error("Error updating rating: ", error);
+        alert("Error updating rating: ", error)
       }
     } else {
       // Serena's code
@@ -93,8 +95,10 @@ export default function StarRate(props) {
           created_at: serverTimestamp(),
         });
         console.log("Rating successfully added to Firestore");
+        alert("Rating successfully added.");
       } catch (error) {
         console.error("Error adding rating: ", error);
+        alert("Error adding rating: ", error);
       }
     }
 

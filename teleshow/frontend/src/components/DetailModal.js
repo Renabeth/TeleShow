@@ -23,6 +23,7 @@ import {
 import StarRate from "../components/starRate"; //Component Made by Serena and William
 import GetAverageRating from "../scripts/GetAverageRating.js"; //Component Made by Serena and William
 import FetchComments from "../components/FetchComments.js"; //Component Made by William
+import FetchTags from "../components/FetchTags.js";
 
 const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
   const features = [
@@ -678,6 +679,24 @@ const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
                 </div>
               </Tab>
             )}
+
+            {/* Tags */}
+            {isLoggedIn && (
+              <Tab eventKey="tags" title="Tags">
+                {/* Tags section */}
+                <div className="row">
+                  <div className="col-12">
+                    <FetchTags
+                      userID={userId}
+                      mediaId={item.tmdb.id}
+                      mediaType={item.tmdb.media_type}
+                    />
+                  </div>
+                </div>
+              </Tab>
+            )}
+            
+
             {isLoggedIn && (
               <Tab eventKey="comments" title="Comments">
                 {/*William Comments section */}
@@ -855,7 +874,7 @@ const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
           </Tabs>
         </Modal.Body>
         <Modal.Footer className="border-0">
-          <Button variant="outline-secondary" onClick={onHide}>
+          <Button variant="outline-secondary" onClick={onHide} style={{backgroundColor: "silver"}}>
             Close
           </Button>
         </Modal.Footer>
