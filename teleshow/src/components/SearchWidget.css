@@ -28,7 +28,8 @@
   
   
 .search-container.expanded {
-  width: 470px; 
+  width: 90%;
+  max-width: 470px; 
   background-color: rgba(255, 255, 255, 0.15); /* Translucent background. rgba allows for color and blur definition*/
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -110,8 +111,8 @@
   position: absolute;
   top: 100%;
   left: 0;
-  width: 100%;
-  max-width:470px;
+  width: 90%;
+  max-width: 470px; 
   background-color: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);

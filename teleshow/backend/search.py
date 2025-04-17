@@ -44,49 +44,25 @@ PLATFORM_ID_MAP = {
 }
 
 
-# This function checks if the results from the search are available on the platform specified by the user.
-# Returns a boolean
-def is_available_on_platform(tmdb_id, media_type, platform):
-    if platform == "all":
-        return True
-
-    # Convert platform name to provider ID
-    platform_ids = PLATFORM_ID_MAP.get(platform.lower(), [])
-    if not platform_ids:
-        return False
-
-    # Get available providers for this title
-    provider_ids = get_watch_providers(tmdb_id, media_type)
-
-    # Check if the selected platform is in the list of providers
-    return any(pid in provider_ids for pid in platform_ids)
-
-
 # Function that gets the watchproviders for media using id and type
 # I ran into a problem here where tmdbsimple wrapper was giving None responses
 # The wrapper is supposed to give an error message or something. None means that something is wrong with the wrapper
 # To combat this im using a call directly to the api if None is given as a response
+@cache.memoize(3600)
 def get_watch_providers(media_id, media_type):
     try:
-        media = tmdb.Movies(media_id) if media_type == "movie" else tmdb.TV(media_id)
-        try:
-            providers = media.watch_providers()
-        except Exception as e:
-            print(f"Error getting TV providers: {str(e)}")
-
-        # If providers is None, try a direct API call, tmdbsimple limitation
+        # Direct API call, tmdbsimple limitation
         # I was getting None responses
-        if providers is None:
-            print(f"Attempting direct API call")
-            api_key = tmdb.API_KEY
-            url = f"https://api.themoviedb.org/3/{media_type}/{media_id}/watch/providers?api_key={api_key}"
-            response = requests.get(url)
-            if response.status_code == 200:
-                providers = response.json()
-                print(f"Direct API response successful")
-            else:
-                print(f"Direct API call failed: {response.status_code}")
-                return []
+        print(f"Attempting direct API call")
+        api_key = tmdb.API_KEY
+        url = f"https://api.themoviedb.org/3/{media_type}/{media_id}/watch/providers?api_key={api_key}"
+        response = requests.get(url)
+        if response.status_code == 200:
+            providers = response.json()
+            print(f"Direct API response successful")
+        else:
+            print(f"Direct API call failed: {response.status_code}")
+            return []
 
         if providers is None:
             print(f"No provider data available for {media_type} ID {media_id}")
@@ -98,20 +74,17 @@ def get_watch_providers(media_id, media_type):
 
         if not us_providers:
             return []
-
-        provider_ids = []
-        for provider_flat in us_providers.get("flatrate", []):
-            provider_ids.append(provider_flat.get("provider_id"))
-        for provider_buy in us_providers.get("buy", []):
-            if provider_buy.get("provider_id") not in provider_ids:
-                provider_ids.append(provider_buy.get("provider_id"))
-        for provider_rent in us_providers.get("rent", []):
-            if provider_rent.get("provider_id") not in provider_ids:
-                provider_ids.append(provider_rent.get("provider_id"))
+        # For deduplication
+        provider_ids = set()
+        for provider_type in ["flatrate", "buy", "rent"]:
+            for provider in us_providers.get(provider_type, []):
+                provider_id = provider.get("provider_id")
+                if provider_id:
+                    provider_ids.add(provider_id)
 
         # Returns the numeric id for watch providers
         time.sleep(0.1)
-        return provider_ids
+        return list(provider_ids)
     except:
         return []
 
@@ -214,20 +187,29 @@ def search():
                     person_results.append(item)"""
 
             if streaming_platform != "all":
+                platform_list = (
+                    streaming_platform.split(",")
+                    if streaming_platform != "all"
+                    else ["all"]
+                )
+                all_platform_ids = set()
+                for platform in platform_list:
+                    platform_ids = PLATFORM_ID_MAP.get(platform.lower(), [])
+                    all_platform_ids.update(platform_ids)
+                filtered_movies = []
                 if filter_type == "all" or filter_type == "movie":
-                    movie_results = [
-                        movie
-                        for movie in movie_results
-                        if is_available_on_platform(
-                            movie["id"], "movie", streaming_platform
-                        )
-                    ]
+                    for movie in movie_results:
+                        provider_ids = get_watch_providers(movie["id"], "movie")
+                        if any(pid in all_platform_ids for pid in provider_ids):
+                            filtered_movies.append(movie)
+                    movie_results = filtered_movies
                 if filter_type == "all" or filter_type == "tv":
-                    tv_results = [
-                        tv
-                        for tv in tv_results
-                        if is_available_on_platform(tv["id"], "tv", streaming_platform)
-                    ]
+                    filtered_tv = []
+                    for tv in tv_results:
+                        provider_ids = get_watch_providers(tv["id"], "tv")
+                        if any(pid in all_platform_ids for pid in provider_ids):
+                            filtered_tv.append(tv)
+                    tv_results = filtered_tv
 
             if filter_type == "all":
                 all_results = []

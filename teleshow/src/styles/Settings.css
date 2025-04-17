@@ -1,0 +1,68 @@
+.settings-container{
+    max-width: 800px;
+    margin:20px auto;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.settings-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
+}
+.settings-header h1 {
+    margin: 0 auto;
+}
+.settings-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.settings-section h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.settings-info {
+    margin-top: 15px;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+}
+
+.save-settings-btn {
+    margin-top: 20px;
+    display: block;
+    width: 200px;
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.followed-media-section {
+    margin-bottom: 30px;
+  }
+  
+  .followed-media-section h3 {
+    font-size: 1.5rem;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    color: white;
+  }
+  
+  .no-followed-media {
+    padding: 20px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    margin-top: 20px;
+  }
+  

@@ -3,7 +3,7 @@ import tmdbsimple as tmdb
 import torch.nn.functional as F  # Enabler of machine learning. Allows for the dot
 import time
 from extensions import cache, limiter, get_db, get_model
-from search import is_available_on_platform
+from search import get_watch_providers, PLATFORM_ID_MAP
 
 recommendations_bp = Blueprint("recommendations", __name__)
 
@@ -398,7 +398,7 @@ def get_recommendations():  # Unused data for better recommendations.
         total_score = (
             (genre_sim * 0.35)  # Genre importance: 35%
             + (text_sim * 0.30)  # Text similarity importance: 30%
-            + (keyword_sim * 0.25)  # Keyword importance: 20%
+            + (keyword_sim * 0.25)  # Keyword importance: 25%
             + (popularity_factor * 0.10)  # Popularity importance: 10%
         )
 
@@ -434,20 +434,34 @@ def get_user_recommendations():
             return jsonify({"error": "User not found"})
 
         # Get the user interests
-        interests_collection = user_ref.collection("interests")
-        genres_doc = interests_collection.document("genres").get()
-        keywords_doc = interests_collection.document("keywords").get()
-        companies_doc = interests_collection.document("production_companies").get()
+        interests_refs = [
+            user_ref.collection("interests").document("genres"),
+            user_ref.collection("interests").document("keywords"),
+            user_ref.collection("interests").document("production_companies"),
+        ]
+
+        interests_docs = [ref.get() for ref in interests_refs]
 
         # Get ids of media already in watchlists
-        watchlist_media_ids = []
-        watchlist_movie_ids = []
-        watchlist_tv_ids = []
+        seen_media_ids = []
+        seen_movie_ids = []
+        seen_tv_ids = []
         watchlists = []
+        followed_docs = user_ref.collection("followed_media").stream()
         watchlist_docs = user_ref.collection("watchlists").stream()
         # Get the watchlist ids from firebase
         for doc in watchlist_docs:
             watchlists.append({"id": doc.id})
+
+        # Followed media will not show up in recommendations
+        for doc in followed_docs:
+            media = doc.to_dict()
+            seen_media_ids.append(
+                {
+                    "media_id": media.get("media_id"),
+                    "media_type": media.get("media_type"),
+                }
+            )
 
         # Use the watchlist ids to get the media for each watchlist
         for item in watchlists:
@@ -461,33 +475,35 @@ def get_user_recommendations():
             # The media ids from the media collection
             for doc in media_docs:
                 media_data = doc.to_dict()
-                watchlist_media_ids.append(
+                seen_media_ids.append(
                     {
                         "media_id": media_data.get("media_id"),
                         "media_type": media_data.get("media_type"),
                     }
                 )
 
-        for item in watchlist_media_ids:
+        for item in seen_media_ids:
             if item.get("media_type") == "movie":
-                watchlist_movie_ids.append(item.get("media_id"))
+                seen_movie_ids.append(item.get("media_id"))
             else:
-                watchlist_tv_ids.append(item.get("media_id"))
+                seen_tv_ids.append(item.get("media_id"))
 
         # Get the user interests data from the collection
-        if genres_doc.exists or keywords_doc.exists or companies_doc.exists:
-            user_genres = [g.get("id") for g in genres_doc.to_dict().get("items", [])]
-            user_keywords = [
-                k.get("id") for k in keywords_doc.to_dict().get("items", [])
-            ]
-            user_companies = [
-                c.get("id") for c in companies_doc.to_dict().get("items", [])
-            ]
-        else:
-            # If there are no interests then they are set to empty so nothing breaks
-            user_genres = []
-            user_keywords = []
-            user_companies = []
+        user_genres = (
+            [g.get("id") for g in interests_docs[0].to_dict().get("items", [])]
+            if interests_docs[0].exists
+            else []
+        )
+        user_keywords = (
+            [k.get("id") for k in interests_docs[1].to_dict().get("items", [])]
+            if interests_docs[1].exists
+            else []
+        )
+        user_companies = (
+            [c.get("id") for c in interests_docs[2].to_dict().get("items", [])]
+            if interests_docs[2].exists
+            else []
+        )
 
         # Passes to the expand pool function to get search results for interests
         # Same function used to make the recommendation pool bigger in general recommendations
@@ -499,33 +515,33 @@ def get_user_recommendations():
         )
 
         filtered_movie_results = [
-            movie
-            for movie in movie_results
-            if movie.get("id") not in watchlist_movie_ids
+            movie for movie in movie_results if movie.get("id") not in seen_movie_ids
         ]
 
         filtered_tv_results = [
-            tv for tv in tv_results if tv.get("id") not in watchlist_tv_ids
+            tv for tv in tv_results if tv.get("id") not in seen_tv_ids
         ]
 
         if "all" not in platform_list:
+            all_platform_ids = set()
+            for platform in platform_list:
+                platform_ids = PLATFORM_ID_MAP.get(platform.lower(), [])
+                all_platform_ids.update(platform_ids)
             filtered_movies = []
-            filtered_tv = []
-            # Lower recommendation count to manage api calls
             for movie in filtered_movie_results[:20]:
-                if any(
-                    is_available_on_platform(movie["id"], "movie", platform)
-                    for platform in platform_list
-                ):
+                provider_ids = get_watch_providers(movie["id"], "movie")
+                # Check if any provider matches any platform ID
+                if any(pid in all_platform_ids for pid in provider_ids):
                     filtered_movies.append(movie)
-                filtered_movie_results = filtered_movies
+
+            filtered_movie_results = filtered_movies
+            filtered_tv = []
             for tv in filtered_tv_results[:20]:
-                if any(
-                    is_available_on_platform(tv["id"], "tv", platform)
-                    for platform in platform_list
-                ):
+                provider_ids = get_watch_providers(tv["id"], "tv")
+                if any(pid in all_platform_ids for pid in provider_ids):
                     filtered_tv.append(tv)
-                filtered_tv_results = filtered_tv
+
+            filtered_tv_results = filtered_tv
 
         sorted_movie_results = sorted(
             filtered_movie_results, key=lambda x: x.get("popularity", 0), reverse=True

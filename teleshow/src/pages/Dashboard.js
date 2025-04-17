@@ -44,6 +44,7 @@ import Button from "react-bootstrap/Button";
 
 // Help from https://react-icons.github.io/react-icons/icons/bs/
 import { BsCircleFill, BsBookmarkFill } from "react-icons/bs";
+import { IoMdSettings } from "react-icons/io";
 
 // Help from https://www.youtube.com/watch?v=91LWShFZn40
 
@@ -97,13 +98,10 @@ function Dashboard() {
   const [modalAverageRating, setModalAverageRating] = useState(0);
   const [selectedItem, setSelectedItem] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const beingFiltered = selectedPlatforms.includes("all") ? false : true;
 
   // Used to track if an item is already in a user's watchlist -WA
   const [watchlistDuplicate, setWatchListDuplicate] = useState(true);
-
-  useEffect(() => {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(selectedPlatforms));
-  }, [selectedPlatforms]);
 
   useEffect(() => {
     if (isLoggedIn && userID) {
@@ -157,10 +155,6 @@ function Dashboard() {
     return shuffled.slice(0, count);
   };
 
-  const handlePlatformChange = (platform) => {
-    setSelectedPlatforms((prev) => updateSelectedPlatforms(platform, prev));
-  };
-
   // Help from https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/
   const toggleLightMode = () => {
     setIsLightMode((prevMode) => !prevMode);
@@ -184,10 +178,9 @@ function Dashboard() {
   };
 
   // Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/#
-  
 
   // Help from https://react-bootstrap.netlify.app/docs/components/modal/
-  
+
   // Help from https://www.freecodecamp.org/news/use-firebase-authentication-in-a-react-app/
   useEffect(() => {
     onAuthStateChanged(auth, async (user) => {
@@ -226,10 +219,10 @@ function Dashboard() {
     // Help from https://www.freecodecamp.org/news/use-firebase-authentication-in-a-react-app/
     signOut(auth)
       .then(() => {
-        navigate("/"); // Go back to login after logging out
-        alert("You have logged out successfully.");
         sessionStorage.removeItem("userId");
         sessionStorage.removeItem("userName");
+        navigate("/"); // Go back to login after logging out
+        alert("You have logged out successfully.");
       })
       .catch((error) => {
         alert(error);
@@ -505,15 +498,13 @@ function Dashboard() {
                 style={{ fontSize: "48px", cursor: "pointer", float: "right" }}
                 onClick={goToWatchlist}
               />
+              <IoMdSettings
+                style={{ fontSize: "48px", cursor: "pointer", float: "right" }}
+                onClick={() => navigate("/settings")}
+              />
             </div>
             <br />
             <br />
-            {isLoggedIn && (
-              <PlatformFilter
-                selectedPlatforms={selectedPlatforms}
-                onPlatformChange={handlePlatformChange}
-              />
-            )}
 
             {/*<button onClick={goToWatchlist}>Go to Watchlist</button>*/}
           </>
@@ -621,7 +612,7 @@ function Dashboard() {
         {isLoggedIn ? (
           <>
             {/* Help from https://www.w3schools.com/css/tryit.asp?filename=trycss3_flexbox_responsive2 */}
-            <h4>Recommended TV:</h4>
+            <h4>{`Recommended TV ${beingFiltered ? "(Filtered) " : " "}`}:</h4>
 
             {/* Help from https://www.rowy.io/blog/firestore-react-query */}
             {/* And https://react.dev/learn/rendering-lists#keeping-list-items-in-order-with-key */}
@@ -652,7 +643,9 @@ function Dashboard() {
                 ))}
             </div>
 
-            <h4>Recommended Movies:</h4>
+            <h4>{`Recommended Movies ${
+              beingFiltered ? "(Filtered) " : " "
+            }:`}</h4>
             {movieLoading && (
               <div className="loading-container">
                 <Spinner animation="border" role="status" variant="light">

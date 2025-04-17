@@ -19,7 +19,10 @@ function HomePage() {
   const [trendingMovies, setTrendingMovies] = useState([]);
   const [popularTV, setPopularTV] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    let check = sessionStorage.getItem("userId") ? true : false;
+    return check;
+  });
   const [autoplay, setAutoPlay] = useState(true);
   const host = process.env.REACT_APP_NETWORK_HOST;
   const navigate = useNavigate();
@@ -32,11 +35,6 @@ function HomePage() {
   }, []);
 
   useEffect(() => {
-    // Checks if the user is logged in
-    const userId = sessionStorage.getItem("userId");
-    if (userId) {
-      setIsLoggedIn(true);
-    }
     fetchTrendingContent();
   }, []);
 

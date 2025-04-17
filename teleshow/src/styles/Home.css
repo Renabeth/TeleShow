@@ -22,6 +22,26 @@
   overflow: hidden;
 }
 
+/* Mobile */
+@media (max-width: 579px){
+  .hero-section h1{
+    font-size: 2rem;
+  }
+  .search-container.expanded{
+    width: 95%;
+  }
+}
+
+/* Tablets */
+@media (min-width: 577px) and (max-width: 991px) {
+  .hero-section h1 {
+    font-size: 2.5rem;
+  }
+  .search-container.expanded {
+    width: 80%;
+  }
+}
+
 .hero-content {
   max-width: auto;
   text-align: center;

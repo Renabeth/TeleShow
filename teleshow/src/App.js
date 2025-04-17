@@ -6,6 +6,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import Watchlist from "./pages/Watchlist";
 import HomePage from "./pages/Home";
+import Settings from "./pages/Settings";
 
 function App() {
   // Routing between our Screens //
@@ -18,6 +19,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/watchlist" element={<Watchlist />} />
+        <Route path="/settings" element={<Settings />} />
       </Routes>
     </Router>
   );

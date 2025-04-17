@@ -112,6 +112,21 @@ const DetailModal = ({
     }
   }, [item, isLoggedIn, userId]);
 
+  useEffect(() => {
+    // Safety check to prevent showing inappropriate content
+    if (
+      item &&
+      (item.tmdb?.content_rating === "NC-17" ||
+        item.tmdb?.adult === true ||
+        (item.tmdb?.overview &&
+          item.tmdb?.overview.toLowerCase().includes("explicit")))
+    ) {
+      console.error("Inappropriate content blocked from display");
+      setError("This content cannot be displayed");
+      setItem(null);
+    }
+  }, [item]);
+
   {
     /*Resets the modal tab to overview once the modal opens */
   }
@@ -135,7 +150,11 @@ const DetailModal = ({
     ) {
       fetchProgress();
     }
-  }, [activeTab, item]);
+
+    if (activeTab === "similar" && item) {
+      fetchRecommendations();
+    }
+  }, [activeTab, item, isLoggedIn]);
 
   useEffect(() => {
     if (showWatchlistModal && isLoggedIn) {
@@ -151,7 +170,6 @@ const DetailModal = ({
       if (!givenItem && mediaId && mediaType) {
         let detailData;
         setLoading(true);
-
         getDetails(mediaId, mediaType)
           .then((data) => {
             detailData = data;
@@ -172,13 +190,6 @@ const DetailModal = ({
             detailData.tmdb.avgRating = avgRatingResponse;
             setItem(detailData);
             setLoading(false);
-
-            setRecLoading(true);
-            return getRecommendations(detailData);
-          })
-          .then((recData) => {
-            setRecommendations(recData);
-            setRecLoading(false);
           })
           .catch((error) => {
             console.error("Error fetching details:", error);
@@ -186,7 +197,7 @@ const DetailModal = ({
             setRecLoading(false);
           });
       } else if (givenItem && !(mediaId && mediaType)) {
-        // If item given just get recommendations
+        // If item given just get ratings
         setLoading(true);
         fetchRating(userId, item.tmdb.id, item.tmdb.media_type)
           .then((response) => {
@@ -196,16 +207,9 @@ const DetailModal = ({
           .then((avgRatingResponse) => {
             item.tmdb.avgRating = avgRatingResponse;
             setLoading(false);
-            setRecLoading(true);
-            return getRecommendations(givenItem);
-          })
-          .then((recData) => {
-            setRecommendations(recData);
-            setRecLoading(false);
           })
           .catch((error) => {
-            console.error("Error fetching recommendations:", error);
-            setRecLoading(false);
+            console.error("Error fetching ratings:", error);
           });
       }
     };
@@ -213,6 +217,20 @@ const DetailModal = ({
     fetchItemDetails();
   }, [givenItem, mediaId, mediaType]);
 
+  const fetchRecommendations = () => {
+    if (!item) return;
+
+    setRecLoading(true);
+    getRecommendations(item)
+      .then((recData) => {
+        setRecommendations(recData);
+        setRecLoading(false);
+      })
+      .catch((error) => {
+        console.error("Error fetching recommendations:", error);
+        setRecLoading(false);
+      });
+  };
   //What happens when someone clicks the follow button.
   //Adds keywords, genres, and production company.
   //If valid, tv show is added to calendar.
@@ -249,6 +267,7 @@ const DetailModal = ({
       media_type: item.tmdb.media_type,
       title: item.tmdb.title || item.tmdb.name,
       poster_path: item.tmdb.poster_path,
+      release_date: item.tmdb.release_date || item.tmdb.first_air_date,
       genres: genres,
       keywords: keywords,
       producers,
@@ -336,22 +355,27 @@ const DetailModal = ({
     try {
       setLoading(true);
       detailData = await getDetails(recItem.id, recItem.media_type);
+
+      const ratingResponse = await fetchRating(
+        userId,
+        detailData.tmdb.id,
+        detailData.tmdb.media_type
+      );
+      detailData.tmdb.rating = ratingResponse.rating;
+
+      const avgRatingResponse = await GetAverageRating(
+        detailData.tmdb.id,
+        detailData.tmdb.media_type
+      );
+      detailData.tmdb.avgRating = avgRatingResponse;
+
       setItem(detailData);
       setRecommendations([]);
       setActiveTab("overview");
     } catch (error) {
-      console.error("Error loading recommendations", error);
+      console.error("Error loading details", error);
     } finally {
       setLoading(false);
-    }
-    try {
-      setRecLoading(true);
-      const recData = await getRecommendations(detailData);
-      setRecommendations(recData);
-    } catch (error) {
-      console.error("Error loading recommendations", error);
-    } finally {
-      setRecLoading(false);
     }
   };
 
@@ -379,7 +403,7 @@ const DetailModal = ({
   const fetchSeasonData = () => {
     setLoadingEpisodes(true);
     axios
-      .get(`${host}/search/tv/all_episodes`, {
+      .get(`${host}search/tv/all_episodes`, {
         params: { id: item.tmdb.id },
       })
       .then((response) => {
@@ -1049,7 +1073,6 @@ const DetailModal = ({
                 </div>
               </Tab>
             )}
-            
 
             {isLoggedIn && (
               <Tab eventKey="comments" title="Comments">
@@ -1261,7 +1284,11 @@ const DetailModal = ({
           </Tabs>
         </Modal.Body>
         <Modal.Footer className="border-0">
-          <Button variant="outline-secondary" onClick={onHide} style={{backgroundColor: "silver"}}>
+          <Button
+            variant="outline-secondary"
+            onClick={onHide}
+            style={{ backgroundColor: "silver" }}
+          >
             Close
           </Button>
         </Modal.Footer>

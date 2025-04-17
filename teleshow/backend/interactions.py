@@ -29,20 +29,23 @@ def add_to_watchlist(user_id, watchlist_name, media_info):
     # Get the results
     watchlist_docs = list(watchlist_query.stream())
 
+    batch = get_db().batch()
+
     if watchlist_docs:
         # Set the doc to the first result
         # If watchlist exists get reference
-        watchlist_doc = watchlist_docs[0]
-        watchlist_doc_ref = watchlist_doc.reference
+        watchlist_doc_ref = watchlist_docs[0].reference
+        batch.update(watchlist_doc_ref, {"updated_at": firestore.SERVER_TIMESTAMP})
     else:
         # If it doesn't create a new document
         watchlist_doc_ref = watchlist_ref.document()
-        watchlist_doc_ref.set(
+        batch.set(
+            watchlist_doc_ref,
             {
                 "name": watchlist_name,
                 "created_at": firestore.SERVER_TIMESTAMP,
                 "updated_at": firestore.SERVER_TIMESTAMP,
-            }
+            },
         )
         print(f"Created new watchlist '{watchlist_name}'")
 
@@ -61,20 +64,21 @@ def add_to_watchlist(user_id, watchlist_name, media_info):
     # Media added to watchlist media subcollection
     media_ref = watchlist_doc_ref.collection("media").document()
 
-    media_data = {
-        "title": media_info.get("media_name"),
-        "media_id": media_info.get("id"),
-        "overview": media_info.get("overview"),
-        "release_date": media_info.get("release_date"),
-        "media_type": media_info.get("media_type"),
-        "poster_path": media_info.get("poster_path"),
-        "added_at": firestore.SERVER_TIMESTAMP,
-        "status": "Plan to watch",
-    }
+    batch.set(
+        media_ref,
+        {
+            "title": media_info.get("media_name"),
+            "media_id": media_info.get("id"),
+            "overview": media_info.get("overview"),
+            "release_date": media_info.get("release_date"),
+            "media_type": media_info.get("media_type"),
+            "poster_path": media_info.get("poster_path"),
+            "added_at": firestore.SERVER_TIMESTAMP,
+            "status": "Plan to watch",
+        },
+    )
 
-    media_ref.set(media_data)
-
-    watchlist_doc_ref.update({"updated_at": firestore.SERVER_TIMESTAMP})
+    batch.commit()
 
     return {"watchlist_id": watchlist_doc_ref.id, "media_id": media_ref.id}
 
@@ -423,6 +427,7 @@ def handle_media_follow():
     media_id = data.get("media_id")
     media_type = data.get("media_type")
     title = data.get("title")
+    release_date = data.get("release_date")
     poster_path = data.get("poster_path")
     genres = data.get("genres", [])
     keywords = data.get("keywords", [])
@@ -451,6 +456,7 @@ def handle_media_follow():
                 "media_type": media_type,
                 "title": title,
                 "poster_path": poster_path,
+                "release_date": release_date,
                 "genres": genres,
                 "keywords": keywords,
                 "production_companies": production_companies,
@@ -561,12 +567,17 @@ def get_followed_media():
 
     followed_media_ref = user_ref.collection("followed_media")
     followed_media_doc = followed_media_ref.stream()
-    all_media = []
+    user_tv = []
+    user_movies = []
 
     for doc in followed_media_doc:
-        all_media.append(doc.to_dict())
+        media = doc.to_dict()
+        if media.get("media_type") == "tv":
+            user_tv.append(media)
+        elif media.get("media_type") == "movie":
+            user_movies.append(media)
 
-    return jsonify({"followed": all_media})
+    return jsonify({"followed_tv": user_tv, "followed_movies": user_movies})
 
 
 # FOR ADDING TO WATCHLIST
@@ -676,6 +687,7 @@ def remove_from_watchlist():
         return jsonify({"error": "Requirements not meet for operation"})
 
     try:
+        batch = get_db().batch()
         user_ref = users_ref.document(user_id)
         if not user_ref.get().exists:
             return jsonify({"error": "User not found"})
@@ -693,9 +705,10 @@ def remove_from_watchlist():
             return jsonify({"error": "Media not found in watchlist"})
 
         for doc in media_docs:
-            doc.reference.delete()
+            batch.delete(doc.reference)
 
-        watchlist_ref.update({"updated_at": firestore.SERVER_TIMESTAMP})
+        batch.update(watchlist_ref, {"updated_at": firestore.SERVER_TIMESTAMP})
+        batch.commit()
 
         return jsonify({"status": "success", "message": "Media removed from watchlist"})
     except Exception as e:
@@ -713,6 +726,7 @@ def delete_watchlist():
     if not user_id or not watchlist_id:
         return jsonify({"error": "Requirements not meet for operation"})
     try:  # Going down the line deleting
+        batch = get_db().batch()
         user_ref = users_ref.document(user_id)
         if not user_ref.get().exists:
             return jsonify({"error": "User not found"})
@@ -722,9 +736,10 @@ def delete_watchlist():
         # Start by deleting the media subcollection
         media_docs = watchlist_ref.collection("media").stream()
         for doc in media_docs:
-            doc.reference.delete()
+            batch.delete(doc.reference)
         # Then I delete the watchlist
-        watchlist_ref.delete()
+        batch.delete(watchlist_ref)
+        batch.commit()
         return jsonify(
             {"status": "success", "message": "Watchlist deleted successfully"}
         )
@@ -747,6 +762,7 @@ def update_media_status():
     media_id = int(media_id)
 
     try:
+        batch = get_db().batch()
         user_ref = users_ref.document(user_id)
         if not user_ref.get().exists:
             return jsonify({"error": "User not found"})
@@ -765,9 +781,10 @@ def update_media_status():
             return jsonify({"error": "Media not found in watchlist"})
 
         for doc in media_docs:
-            doc.reference.update({"status": status})
+            batch.update(doc.reference, {"status": status})
 
-        watchlist_ref.update({"updated_at": firestore.SERVER_TIMESTAMP})
+        batch.update(watchlist_ref, {"updated_at": firestore.SERVER_TIMESTAMP})
+        batch.commit()
 
         return jsonify(
             {"status": "success", "message": "Media status updated successfully"}

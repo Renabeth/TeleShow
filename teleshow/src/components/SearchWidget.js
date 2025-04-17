@@ -24,7 +24,7 @@ const SearchWidget = () => {
   const [query, setQuery] = useState(""); // Stores the search query input by user
   const searchInputRef = useRef(null);
   const [filter_type, setFilterType] = useState("all"); //Filters output
-  const [streamingPlatform, setStreamingPlatform] = useState("all");
+  const [streamingPlatform, setStreamingPlatform] = useState(["all"]);
   const [results, setResults] = useState({}); // Stores search results categorized by media type
   const [selectedItem, setSelectedItem] = useState(null); // Stores detailed information about a selected item
   const [isExpanded, setIsExpanded] = useState(true);
@@ -104,7 +104,11 @@ const SearchWidget = () => {
     setLoading(true);
     const currentQuery = searchQuery || query;
     const currentFilterType = filterType || filter_type;
-    const currentPlatform = platform || streamingPlatform;
+    const platformArray = platform || streamingPlatform;
+    const currentPlatform = platformArray.includes("all")
+      ? "all"
+      : platformArray.join(",");
+
     if (currentQuery.trim().length > 2) {
       //React functional state update. As I understand. this is how u get previous states of vaiables
       setQueryHistory((prev) => {
@@ -263,7 +267,7 @@ const SearchWidget = () => {
             <Form.Control
               ref={searchInputRef}
               type="search"
-              placeholder="Search Movies and TV shows..."
+              placeholder="Search Teleshow Library..."
               value={query}
               autoFocus
               onChange={(e) => setQuery(e.target.value)}
@@ -316,58 +320,58 @@ const SearchWidget = () => {
                   <div className="dropdown">
                     <Dropdown>
                       <Dropdown.Toggle className="platform-dropdown-btn">
-                        {streamingPlatform === "all"
+                        {streamingPlatform.includes("all")
                           ? "All Platforms"
                           : streamingPlatform}
                       </Dropdown.Toggle>
                       <Dropdown.Menu className="platform-dropdown-menu">
                         <Dropdown.Item
-                          onClick={() => handlePlatformSelect("all")}
+                          onClick={() => handlePlatformSelect(["all"])}
                         >
                           All Platforms
                         </Dropdown.Item>
                         <Dropdown.Item
-                          onClick={() => handlePlatformSelect("netflix")}
+                          onClick={() => handlePlatformSelect(["netflix"])}
                         >
                           Netflix
                         </Dropdown.Item>
                         <Dropdown.Item
-                          onClick={() => handlePlatformSelect("hulu")}
+                          onClick={() => handlePlatformSelect(["hulu"])}
                         >
                           Hulu
                         </Dropdown.Item>
                         <Dropdown.Item
-                          onClick={() => handlePlatformSelect("amazon")}
+                          onClick={() => handlePlatformSelect(["amazon"])}
                         >
                           Amazon Prime
                         </Dropdown.Item>
                         <Dropdown.Item
-                          onClick={() => handlePlatformSelect("disney")}
+                          onClick={() => handlePlatformSelect(["disney"])}
                         >
                           Disney+
                         </Dropdown.Item>
                         <Dropdown.Item
-                          onClick={() => handlePlatformSelect("max")}
+                          onClick={() => handlePlatformSelect(["max"])}
                         >
                           HBO Max
                         </Dropdown.Item>
                         <Dropdown.Item
-                          onClick={() => handlePlatformSelect("apple")}
+                          onClick={() => handlePlatformSelect(["apple"])}
                         >
                           Apple TV+
                         </Dropdown.Item>
                         <Dropdown.Item
-                          onClick={() => handlePlatformSelect("paramount")}
+                          onClick={() => handlePlatformSelect(["paramount"])}
                         >
                           Paramount
                         </Dropdown.Item>
                         <Dropdown.Item
-                          onClick={() => handlePlatformSelect("peacock")}
+                          onClick={() => handlePlatformSelect(["peacock"])}
                         >
                           Peacock
                         </Dropdown.Item>
                         <Dropdown.Item
-                          onClick={() => handlePlatformSelect("google")}
+                          onClick={() => handlePlatformSelect(["google"])}
                         >
                           Google
                         </Dropdown.Item>
