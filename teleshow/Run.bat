@@ -4,8 +4,6 @@
 
 @echo ===== Starting up development environment =====
 
-@cd frontend
-
 @call npm run dev
 
 @===== Start up complete =====

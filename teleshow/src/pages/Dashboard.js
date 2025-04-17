@@ -6,10 +6,14 @@ import FetchComments from "../components/FetchComments.js";
 import SetProviders from "../scripts/SetProviders.js";
 import SearchWidget from "../components/SearchWidget";
 import DetailModal from "../components/DetailModal";
-
+import PlatformFilter, {
+  updateSelectedPlatforms,
+} from "../components/PlatformFilter";
+import { getFollowedMedia } from "../API/Flask_API.js";
 // Credit to JustWatch as TMDB API watch providers data source
 
 import { redirect, useNavigate } from "react-router-dom";
+import { Spinner } from "react-bootstrap";
 
 // Help from https://developer.themoviedb.org/reference/trending-movies
 import axios from "axios";
@@ -53,6 +57,20 @@ function Dashboard() {
 
   const [currentMediaID, setCurrentMediaID] = useState(0);
   const [currentMediaType, setCurrentMediaType] = useState("");
+  const STORAGE_KEY = "platform_selection";
+  //enables user filters
+  //Attempts to get value from session variable
+  const [selectedPlatforms, setSelectedPlatforms] = useState(() => {
+    const savedPlatforms = sessionStorage.getItem(STORAGE_KEY);
+    if (savedPlatforms) {
+      try {
+        return JSON.parse(savedPlatforms);
+      } catch (err) {
+        console.error("Error parsing saved platforms:", err);
+      }
+    }
+    return ["all"]; // Default filter
+  });
 
   // Help from https://www.rowy.io/blog/firestore-react-query
   const [tvLoading, setTvLoading] = useState(false);
@@ -84,6 +102,16 @@ function Dashboard() {
   // Used to track if an item is already in a user's watchlist -WA
   const [watchlistDuplicate, setWatchListDuplicate] = useState(true);
 
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(selectedPlatforms));
+  }, [selectedPlatforms]);
+
+  useEffect(() => {
+    if (isLoggedIn && userID) {
+      getRecommendations();
+    }
+  }, [selectedPlatforms, isLoggedIn, userID]);
+
   // Help from https://www.youtube.com/watch?v=PGCMdiXRI6Y
   const getRecommendations = async () => {
     // Help from https://www.rowy.io/blog/firestore-react-query
@@ -103,11 +131,15 @@ function Dashboard() {
     //const movieUrl = `https://api.themoviedb.org/3/movie/939243/recommendations?language=en-US&page=1`
 
     // Help from https://developer.themoviedb.org/reference/trending-movies
+    const platforms = selectedPlatforms.includes("all")
+      ? "all"
+      : selectedPlatforms.join(",");
     const user_id = sessionStorage.getItem("userId");
     // Worked with Moses on this -William
     const response = await axios.get(`${host}user-recommendations`, {
       params: {
         user_id,
+        platforms,
       },
     });
 
@@ -129,6 +161,10 @@ function Dashboard() {
     //Shuffle recommendations
     const shuffled = [...items].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, count);
+  };
+
+  const handlePlatformChange = (platform) => {
+    setSelectedPlatforms((prev) => updateSelectedPlatforms(platform, prev));
   };
 
   // Help from https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/
@@ -182,7 +218,7 @@ function Dashboard() {
         setUserID(uid);
 
         // Help from https://www.youtube.com/watch?v=PGCMdiXRI6Y
-        getRecommendations(); // Shows media -WA
+        // // Shows media -WA
 
         // Help from https://stackoverflow.com/questions/68260152/firebase-auth-currentuser-is-null-at-page-load/68260898#68260898
       } else {
@@ -208,6 +244,7 @@ function Dashboard() {
         navigate("/"); // Go back to login after logging out
         alert("You have logged out successfully.");
         sessionStorage.removeItem("userId");
+        sessionStorage.removeItem("userName");
       })
       .catch((error) => {
         alert(error);
@@ -527,6 +564,13 @@ function Dashboard() {
               />
             </div>
             <br />
+            <br />
+            {isLoggedIn && (
+              <PlatformFilter
+                selectedPlatforms={selectedPlatforms}
+                onPlatformChange={handlePlatformChange}
+              />
+            )}
 
             {/*<button onClick={goToWatchlist}>Go to Watchlist</button>*/}
           </>
@@ -708,7 +752,14 @@ function Dashboard() {
 
             {/* Help from https://www.youtube.com/watch?v=PGCMdiXRI6Y */}
             {/* And https://www.rowy.io/blog/firestore-react-query */}
-            {tvLoading && <p>Loading TV Recommendations...</p>}
+            {tvLoading && (
+              <div className="loading-container">
+                <Spinner animation="border" role="status" variant="light">
+                  <span className="visually-hidden">Loading...</span>
+                </Spinner>
+              </div>
+            )}
+
             <div className="mediaBox">
               {recommendedTv &&
                 recommendedTv?.map((tv) => (
@@ -726,7 +777,13 @@ function Dashboard() {
             </div>
 
             <h4>Recommended Movies:</h4>
-            {movieLoading && <p>Loading Movie Recommendations...</p>}
+            {movieLoading && (
+              <div className="loading-container">
+                <Spinner animation="border" role="status" variant="light">
+                  <span className="visually-hidden">Loading...</span>
+                </Spinner>
+              </div>
+            )}
             <div className="mediaBox">
               {recommendedMovies &&
                 recommendedMovies?.map((movie) => (

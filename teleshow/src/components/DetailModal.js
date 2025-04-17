@@ -127,7 +127,11 @@ const DetailModal = ({
       setLoadingEpisodes(true);
     }
 
-    if (isLoggedIn && userId) {
+    if (
+      isLoggedIn &&
+      item?.tmdb?.media_type === "tv" &&
+      activeTab === "episodes"
+    ) {
       fetchProgress();
     }
   }, [activeTab, item]);
@@ -243,13 +247,14 @@ const DetailModal = ({
       media_id: item.tmdb.id,
       media_type: item.tmdb.media_type,
       title: item.tmdb.title || item.tmdb.name,
+      poster_path: item.tmdb.poster_path,
       genres: genres,
       keywords: keywords,
       producers,
       action: action,
     };
     const response = await axios.post(
-      `${host}interactions/media_followed`,
+      `${host}interactions/media_follow`,
       payload
     );
 
@@ -373,7 +378,7 @@ const DetailModal = ({
   const fetchSeasonData = () => {
     setLoadingEpisodes(true);
     axios
-      .get(`${host}/tv/all_episodes`, {
+      .get(`${host}/search/tv/all_episodes`, {
         params: { id: item.tmdb.id },
       })
       .then((response) => {
@@ -412,7 +417,10 @@ const DetailModal = ({
         }
       );
 
-      if (response.data.progress) {
+      if (response.data.message) {
+        console.log(response.data.message);
+        setUserProgress({});
+      } else {
         setUserProgress(response.data.progress);
       }
     } catch (err) {
@@ -719,6 +727,11 @@ const DetailModal = ({
                       ""
                     )}
                   </p>
+                  {/*Age Rating Section */}
+                  <p>
+                    <strong>Age Rating: </strong>{" "}
+                    {item.tmdb.content_rating || "Unknown"}
+                  </p>
                   {/* Genres Section */}
                   <div className="d-flex flex-wrap gap-2 mb-2">
                     {item.tmdb.genres && item.tmdb.genres.length > 0 ? (
@@ -734,7 +747,7 @@ const DetailModal = ({
                   {/* Displays overview and tagline of the content */}
                   <div className="overview-section">
                     {item.tmdb.tagline ? (
-                      <p>*{item.tmdb.tagline}*</p>
+                      <p>{item.tmdb.tagline}</p>
                     ) : (
                       <p>{""}</p>
                     )}
@@ -920,9 +933,9 @@ const DetailModal = ({
             {/*Cast information section*/}
             <Tab eventKey="cast" title="Cast">
               <div className="mt-3">
-                {item.cast.length > 0 ? (
+                {item.tmdb.credits?.cast.length > 0 ? (
                   <div className="row row-cols-2 row-cols-md-4 row-col-lg-5 g-2 cast-section">
-                    {item.cast.map((actor) => (
+                    {item.tmdb.credits?.cast.map((actor) => (
                       <div key={actor.id} className="col">
                         <div className="card h-100 border-0 cast-card">
                           {actor.profile_path ? (

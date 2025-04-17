@@ -5,7 +5,7 @@ Provides functionality for searching movies and tv shows via Flask built API
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import axiosRetry from "axios-retry";
-import { Form, InputGroup, Dropdown } from "react-bootstrap";
+import { Form, InputGroup, Dropdown, Spinner } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import LZString from "lz-string";
 import SearchResultItem from "./SearchResultItem";
@@ -24,6 +24,7 @@ const SearchWidget = () => {
   const [query, setQuery] = useState(""); // Stores the search query input by user
   const searchInputRef = useRef(null);
   const [filter_type, setFilterType] = useState("all"); //Filters output
+  const [streamingPlatform, setStreamingPlatform] = useState("all");
   const [results, setResults] = useState({}); // Stores search results categorized by media type
   const [selectedItem, setSelectedItem] = useState(null); // Stores detailed information about a selected item
   const [isExpanded, setIsExpanded] = useState(true);
@@ -32,6 +33,7 @@ const SearchWidget = () => {
   const [queryHistory, setQueryHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const host = process.env.REACT_APP_NETWORK_HOST;
+  const loggedIn = sessionStorage.getItem("userId") ? true : false;
   const handleExpand = () => {
     setIsExpanded(true);
     // Focus the input box when expanded
@@ -52,6 +54,8 @@ const SearchWidget = () => {
         handleCollapse();
         setShowDropdown(false);
         setQuery("");
+        setFilterType("all");
+        setStreamingPlatform("all");
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -84,11 +88,23 @@ const SearchWidget = () => {
     }
   };
 
+  const handlePlatformSelect = (platform) => {
+    setStreamingPlatform(platform);
+    if (query.trim()) {
+      handleSearch(query, filter_type, platform);
+    } else if (queryHistory.length > 0) {
+      const historyQuery = queryHistory[0];
+      setQuery(historyQuery);
+      handleSearch(historyQuery, filter_type, platform);
+    }
+  };
+
   // Handles the search form submission. Makes an API request to fetch search results based on the query
-  const handleSearch = async (searchQuery, filterType) => {
+  const handleSearch = async (searchQuery, filterType, platform) => {
     setLoading(true);
     const currentQuery = searchQuery || query;
     const currentFilterType = filterType || filter_type;
+    const currentPlatform = platform || streamingPlatform;
     if (currentQuery.trim().length > 2) {
       //React functional state update. As I understand. this is how u get previous states of vaiables
       setQueryHistory((prev) => {
@@ -99,10 +115,14 @@ const SearchWidget = () => {
       });
     }
     console.log("Search triggered"); //Debugging (REMOVE FROM FINAL)
-    // Sets cache key for using filter filter type and normalized query
-    const SEARCH_CACHE_KEY = (query, filter_type) =>
-      `search-${filter_type}-${query.toLowerCase().trim()}`;
-    const cacheKey = SEARCH_CACHE_KEY(currentQuery, currentFilterType);
+    // Sets cache key for using platform filter type and normalized query
+    const SEARCH_CACHE_KEY = (query, filter_type, platform) =>
+      `search-${filter_type}-${platform}-${query.toLowerCase().trim()}`;
+    const cacheKey = SEARCH_CACHE_KEY(
+      currentQuery,
+      currentFilterType,
+      currentPlatform
+    );
     const cache = localStorage.getItem(cacheKey);
 
     if (cache) {
@@ -138,7 +158,11 @@ const SearchWidget = () => {
       //Handle server unreachable
       // Makes request to Flask API search endpoint with query and filter type
       const response = await axios.get(`${host}search`, {
-        params: { query: currentQuery, filter_type: currentFilterType },
+        params: {
+          query: currentQuery,
+          filter_type: currentFilterType,
+          streaming_platform: currentPlatform,
+        },
       });
 
       // Update results state with API response
@@ -222,6 +246,7 @@ const SearchWidget = () => {
     setQuery(historyItem);
     handleSearch(historyItem, "all");
   };
+
   return (
     <div ref={searchContainerRef} className="position-relative">
       <div onSubmit={(e) => e.preventDefault()}>
@@ -258,63 +283,146 @@ const SearchWidget = () => {
           )}
           <div className="filter-area">
             {isExpanded && (
-              <Dropdown>
-                <Dropdown.Toggle className="filter-dropdown-btn">
-                  <FiTv className="me-2" />
-                  {filter_type === "all"
-                    ? "All"
-                    : filter_type === "movie"
-                    ? "Movies"
-                    : "TV"}
-                </Dropdown.Toggle>
-                <Dropdown.Menu className="filter-dropdown-menu">
-                  <Dropdown.Item onClick={() => handleFilterSelect("all")}>
-                    All
-                  </Dropdown.Item>
-                  <Dropdown.Item onClick={() => handleFilterSelect("movie")}>
-                    Movies
-                  </Dropdown.Item>
-                  <Dropdown.Item onClick={() => handleFilterSelect("tv")}>
-                    TV Shows
-                  </Dropdown.Item>
-                  <Dropdown.Item onClick={() => clearCache()}>
-                    Clear Cache
-                  </Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown>
+              <>
+                <div className="dropdown">
+                  <Dropdown>
+                    <Dropdown.Toggle className="filter-dropdown-btn">
+                      <FiTv className="me-2" />
+                      {filter_type === "all"
+                        ? "All"
+                        : filter_type === "movie"
+                        ? "Movies"
+                        : "TV"}
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu className="filter-dropdown-menu">
+                      <Dropdown.Item onClick={() => handleFilterSelect("all")}>
+                        All
+                      </Dropdown.Item>
+                      <Dropdown.Item
+                        onClick={() => handleFilterSelect("movie")}
+                      >
+                        Movies
+                      </Dropdown.Item>
+                      <Dropdown.Item onClick={() => handleFilterSelect("tv")}>
+                        TV Shows
+                      </Dropdown.Item>
+                      <Dropdown.Item onClick={() => clearCache()}>
+                        Clear Cache
+                      </Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
+                </div>
+                {loggedIn && (
+                  <div className="dropdown">
+                    <Dropdown>
+                      <Dropdown.Toggle className="platform-dropdown-btn">
+                        {streamingPlatform === "all"
+                          ? "All Platforms"
+                          : streamingPlatform}
+                      </Dropdown.Toggle>
+                      <Dropdown.Menu className="platform-dropdown-menu">
+                        <Dropdown.Item
+                          onClick={() => handlePlatformSelect("all")}
+                        >
+                          All Platforms
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          onClick={() => handlePlatformSelect("netflix")}
+                        >
+                          Netflix
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          onClick={() => handlePlatformSelect("hulu")}
+                        >
+                          Hulu
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          onClick={() => handlePlatformSelect("amazon")}
+                        >
+                          Amazon Prime
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          onClick={() => handlePlatformSelect("disney")}
+                        >
+                          Disney+
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          onClick={() => handlePlatformSelect("max")}
+                        >
+                          HBO Max
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          onClick={() => handlePlatformSelect("apple")}
+                        >
+                          Apple TV+
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          onClick={() => handlePlatformSelect("paramount")}
+                        >
+                          Paramount
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          onClick={() => handlePlatformSelect("peacock")}
+                        >
+                          Peacock
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          onClick={() => handlePlatformSelect("google")}
+                        >
+                          Google
+                        </Dropdown.Item>
+                      </Dropdown.Menu>
+                    </Dropdown>
+                  </div>
+                )}
+              </>
             )}
           </div>
+          {isExpanded &&
+            showHistory &&
+            queryHistory.length > 0 &&
+            !showDropdown && (
+              <div className="search-history-container">
+                <div className="search-history-header">Recent Searches</div>
+                {queryHistory.map((historyItem, index) => (
+                  <div
+                    key={index}
+                    className="search-history-item"
+                    onClick={() => handleHistoryItemClick(historyItem)}
+                  >
+                    <GoClock className="search-history-icon" />
+                    <span className="search-history-text">{historyItem}</span>
+                  </div>
+                ))}
+                <div
+                  className="search-history-clear"
+                  onClick={() => setQueryHistory([])}
+                >
+                  Clear History
+                </div>
+              </div>
+            )}
         </InputGroup>
       </div>
-      {isExpanded &&
-        showHistory &&
-        queryHistory.length > 0 &&
-        !showDropdown && (
-          <div className="search-history-container">
-            <div className="search-history-header">Recent Searches</div>
-            {queryHistory.map((historyItem, index) => (
-              <div
-                key={index}
-                className="search-history-item"
-                onClick={() => handleHistoryItemClick(historyItem)}
-              >
-                <GoClock className="search-history-icon" />
-                <span className="search-history-text">{historyItem}</span>
-              </div>
-            ))}
-            <div
-              className="search-history-clear"
-              onClick={() => setQueryHistory([])}
-            >
-              Clear History
-            </div>
-          </div>
-        )}
 
       {/*Results Dropdown*/}
-      {showDropdown && results && (
+      {(showDropdown || loading) && (
         <Dropdown.Menu show={true} className="search-results-container show">
-          {results.unified ? (
+          {loading ? (
+            <div className="loading-container">
+              <Spinner animation="border" role="status" variant="light">
+                <span className="visually-hidden">Loading...</span>
+              </Spinner>
+              <p className="loading-text">
+                Searching
+                {filter_type !== "all"
+                  ? ` ${filter_type === "movie" ? "movies" : "TV shows"}`
+                  : ""}
+                {streamingPlatform !== "all" ? ` on ${streamingPlatform}` : ""}
+                ...
+              </p>
+            </div>
+          ) : results && results.unified ? (
             results.allResults && results.allResults.length > 0 ? (
               <div className="search-result-item">
                 {results.allResults.map((item) => (
@@ -328,7 +436,7 @@ const SearchWidget = () => {
             ) : (
               <div className="no-results">No results found</div>
             )
-          ) : results.tmdb_movie || results.tmdb_tv ? (
+          ) : results && (results.tmdb_movie || results.tmdb_tv) ? (
             <>
               {/* Movies Section */}
               <div className="search-result-item">

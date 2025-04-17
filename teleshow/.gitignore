@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # Node.js dependencies
-/frontend/node_modules/
+/node_modules/
 
 # Python cache files
 __pycache__/
@@ -24,10 +24,10 @@ yarn-error.log*
 
 
 # Frontend build artifacts
-/frontend/build/
+/build/
 
 # Backend sensitive resources
-backend/Resources/
+/backend/Resources/
 
 # Miscellaneous system files
 .DS_Store

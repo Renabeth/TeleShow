@@ -28,7 +28,7 @@
   
   
 .search-container.expanded {
-  width: 400px; 
+  width: 470px; 
   background-color: rgba(255, 255, 255, 0.15); /* Translucent background. rgba allows for color and blur definition*/
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -111,7 +111,7 @@
   top: 100%;
   left: 0;
   width: 100%;
-  max-width:400px;
+  max-width:470px;
   background-color: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -151,11 +151,18 @@
 }
 
 .filter-area {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Space between dropdown buttons */
   position: relative;
   margin-left: 10px;
   z-index: 1600;
 }
-  
+
+.filter-area .dropdown{
+  position: relative;
+  display: inline-block;
+}
   
 .filter-dropdown-btn {
   cursor: pointer;
@@ -192,15 +199,13 @@
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
 
-
-
 .filter-dropdown-menu {
-  display: none; /* Hidden by default */
+  display: none;
   position: absolute;
   top: 100%;
   left:0;
   right:0;
-  z-index: 1500; /* Makes sure the dropdown always appears on top */
+  z-index: 1500; 
   background-color: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -214,8 +219,82 @@
   animation: fadeInDown 0.3s ease forwards;
 }
 
+/* Style for the platform filter dropdown button */
+.platform-dropdown-btn {
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  padding: 5px 12px;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.8);
+  opacity: 0; 
+  transform: translateY(10px);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-family: 'Satoshi', sans-serif;
+  font-weight: 500;
+}
 
-.search-container.expanded .filter-dropdown-btn {
+.platform-dropdown-btn:focus {
+  outline: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background-color: rgba(255, 255, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(0, 0, 0, 0.9);
+}
+
+.platform-dropdown-btn:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Platform dropdown menu styling */
+.platform-dropdown-menu {
+  display: none; 
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1500;
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  width: 160px;
+}
+
+.platform-dropdown-menu.show {
+  display: block;
+  animation: fadeInDown 0.3s ease forwards;
+}
+
+/* Dropdown items shared styling */
+.filter-dropdown-menu .dropdown-item,
+.platform-dropdown-menu .dropdown-item {
+  padding: 8px 15px;
+  color: rgba(0, 0, 0, 0.8);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.filter-dropdown-menu .dropdown-item:hover,
+.platform-dropdown-menu .dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  color: rgba(0, 0, 0, 0.95);
+}
+
+
+.search-container.expanded .filter-dropdown-btn, .search-container.expanded .platform-dropdown-btn {
   pointer-events: auto; /* Re-enable interaction */
   animation: fadeInDown 0.4s ease forwards;
   animation-delay: 0.2s; /* Delay the animation start */
@@ -235,7 +314,14 @@
   z-index: 1380;
   padding: 10px 0;
   margin-top: 5px;
-  animation: fadeIn 0.3s ease forwards;
+  display: none;
+  opacity: 0;
+}
+
+.search-container.expanded .search-history-container {
+  display: block;
+  animation: fadeInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 0.4s; /* Delay matches expansion time of search bar */
 }
 
 .search-history-header {
@@ -288,11 +374,33 @@
   color: rgba(0, 0, 0, 0.8);
 }
 
+.loading-container {
+  display: flex;
+  flex-direction: row; 
+  align-items: center;
+  justify-content: flex-start;
+  padding: 2rem;
+  color: rgba(255, 255, 255, 0.8);
+  gap: 15px; 
+}
+
+/*fadeInUp animated takes place because of Home.css*/
+.loading-text {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  text-align: center;
+  position: relative;
+}
+
+
 /* Keyframe for icon fade-in animation */
 @keyframes fadeIn {
   0% {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px);
   }
   100% {
     opacity: 1;

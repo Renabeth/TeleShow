@@ -56,8 +56,6 @@ function Watchlist() {
   const [tabOpen, setTabOpen] = useState("overview");
   const [filteredMedia, setFilteredMedia] = useState([]);
   const [allWatchlistMedia, setAllWatchlistMedia] = useState([]);
-  const [currentTvShow, setCurrentTvShow] = useState(null);
-  const [showEpisodeTracker, setShowEpisodeTracker] = useState(false);
   const [showCalendarView, setShowCalendarView] = useState(false);
   const [showWatchlistSelection, setShowWatchlistSelection] = useState(false);
   const [selectedMediaForRemoval, setSelectedMediaForRemoval] = useState(null);
@@ -372,16 +370,6 @@ function Watchlist() {
         */
   };
 
-  const openEpisodeTracker = (item) => {
-    setLoading(true);
-    setCurrentTvShow({
-      id: item.media_id,
-      name: item.title,
-    });
-    setLoading(false);
-    setShowEpisodeTracker(true);
-  };
-
   const returnToDashboard = () => {
     navigate("/dashboard");
   };
@@ -583,7 +571,7 @@ function Watchlist() {
                         <Form.Select
                           data-bs-theme={`${isLightMode ? "light" : "dark"}`}
                           style={{ width: "90%" }}
-                          defaultValue={item.status}
+                          value={item.status}
                           name="watchStatus"
                           // Help from https://stackoverflow.com/questions/61858177/how-can-i-get-the-value-from-react-bootstrap-form-select
                           onChange={(e) =>

@@ -155,6 +155,22 @@ export const checkIfFollowed = async (mediaId, mediaType) => {
   }
 };
 
+export const getFollowedMedia = async () => {
+  try {
+    const userId = sessionStorage.getItem("userId");
+    if (!userId) return;
+
+    const response = await axios.get(`${host}interactions/get_followed`, {
+      params: {
+        user_id: userId,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error getting followed media", error);
+  }
+};
+
 //Gets the user watchlists from firestore using backend
 export const getWatchlists = async () => {
   const userId = sessionStorage.getItem("userId");
