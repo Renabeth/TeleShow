@@ -90,7 +90,7 @@ const FetchComments = (props) => {
                     date_added: serverTimestamp(),
     
                     username: props.displayName,
-                    profilePic: "https://image.tmdb.org/t/p/w500/q8dWfc4JwQuv3HayIZeO84jAXED.jpg",
+                    profilePic: "https://static.vecteezy.com/system/resources/thumbnails/009/292/244/small/default-avatar-icon-of-social-media-user-vector.jpg",
 
                     // Help from https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/checkbox
                     spoiler: document.getElementById('spoiler').checked,

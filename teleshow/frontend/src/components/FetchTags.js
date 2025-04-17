@@ -218,7 +218,7 @@ const FetchTags = (props) => {
             if (tagDuplicates > 0) {
                 try {
                     await updateDoc(doc(db, "Tags", docId), {
-                        tag_name: tag,
+                        tag_name: tag.trim(),
                     })
                     console.log("Tag updated successfully.")
                     alert("Tag updated successfully.")
@@ -234,7 +234,7 @@ const FetchTags = (props) => {
                         media_type: props.mediaType,
                         score: tagScore,
                         tag_class: tagClass,
-                        tag_name: tag,
+                        tag_name: tag.trim(),
                         tag_type: tagType,
                         user_id: props.userID,
                     });
