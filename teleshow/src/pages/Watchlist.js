@@ -354,7 +354,8 @@ function Watchlist() {
       );
 
       if (response.data.status === "success") {
-        fetchAllWatchlistMedia(userID);
+        await fetchAllWatchlistMedia(userID);
+        alert("Status updated successfully.");
       } else {
         alert("Failed to update status.");
       }
@@ -405,7 +406,6 @@ function Watchlist() {
         onHide={handleClose}
         backdrop="static"
         keyboard={false}
-        dialogClassName="modal-85w"
       >
         {/* Help from https://stackoverflow.com/questions/76810663/react-modals-or-dialogs-doesnt-inherit-the-dark-mode-styles-tailwind */}
         {/* And https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/# */}
@@ -571,7 +571,7 @@ function Watchlist() {
                         <Form.Select
                           data-bs-theme={`${isLightMode ? "light" : "dark"}`}
                           style={{ width: "90%" }}
-                          value={item.status}
+                          value={item.status} // Moses's proposed fix
                           name="watchStatus"
                           // Help from https://stackoverflow.com/questions/61858177/how-can-i-get-the-value-from-react-bootstrap-form-select
                           onChange={(e) =>
@@ -597,7 +597,6 @@ function Watchlist() {
                         {/* Help from https://react-bootstrap.netlify.app/docs/components/button-group/ */}
                         <ButtonGroup>
                           <Button
-                            dialogClassName="watchBtn"
                             variant="primary"
                             onClick={() => handleItemClick(item)}
                           >
@@ -616,7 +615,6 @@ function Watchlist() {
                             </Button>
                           )}
                           <Button
-                            dialogClassName="watchBtn"
                             variant="success"
                             onClick={() =>
                               alert(
@@ -627,7 +625,6 @@ function Watchlist() {
                             Write a Review
                           </Button>
                           <Button
-                            dialogClassName="watchBtn"
                             variant="danger"
                             onClick={() => removeFromWatchlistHelper(item)}
                           >

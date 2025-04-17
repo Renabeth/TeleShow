@@ -6,7 +6,7 @@ import { collection, addDoc, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 
 // Help from https://firebase.google.com/docs/firestore/query-data/queries
-import { query, where, limit, orderBy } from "firebase/firestore";
+import { query, where, limit } from "firebase/firestore";
 
 // Help from https://www.rowy.io/blog/firestore-timestamp
 import { serverTimestamp } from 'firebase/firestore'
@@ -50,8 +50,8 @@ const FetchComments = (props) => {
         const c = query(
             commentsRef,
             where('media_id', '==', props.mediaId),
-            where('media_type', '==', props.mediaType),
-            orderBy('score')
+            where('media_type', '==', props.mediaType)/*,
+            orderBy('score')*/
         )
         const commentSnapshot = await getDocs(c)
         const commentRes = []
@@ -90,7 +90,7 @@ const FetchComments = (props) => {
                     date_added: serverTimestamp(),
     
                     username: props.displayName,
-                    profilePic: "https://image.tmdb.org/t/p/w500/q8dWfc4JwQuv3HayIZeO84jAXED.jpg",
+                    profilePic: "https://static.vecteezy.com/system/resources/thumbnails/009/292/244/small/default-avatar-icon-of-social-media-user-vector.jpg",
 
                     // Help from https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/checkbox
                     spoiler: document.getElementById('spoiler').checked,

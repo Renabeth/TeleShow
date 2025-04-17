@@ -46,7 +46,6 @@ import Button from "react-bootstrap/Button";
 import { BsCircleFill, BsBookmarkFill } from "react-icons/bs";
 
 // Help from https://www.youtube.com/watch?v=91LWShFZn40
-import { getAggregateFromServer, average } from "firebase/firestore";
 
 function Dashboard() {
   // "Setters" for user information -WA
@@ -119,16 +118,11 @@ function Dashboard() {
     setMovieLoading(true);
 
     // Help from https://developer.themoviedb.org/reference/tv-series-recommendations
-    // 1396 - Breaking Bad ID
-    //const tvUrl = `https://api.themoviedb.org/3/tv/1396/recommendations?language=en-US&page=1`
 
     // Help from https://developer.themoviedb.org/reference/trending-tv
     const tvUrl = "https://api.themoviedb.org/3/trending/tv/day?language=en-US";
-    // Should we do week instead of day?
 
     // Help from https://developer.themoviedb.org/reference/movie-recommendations
-    // 939243 - Sonic 3 ID
-    //const movieUrl = `https://api.themoviedb.org/3/movie/939243/recommendations?language=en-US&page=1`
 
     // Help from https://developer.themoviedb.org/reference/trending-movies
     const platforms = selectedPlatforms.includes("all")
@@ -189,20 +183,11 @@ function Dashboard() {
     },
   };
 
-  //const [darkMode, setDarkMode] = useState(true)
-
   // Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/#
-  //const displayModeRef = useRef()
-  //const displayModeButtonRef = useRef()
-  //const logoutButtonRef = useRef()
+  
 
   // Help from https://react-bootstrap.netlify.app/docs/components/modal/
-  /*const [show, setShow] = useState(false);
-  const handleClose = () => setShow(false);
-  const handleShow = () => setShow(true);
-
-  const [watchlistDuplicate, setWatchListDuplicate] = useState(true);
-*/
+  
   // Help from https://www.freecodecamp.org/news/use-firebase-authentication-in-a-react-app/
   useEffect(() => {
     onAuthStateChanged(auth, async (user) => {
@@ -252,18 +237,6 @@ function Dashboard() {
   };
 
   // Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/#
-  /*const changeDisplayMode = () => {
-    console.log(darkMode)
-    if (darkMode) { // Change to dark mode
-      displayModeRef.current.style.backgroundColor = "rgb(204, 204, 204)"
-      displayModeRef.current.style.color = "black"
-      setDarkMode(false)
-    } else { // Change to light mode
-      displayModeRef.current.style.backgroundColor = "rgb(50, 50, 50)"
-      displayModeRef.current.style.color = "white"
-      setDarkMode(true)
-    }
-  }*/
 
   // Help from https://www.freecodecamp.org/news/javascript-fetch-api-for-beginners/
 
@@ -334,36 +307,6 @@ function Dashboard() {
           setModalProvidersFree("");
           setModalProvidersRent("");
         }
-
-        /*if (json.results.US.buy) {
-            let buyArray = []
-            for (let i = 0; i < json.results.US.buy.length; i++) {
-              buyArray.push(json.results.US.buy[i].provider_name)
-            }
-            setModalProvidersBuy(buyArray.join(", "))
-          } else {
-            setModalProvidersBuy("")
-          }
-
-          if (json.results.US.flatrate) {
-            let flatArray = []
-            for (let j = 0; j < json.results.US.flatrate.length; j++) {
-              flatArray.push(json.results.US.flatrate[j].provider_name)
-            }
-            setModalProvidersFlatrate(flatArray.join(", "))
-          } else {
-            setModalProvidersFlatrate("")
-          }
-
-          if (json.results.US.rent) {
-            let rentArray = []
-            for (let j = 0; j < json.results.US.rent.length; j++) {
-              rentArray.push(json.results.US.rent[j].provider_name)
-            }
-            setModalProvidersRent(rentArray.join(", "))
-          } else {
-            setModalProvidersRent("")
-          }*/
       })
       .catch((err) => {
         console.error(err);
@@ -660,73 +603,6 @@ function Dashboard() {
                 <hr /> Commented out until average rating updates is implemented */}
                 <h3>Spoken Languages</h3>
                 {modalLanguages || "None"}
-                <hr />
-
-                <h3>Watch Providers</h3>
-
-                {!modalProvidersAds &&
-                !modalProvidersBuy &&
-                !modalProvidersFlatrate &&
-                !modalProvidersFree &&
-                !modalProvidersRent ? (
-                  <p>{"None"}</p>
-                ) : (
-                  ""
-                )}
-
-                {modalProvidersAds ? (
-                  <>
-                    <h4>Ads</h4>
-                    <p>{modalProvidersAds}</p>
-                  </>
-                ) : (
-                  ""
-                )}
-
-                {modalProvidersBuy ? (
-                  <>
-                    <h4>Buy</h4>
-                    <p>{modalProvidersBuy}</p>
-                  </>
-                ) : (
-                  ""
-                )}
-
-                {modalProvidersFlatrate ? (
-                  <>
-                    <h4>Flatrate</h4>
-                    <p>{modalProvidersFlatrate}</p>
-                  </>
-                ) : (
-                  ""
-                )}
-
-                {modalProvidersFree ? (
-                  <>
-                    <h4>Free</h4>
-                    <p>{modalProvidersFree}</p>
-                  </>
-                ) : (
-                  ""
-                )}
-
-                {modalProvidersRent ? (
-                  <>
-                    <h4>Rent</h4>
-                    <p>{modalProvidersRent}</p>
-                  </>
-                ) : (
-                  ""
-                )}
-
-                {/*<h4>Buy</h4>
-                  { modalProvidersBuy || "None" }
-                <h4>Flatrate</h4>
-                  { modalProvidersFlatrate || "None" }
-                <h4>Rent</h4>
-                  { modalProvidersRent || "None" }
-                   */}
-
                 <hr />
 
                 {/* Help from https://www.geeksforgeeks.org/how-to-perform-form-validation-in-react/ */}
