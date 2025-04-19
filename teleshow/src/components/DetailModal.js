@@ -580,7 +580,7 @@ const DetailModal = ({
         show={show}
         onHide={onHide}
         centered
-        size="lg"
+        size="85w" // changed from lg to 85w
         className="detail-modal"
       >
         <Modal.Header closeButton>

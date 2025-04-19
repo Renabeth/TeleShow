@@ -454,7 +454,7 @@ const FetchTags = (props) => {
                         {20 - customTag1Length}/20 characters remaining.
                         <div className="customTagGroupBtn">
                             <Button 
-                                variant="primary" 
+                                variant="success" 
                                 className="customTagBtn"
                                 onClick={(e) => {
                                     updateTag(
@@ -491,7 +491,7 @@ const FetchTags = (props) => {
                         {20 - customTag2Length}/20 characters remaining.
                         <div className="customTagGroupBtn">
                             <Button 
-                                variant="primary" 
+                                variant="success" 
                                 className="customTagBtn"
                                 onClick={(e) => {
                                     updateTag(
@@ -527,7 +527,7 @@ const FetchTags = (props) => {
                         </div>
                         <div className="customTagGroupBtn">
                             <Button 
-                                variant="primary" 
+                                variant="success" 
                                 className="customTagBtn"
                                 onClick={(e) => {
                                     updateTag(
@@ -541,8 +541,8 @@ const FetchTags = (props) => {
                                 Update
                             </Button>
                         </div>
+                        {20 - customTag3Length}/20 characters remaining.
                     </div>
-                    {20 - customTag3Length}/20 characters remaining.
                 </div>
             </div>
         </>
