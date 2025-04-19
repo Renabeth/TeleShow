@@ -6,10 +6,6 @@ import FetchComments from "../components/FetchComments.js";
 import SetProviders from "../scripts/SetProviders.js";
 import SearchWidget from "../components/SearchWidget";
 import DetailModal from "../components/DetailModal";
-import PlatformFilter, {
-  updateSelectedPlatforms,
-} from "../components/PlatformFilter";
-import { getFollowedMedia } from "../API/Flask_API.js";
 // Credit to JustWatch as TMDB API watch providers data source
 
 import { redirect, useNavigate } from "react-router-dom";

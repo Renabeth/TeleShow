@@ -114,6 +114,8 @@ const DetailModal = ({
 
   useEffect(() => {
     // Safety check to prevent showing inappropriate content
+    //Encountered a weird problem where a glitch that mis-matched media id with a different media type and gave a very inaccurate result
+    //This is the counter
     if (
       item &&
       (item.tmdb?.content_rating === "NC-17" ||

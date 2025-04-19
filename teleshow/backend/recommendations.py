@@ -1,3 +1,4 @@
+# Written by Moses Pierre
 from flask import Blueprint, request, jsonify
 import tmdbsimple as tmdb
 import torch.nn.functional as F  # Enabler of machine learning. Allows for the dot

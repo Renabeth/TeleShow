@@ -1,3 +1,4 @@
+# Written By Moses Pierre
 from flask import Blueprint, request, jsonify
 import requests
 import tmdbsimple as tmdb  # Library that makes interacting with TMDB API simplier
@@ -5,6 +6,7 @@ from extensions import cache, limiter
 import datetime
 import time
 import os  # Used to find file paths
+import threading
 
 search_bp = Blueprint("search", __name__)
 
@@ -50,6 +52,27 @@ PLATFORM_ID_MAP = {
 # To combat this im using a call directly to the api if None is given as a response
 @cache.memoize(3600)
 def get_watch_providers(media_id, media_type):
+    results = []
+    provider_fetch_event = threading.Event()
+    # Passing the array in the case of threads manipulates the same array that was passed
+    # This is because its passing the memory location of the array instead of copying it.
+    # Therefore passing results to the thread actually changes the results array
+    provider_thread = threading.Thread(
+        target=fetch_providers,
+        args=(media_id, media_type, results, provider_fetch_event),
+    )
+    provider_thread.daemon = True
+    provider_thread.start()
+
+    # This causes the function to wait for the thread to be done.
+    # Additional benefit of returning whatever was successfully recieved instead of nothing in the event of a exception
+    provider_fetch_event.wait(timeout=10)
+
+    return results
+
+
+# Executed by the thread
+def fetch_providers(media_id, media_type, results, completion_event):
     try:
         # Direct API call, tmdbsimple limitation
         # I was getting None responses
@@ -69,8 +92,8 @@ def get_watch_providers(media_id, media_type):
             return []
 
         # Extract US providers
-        results = providers.get("results", {})
-        us_providers = results.get("US", {})
+        provider_data = providers.get("results", {})
+        us_providers = provider_data.get("US", {})
 
         if not us_providers:
             return []
@@ -81,12 +104,74 @@ def get_watch_providers(media_id, media_type):
                 provider_id = provider.get("provider_id")
                 if provider_id:
                     provider_ids.add(provider_id)
+        results.extend(list(provider_ids))
 
         # Returns the numeric id for watch providers
         time.sleep(0.1)
-        return list(provider_ids)
-    except:
-        return []
+    except Exception as e:
+        print(f"Error fetching providers: {e}")
+    finally:
+        completion_event.set()
+
+
+# Serperate thread executed function to handle movie search
+def process_movies(query, streaming_platform, movie_results, movies_done):
+    try:
+        movie_search = tmdb.Search()
+        movie_search.movie(query=query)
+
+        for item in movie_search.results:
+            item["media_type"] = "movie"
+            if streaming_platform != "all":
+                platform_list = (
+                    streaming_platform.split(",")
+                    if streaming_platform != "all"
+                    else ["all"]
+                )
+                all_platform_ids = set()
+                for platform in platform_list:
+                    platform_ids = PLATFORM_ID_MAP.get(platform.lower(), [])
+                    all_platform_ids.update(platform_ids)
+                provider_ids = get_watch_providers(item["id"], "movie")
+                if any(pid in all_platform_ids for pid in provider_ids):
+                    movie_results.append(item)
+            else:
+                movie_results.append(item)
+    except Exception as e:
+        print(f"Error in movie processing thread: {e}")
+    finally:
+        # Signals the the movies are done
+        movies_done.set()
+
+
+# Serperate thread executed function to handle tv search
+def process_tv_shows(query, streaming_platform, tv_results, tv_done):
+    try:
+        tv_search = tmdb.Search()
+        tv_search.tv(query=query)
+
+        for item in tv_search.results:
+            item["media_type"] = "tv"
+            if streaming_platform != "all":
+                platform_list = (
+                    streaming_platform.split(",")
+                    if streaming_platform != "all"
+                    else ["all"]
+                )
+                all_platform_ids = set()
+                for platform in platform_list:
+                    platform_ids = PLATFORM_ID_MAP.get(platform.lower(), [])
+                    all_platform_ids.update(platform_ids)
+                provider_ids = get_watch_providers(item["id"], "tv")
+                if any(pid in all_platform_ids for pid in provider_ids):
+                    tv_results.append(item)
+            else:
+                tv_results.append(item)
+    except Exception as e:
+        print(f"Error in tv processing thread: {e}")
+    finally:
+        # Signals the the tv shows are done
+        tv_done.set()
 
 
 # FUNCTION FOR CALCULATING RELEVANCE FOR SEARCH RESULT SORTING
@@ -172,45 +257,35 @@ def search():
         return jsonify({"test_results": "Successful Test"})
     else:
         try:
-            search = tmdb.Search()
-            search.multi(query=query)
-            search_results = search.results
             movie_results = []
             tv_results = []
-            """person_results = []"""
-            for item in search_results:
-                if item.get("media_type") == "movie":
-                    movie_results.append(item)
-                elif item.get("media_type") == "tv":
-                    tv_results.append(item)
-                """elif item.get("media_type") == "person":
-                    person_results.append(item)"""
-
-            if streaming_platform != "all":
-                platform_list = (
-                    streaming_platform.split(",")
-                    if streaming_platform != "all"
-                    else ["all"]
+            # Thread event flags
+            movies_done = threading.Event()
+            tv_done = threading.Event()
+            # Starts the threads based on the filter
+            if filter_type == "all" or filter_type == "movie":
+                movie_thread = threading.Thread(
+                    target=process_movies,
+                    args=(query, streaming_platform, movie_results, movies_done),
                 )
-                all_platform_ids = set()
-                for platform in platform_list:
-                    platform_ids = PLATFORM_ID_MAP.get(platform.lower(), [])
-                    all_platform_ids.update(platform_ids)
-                filtered_movies = []
-                if filter_type == "all" or filter_type == "movie":
-                    for movie in movie_results:
-                        provider_ids = get_watch_providers(movie["id"], "movie")
-                        if any(pid in all_platform_ids for pid in provider_ids):
-                            filtered_movies.append(movie)
-                    movie_results = filtered_movies
-                if filter_type == "all" or filter_type == "tv":
-                    filtered_tv = []
-                    for tv in tv_results:
-                        provider_ids = get_watch_providers(tv["id"], "tv")
-                        if any(pid in all_platform_ids for pid in provider_ids):
-                            filtered_tv.append(tv)
-                    tv_results = filtered_tv
+                movie_thread.daemon = True
+                movie_thread.start()
+            else:
+                movies_done.set()
 
+            if filter_type == "all" or filter_type == "tv":
+                tv_thread = threading.Thread(
+                    target=process_tv_shows,
+                    args=(query, streaming_platform, tv_results, tv_done),
+                )
+                tv_thread.daemon = True
+                tv_thread.start()
+            else:
+                tv_done.set()
+
+            movies_done.wait(timeout=15)
+            tv_done.wait(timeout=15)
+            # Gather the results and return to frontend
             if filter_type == "all":
                 all_results = []
 
@@ -221,9 +296,6 @@ def search():
                 for item in tv_results:
                     relavance = calculate_relevance(item, query)
                     all_results.append({"item": item, "relevance": relavance})
-
-                """for item in person_results:
-                    all_results.append({"item": item, "relevance": 0})"""
 
                 all_results = sorted(
                     all_results, key=lambda x: x["relevance"], reverse=True
