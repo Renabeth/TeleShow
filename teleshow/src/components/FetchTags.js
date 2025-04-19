@@ -67,6 +67,10 @@ const FetchTags = (props) => {
     const [customTag2, setCustomTag2] = useState("")
     const [customTag3, setCustomTag3] = useState("")
 
+    const [customTag1Length, setCustomTag1Length] = useState(0)
+    const [customTag2Length, setCustomTag2Length] = useState(0)
+    const [customTag3Length, setCustomTag3Length] = useState(0)
+
     const tagsRef = collection(db, "Tags")
 
     // Help from https://www.rowy.io/blog/firestore-react-query
@@ -153,14 +157,17 @@ const FetchTags = (props) => {
                 }
                 case ('tag1'): {
                     setCustomTag1(tag.data().tag_name)
+                    setCustomTag1Length(tag.data().tag_name.length)
                     break;
                 }
                 case ('tag2'): {
                     setCustomTag2(tag.data().tag_name)
+                    setCustomTag2Length(tag.data().tag_name.length)
                     break;
                 }
                 case ('tag3'): {
                     setCustomTag3(tag.data().tag_name)
+                    setCustomTag3Length(tag.data().tag_name.length)
                     break;
                 }
                 default: {
@@ -259,14 +266,17 @@ const FetchTags = (props) => {
         switch (tag) {
             case ("customTag1"): {
                 setCustomTag1(tagText)
+                setCustomTag1Length(tagText.length)
                 break;
             }
             case ("customTag2"): {
                 setCustomTag2(tagText)
+                setCustomTag2Length(tagText.length)
                 break;
             }
             case ("customTag3"): {
                 setCustomTag3(tagText)
+                setCustomTag3Length(tagText.length)
                 break;
             }
             default: {
@@ -441,6 +451,7 @@ const FetchTags = (props) => {
                                 onChange={(e) => handleCustomTag("customTag1", e.target.value)}
                             />
                         </div>
+                        {20 - customTag1Length}/20 characters remaining.
                         <div className="customTagGroupBtn">
                             <Button 
                                 variant="primary" 
@@ -477,6 +488,7 @@ const FetchTags = (props) => {
                                 onChange={(e) => handleCustomTag("customTag2", e.target.value)}
                             />
                         </div>
+                        {20 - customTag2Length}/20 characters remaining.
                         <div className="customTagGroupBtn">
                             <Button 
                                 variant="primary" 
@@ -530,6 +542,7 @@ const FetchTags = (props) => {
                             </Button>
                         </div>
                     </div>
+                    {20 - customTag3Length}/20 characters remaining.
                 </div>
             </div>
         </>

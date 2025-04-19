@@ -128,7 +128,7 @@ const FetchComments = (props) => {
             onChange={handleCommentChange}
             maxLength={255} />
 
-            { `${commentData.remainingCharacters - commentData.text.length} characters remaining.` }
+            { `${commentData.remainingCharacters - commentData.text.length}/255 characters remaining.` }
 
             {/* Help from https://react-bootstrap.netlify.app/docs/forms/checks-radios/ */}
             <Form.Group>
