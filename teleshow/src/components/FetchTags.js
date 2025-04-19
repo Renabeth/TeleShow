@@ -525,6 +525,7 @@ const FetchTags = (props) => {
                                 onChange={(e) => handleCustomTag("customTag3", e.target.value)}
                             />
                         </div>
+                        {20 - customTag3Length}/20 characters remaining.
                         <div className="customTagGroupBtn">
                             <Button 
                                 variant="success" 
@@ -541,7 +542,6 @@ const FetchTags = (props) => {
                                 Update
                             </Button>
                         </div>
-                        {20 - customTag3Length}/20 characters remaining.
                     </div>
                 </div>
             </div>
