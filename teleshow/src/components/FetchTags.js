@@ -12,7 +12,8 @@ import {
     where, 
     orderBy,
     doc,
-    updateDoc
+    updateDoc,
+    deleteDoc // Help from https://dev.to/rajatamil/firebase-v9-firestore-delete-document-using-deletedoc-5bjh
 } from "firebase/firestore";
 
 import Button from "react-bootstrap/Button"
@@ -285,6 +286,74 @@ const FetchTags = (props) => {
         }
     }
 
+    const removeTag = async (type) => {
+        const q = query(
+            tagsRef,
+            where('user_id', '==', props.userID),
+            where('media_id', '==', props.mediaId),
+            where('media_type', '==', props.mediaType),
+            where('tag_type', '==', type)
+        )
+        const removeTagSnapshot = await getDocs(q)
+        let tagCount = 0;
+        let docId = 0;
+        removeTagSnapshot.forEach((doc) => {
+            tagCount++;
+            docId = doc.id
+        })
+
+        if (tagCount > 0) {
+            // Help from https://dev.to/rajatamil/firebase-v9-firestore-delete-document-using-deletedoc-5bjh
+            await deleteDoc(doc(db, "Tags", docId))
+            .then(async () => {
+                console.log("Tag deleted successfully.")
+                alert("Tag deleted successfully.")
+
+                switch(type) {
+                    case ("major"): {
+                        setMajorDefaultTag("Please select a tag")
+                        break;
+                    }
+                    case ("normal"): {
+                        setNormalDefaultTag("")
+                        break;
+                    }
+                    case ("minor"): {
+                        setMinorDefaultTag("")
+                        break;
+                    }
+                    case ("tag1"): {
+                        setCustomTag1("")
+                        setCustomTag1Length(0)
+                        break;
+                    }
+                    case ("tag2"): {
+                        setCustomTag2("")
+                        setCustomTag2Length(0)
+                        break;
+                    }
+                    case ("tag3"): {
+                        setCustomTag3("")
+                        setCustomTag3Length(0)
+                        break;
+                    }
+                    default:
+                        break;
+                }
+
+                await getTags()
+                //await getPersonalTags()
+            })
+            .catch(error => {
+                console.log(error)
+                alert("Error: ", error)
+            })
+        } else {
+            console.log("You do not currentl have a tag of this type.")
+            alert(`You do not currently have a tag of this type.`)
+        }
+    }
+
     if (initialTagFlag) {
         getTags()
         setInitialTagFlag(false)
@@ -342,7 +411,7 @@ const FetchTags = (props) => {
                         >
                             {/* Help from https://www.w3schools.com/tags/att_option_disabled.asp */}
                             <option 
-                                key={"Select"} 
+                                key={"Please select a tag"} 
                                 value="Please select a tag"
                                 className="unselectableOption"
                                 disabled
@@ -358,6 +427,13 @@ const FetchTags = (props) => {
                                 </option>
                             ))}
                         </Form.Select>
+                        <Button
+                            variant="danger"
+                            className="leftSide"
+                            onClick={async () => await removeTag("major")}
+                        >
+                            Delete This Tag
+                        </Button>
                     </div>
 
                     <div className="tagGroup">
@@ -379,7 +455,7 @@ const FetchTags = (props) => {
                             }
                         >
                             <option 
-                                key={"Select"} 
+                                key={"Please select a tag"} 
                                 value="Please select a tag"
                                 className="unselectableOption"
                                 disabled
@@ -393,6 +469,13 @@ const FetchTags = (props) => {
                                 </option>
                             ))}
                         </Form.Select>
+                        <Button
+                            variant="danger"
+                            className="leftSide"
+                            onClick={async () => await removeTag("normal")}
+                        >
+                            Delete This Tag
+                        </Button>
                     </div>
 
                     <div className="tagGroup">
@@ -414,7 +497,7 @@ const FetchTags = (props) => {
                             }
                         >
                             <option 
-                                key={"Select"} 
+                                key={"Please select a tag"} 
                                 value="Please select a tag"
                                 className="unselectableOption"
                                 disabled
@@ -428,6 +511,13 @@ const FetchTags = (props) => {
                                 </option>
                             ))}
                         </Form.Select>
+                        <Button
+                            variant="danger"
+                            className="leftSide"
+                            onClick={async () => await removeTag("minor")}
+                        >
+                            Delete This Tag
+                        </Button>
                     </div>
                 </div>
                 <div className="tagColumn">
@@ -465,7 +555,14 @@ const FetchTags = (props) => {
                                     )
                                 }}
                             >
-                                Update
+                                Update This Tag
+                            </Button>
+                            <Button
+                                variant="danger"
+                                className="customTagBtn"
+                                onClick={async () => await removeTag("tag1")}
+                            >
+                                Delete This Tag
                             </Button>
                         </div>
                     </div>
@@ -502,7 +599,14 @@ const FetchTags = (props) => {
                                     )
                                 }}
                             >
-                                Update
+                                Update This Tag
+                            </Button>
+                            <Button
+                                variant="danger"
+                                className="customTagBtn"
+                                onClick={async () => await removeTag("tag2")}
+                            >
+                                Delete This Tag
                             </Button>
                         </div>
                     </div>
@@ -539,7 +643,14 @@ const FetchTags = (props) => {
                                     )
                                 }}
                             >
-                                Update
+                                Update This Tag
+                            </Button>
+                            <Button
+                                variant="danger"
+                                className="customTagBtn"
+                                onClick={async () => await removeTag("tag3")}
+                            >
+                                Delete This Tag
                             </Button>
                         </div>
                     </div>

@@ -2,11 +2,11 @@ import {useState} from "react"
 import '../styles/Comment.css'
 
 // Help from https://www.freecodecamp.org/news/how-to-use-the-firebase-database-in-react/
-import { collection, addDoc, getDocs } from "firebase/firestore";
+import { collection, addDoc, getDocs, doc } from "firebase/firestore";
 import { db } from "../firebase";
 
 // Help from https://firebase.google.com/docs/firestore/query-data/queries
-import { query, where, limit } from "firebase/firestore";
+import { query, where, deleteDoc, limit } from "firebase/firestore";
 
 // Help from https://www.rowy.io/blog/firestore-timestamp
 import { serverTimestamp } from 'firebase/firestore'
@@ -85,6 +85,7 @@ const FetchComments = (props) => {
                     media_type: props.mediaType,
                     text: commentData.text,
                     score: 0,
+                    isEdited: "no",
                 
                     // Help from https://www.rowy.io/blog/firestore-timestamp
                     date_added: serverTimestamp(),
@@ -106,6 +107,21 @@ const FetchComments = (props) => {
         else {
             alert("No content in comment detected.")
         }
+    }
+
+    const deleteComment = async (commentId) => {
+        // Help from https://dev.to/rajatamil/firebase-v9-firestore-delete-document-using-deletedoc-5bjh
+        await deleteDoc(doc(db, "Comments", commentId))
+        .then(() => {
+            console.log("Comment deleted successfully.")
+            alert("Comment deleted successfully.")
+        })
+        .catch(error => {
+            console.log(error)
+            alert("Error trying to delete comment: ", error)
+        })
+
+        await getComments()
     }
 
     if (initialCommentsFlag) {
@@ -157,13 +173,23 @@ const FetchComments = (props) => {
                                 
                                 {/* Help from https://stackoverflow.com/questions/52247445/how-do-i-convert-a-firestore-date-timestamp-to-a-js-date */}
                                 {/* And https://stackoverflow.com/questions/56727191/typeerror-cannot-read-property-todate-of-undefined */}
-                                <p>Created {comment.date_added.toDate().toDateString() }{ comment.spoiler ? <strong> (Spoiler)</strong> : ""}</p>
+                                <p>Created {comment.date_added.toDate().toDateString() } {/*(comment.isEdited === "yes") ? "(Edited)" : ""*/} { comment.spoiler ? <strong> (Spoiler)</strong> : ""}</p>
                             </div>
                         </div>
                         
                         <div className="commentText">
                             { comment.spoiler && !spoilers ? "This comment contains spoilers." : comment.text}
                         </div>
+
+                        { comment.user_id === props.userID ? 
+                            <Button 
+                                variant="danger"
+                                style={{marginTop: "5px"}}
+                                onClick={async () => await deleteComment(comment.id)}
+                            >
+                                Delete My Comment
+                            </Button> : ""
+                        }
                     </div>
                 ))}
             </div>
