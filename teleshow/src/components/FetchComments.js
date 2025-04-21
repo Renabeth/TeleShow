@@ -208,7 +208,7 @@ const FetchComments = (props) => {
             onChange={handleCommentChange}
             maxLength={255} />
 
-            { `${commentData.remainingCharacters - commentData.text.length}/255 characters remaining.` }
+            <p>{ `${commentData.remainingCharacters - commentData.text.length}/255 characters remaining.` }</p>
 
             {/* Help from https://react-bootstrap.netlify.app/docs/forms/checks-radios/ */}
             <Form.Group>
@@ -248,7 +248,7 @@ const FetchComments = (props) => {
                         onChange={handleEditCommentChange}
                         maxLength={255} />
 
-                        { `${editCommentData.remainingCharacters - editCommentData.text.length}/255 characters remaining.` }
+                        <p>{ `${editCommentData.remainingCharacters - editCommentData.text.length}/255 characters remaining.` }</p>
 
                         {/* Help from https://react-bootstrap.netlify.app/docs/forms/checks-radios/ */}
                         <Form.Group>
@@ -261,7 +261,11 @@ const FetchComments = (props) => {
                         </Button>
                 </Modal.Body>
                 <Modal.Footer>
-                    <Button onClick={() => handleCloseEdit()}>
+                    <Button 
+                        variant="outline-secondary" // Based on Moses's code from DetailModal.js
+                        onClick={() => handleCloseEdit()}
+                        style={{ backgroundColor: "silver" }} // Based on code from DetailModal.js (I believe the code was Moses's)
+                    >
                         Close
                     </Button>
                 </Modal.Footer>
