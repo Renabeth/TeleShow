@@ -21,6 +21,9 @@ import Button from "react-bootstrap/Button"
 // Help from https://react-bootstrap.netlify.app/docs/forms/form-control/
 import Form from 'react-bootstrap/Form';
 
+// Help from https://react-icons.github.io/react-icons/icons/bs/
+import { BsPencilFill, BsTrashFill, BsPlusLg } from "react-icons/bs";
+
 const FetchTags = (props) => {
     // Help from https://www.geeksforgeeks.org/how-to-perform-form-validation-in-react/
     
@@ -432,7 +435,7 @@ const FetchTags = (props) => {
                             className="leftSide"
                             onClick={async () => await removeTag("major")}
                         >
-                            Delete This Tag
+                            <BsTrashFill /> Delete This Tag
                         </Button>
                     </div>
 
@@ -474,7 +477,7 @@ const FetchTags = (props) => {
                             className="leftSide"
                             onClick={async () => await removeTag("normal")}
                         >
-                            Delete This Tag
+                            <BsTrashFill /> Delete This Tag
                         </Button>
                     </div>
 
@@ -516,7 +519,7 @@ const FetchTags = (props) => {
                             className="leftSide"
                             onClick={async () => await removeTag("minor")}
                         >
-                            Delete This Tag
+                            <BsTrashFill /> Delete This Tag
                         </Button>
                     </div>
                 </div>
@@ -555,14 +558,14 @@ const FetchTags = (props) => {
                                     )
                                 }}
                             >
-                                Update This Tag
+                                <BsPencilFill /> Update This Tag
                             </Button>
                             <Button
                                 variant="danger"
                                 className="customTagBtn"
                                 onClick={async () => await removeTag("tag1")}
                             >
-                                Delete This Tag
+                                <BsTrashFill /> Delete This Tag
                             </Button>
                         </div>
                     </div>
@@ -599,14 +602,14 @@ const FetchTags = (props) => {
                                     )
                                 }}
                             >
-                                Update This Tag
+                                <BsPencilFill /> Update This Tag
                             </Button>
                             <Button
                                 variant="danger"
                                 className="customTagBtn"
                                 onClick={async () => await removeTag("tag2")}
                             >
-                                Delete This Tag
+                                <BsTrashFill /> Delete This Tag
                             </Button>
                         </div>
                     </div>
@@ -643,14 +646,14 @@ const FetchTags = (props) => {
                                     )
                                 }}
                             >
-                                Update This Tag
+                                <BsPencilFill /> Update This Tag
                             </Button>
                             <Button
                                 variant="danger"
                                 className="customTagBtn"
                                 onClick={async () => await removeTag("tag3")}
                             >
-                                Delete This Tag
+                                <BsTrashFill /> Delete This Tag
                             </Button>
                         </div>
                     </div>

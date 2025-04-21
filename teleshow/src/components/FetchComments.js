@@ -1,12 +1,13 @@
 import {useState} from "react"
 import '../styles/Comment.css'
+import './DetailModal.css';
 
 // Help from https://www.freecodecamp.org/news/how-to-use-the-firebase-database-in-react/
 import { collection, addDoc, getDocs, doc } from "firebase/firestore";
 import { db } from "../firebase";
 
 // Help from https://firebase.google.com/docs/firestore/query-data/queries
-import { query, where, deleteDoc, limit } from "firebase/firestore";
+import { query, where, deleteDoc, updateDoc, limit } from "firebase/firestore";
 
 // Help from https://www.rowy.io/blog/firestore-timestamp
 import { serverTimestamp } from 'firebase/firestore'
@@ -19,10 +20,21 @@ import ButtonGroup from "react-bootstrap/ButtonGroup";
 // Help from https://react-bootstrap.netlify.app/docs/forms/form-control/
 import Form from 'react-bootstrap/Form';
 
+// Help from https://react-bootstrap.netlify.app/docs/components/modal/
+import Modal from 'react-bootstrap/Modal';
+
+// Help from https://react-icons.github.io/react-icons/icons/bs/
+import { BsPencilFill, BsTrashFill, BsPlusLg } from "react-icons/bs";
+
 const FetchComments = (props) => {
 
     // Help from https://www.geeksforgeeks.org/how-to-perform-form-validation-in-react/
     const [commentData, setCommentData] = useState({
+        text: '',
+        remainingCharacters: 255,
+    })
+
+    const [editCommentData, setEditCommentData] = useState({
         text: '',
         remainingCharacters: 255,
     })
@@ -33,6 +45,32 @@ const FetchComments = (props) => {
             ...commentData,
             [name]: value,
         })
+    }
+
+    const handleEditCommentChange = (e) => {
+        const {name, value} = e.target;
+        setEditCommentData({
+            ...editCommentData,
+            [name]: value,
+        })
+    }
+
+    const [editCommentId, setEditCommentId] = useState("")
+    const [editCommentSpoiler, setEditCommentSpoiler] = useState(false)
+    const [editModalLoading, setEditModalLoading] = useState(false)
+
+    // Help from https://react-bootstrap.netlify.app/docs/components/modal/
+    const [showEdit, setShowEdit] = useState(false)
+    const handleCloseEdit = () => {
+        setShowEdit(false)
+    }
+    const handleShowEdit = async (id, text, spoiler) => {
+        setEditModalLoading(true)
+        editCommentData.text = text
+        setEditCommentSpoiler(spoiler)
+        setEditCommentId(id)
+        setShowEdit(true)
+        setEditModalLoading(false)
     }
 
     const [commentLoading, setCommentLoading] = useState(false)
@@ -112,6 +150,29 @@ const FetchComments = (props) => {
         }
     }
 
+    const updateComment = async (commentId) => {
+
+        if (editCommentData.text.trim()) {
+            // Code based on FetchTags.js -WA
+            try {
+                await updateDoc(doc(db, "Comments", commentId), {
+                    text: editCommentData.text,
+                    isEdited: 'yes',
+                    spoiler: document.getElementById('editSpoiler').checked,
+                })
+                console.log("Comment updated successfully.")
+                alert("Comment updated successfully.")
+            } catch (error) {
+                console.log("Error updating comment: ", error)
+                alert("Error updating comment: ", error)
+            }
+        } else {
+            alert("You cannot enter an empty comment.")
+        }
+
+        await getComments();
+    }
+
     const deleteComment = async (commentId) => {
         // Help from https://dev.to/rajatamil/firebase-v9-firestore-delete-document-using-deletedoc-5bjh
         await deleteDoc(doc(db, "Comments", commentId))
@@ -155,13 +216,57 @@ const FetchComments = (props) => {
             </Form.Group>
             
             <Button variant="success" onClick={async () => await AddComment()}>
-                Add a Comment
+                <BsPlusLg /> Add a Comment
             </Button>
             <br /><br />
 
             {/* Help from https://react-bootstrap.netlify.app/docs/forms/checks-radios/ */}
             <Form.Check type="switch" onClick={toggleSpoilers} label="Show Spoilers?" />
             <br />
+
+
+            {/* Help from https://react-bootstrap.netlify.app/docs/components/modal/ */}
+            { editModalLoading ? "Loading..." : <Modal
+                show={showEdit}
+                onHide={handleCloseEdit}
+                backdrop="static"
+                keyboard={false}
+                dialogClassName="detail-modal" // From DetailModal.css
+            >
+                <Modal.Header closeButton>
+                    <Modal.Title>Edit Comment</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    {/* Help from https://www.geeksforgeeks.org/how-to-perform-form-validation-in-react/ */}
+                    {/* And https://react-bootstrap.netlify.app/docs/forms/form-control/ */}
+                    <textarea 
+                        className={`commentTextBox textBox-dark`} 
+                        rows={5} 
+                        placeholder="Edit your Comment..." 
+                        name="text" 
+                        value={editCommentData.text} 
+                        onChange={handleEditCommentChange}
+                        maxLength={255} />
+
+                        { `${editCommentData.remainingCharacters - editCommentData.text.length}/255 characters remaining.` }
+
+                        {/* Help from https://react-bootstrap.netlify.app/docs/forms/checks-radios/ */}
+                        <Form.Group>
+                            {/* Help from https://stackoverflow.com/questions/59117030/how-to-precheck-some-checkbox-in-reactjs */}
+                            <Form.Check id="editSpoiler" label="Spoiler?" checked={editCommentSpoiler ? true : false } />
+                        </Form.Group>
+            
+                        <Button variant="success" onClick={async () => await updateComment(editCommentId)}>
+                            <BsPencilFill /> Update Comment
+                        </Button>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button onClick={() => handleCloseEdit()}>
+                        Close
+                    </Button>
+                </Modal.Footer>
+            </Modal>}
+
 
             <div className="comments">
                 {commentLoading && <p>Loading...</p>}
@@ -176,7 +281,7 @@ const FetchComments = (props) => {
                                 
                                 {/* Help from https://stackoverflow.com/questions/52247445/how-do-i-convert-a-firestore-date-timestamp-to-a-js-date */}
                                 {/* And https://stackoverflow.com/questions/56727191/typeerror-cannot-read-property-todate-of-undefined */}
-                                <p>Created {comment.date_added.toDate().toDateString() } {/*(comment.isEdited === "yes") ? "(Edited)" : ""*/} { comment.spoiler ? <strong> (Spoiler)</strong> : ""}</p>
+                                <p>Created {comment.date_added.toDate().toDateString() } {(comment.isEdited === "yes") ? "(Edited)" : ""} { comment.spoiler ? <strong> (Spoiler)</strong> : ""}</p>
                             </div>
                         </div>
                         
@@ -186,18 +291,19 @@ const FetchComments = (props) => {
 
                         { comment.user_id === props.userID ? 
                             <ButtonGroup>
-                                {/*<Button
+                                <Button
                                     variant="success"
                                     style={{marginTop: "5px"}}
+                                    onClick={async () => await handleShowEdit(comment.id, comment.text, comment.spoiler)}
                                 >
-                                    Edit My Comment
-                                </Button>*/}
+                                    <BsPencilFill /> Edit My Comment
+                                </Button>
                                 <Button 
                                     variant="danger"
                                     style={{marginTop: "5px"}}
                                     onClick={async () => await deleteComment(comment.id)}
                                 >
-                                    Delete My Comment
+                                    <BsTrashFill /> Delete My Comment
                                 </Button>
                             </ButtonGroup>
                              : ""

@@ -23,6 +23,9 @@ import { getAggregateFromServer, average } from "firebase/firestore";
 
 import Button from "react-bootstrap/Button"
 
+// Help from https://react-icons.github.io/react-icons/icons/bs/
+import { BsTrashFill } from "react-icons/bs";
+
 //help from https://www.youtube.com/watch?v=BmhU_MoxNqQ
 // And https://stackoverflow.com/questions/70344255/react-js-passing-one-components-variables-to-another-component-and-vice-versa
 export default function StarRate(props) {
@@ -187,7 +190,7 @@ export default function StarRate(props) {
         variant="danger"
         onClick={async () => await deleteRating()}
       >
-        {`Delete my Rating for this ${props.currentMediaType === "tv" ? "Show" : "Movie"}`}
+        <BsTrashFill /> {`Delete my Rating for this ${props.currentMediaType === "tv" ? "Show" : "Movie"}`}
       </Button>
     </>
   );
