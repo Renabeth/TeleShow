@@ -337,9 +337,9 @@ const DetailModal = ({
       if (response.data.status === "success") {
         alert(`Added to watchlist: ${watchlistName}`);
         handleCloseWatchlistModal();
-      } else {
+      } /*else {
         alert("Could not add media to watchlist.") // Added so that the user knows they weren't able to add media to a watchlist -WA
-      }
+      }*/
     } catch (error) {
       if (error.response && error.response.data && error.response.data.error) {
         alert(error.response.data.error);
@@ -582,7 +582,7 @@ const DetailModal = ({
         show={show}
         onHide={onHide}
         centered
-        size="85w" // changed from lg to 85w
+        size="lg" // Moses had this as lg - should we change it to something else? -WA
         className="detail-modal"
       >
         <Modal.Header closeButton>
