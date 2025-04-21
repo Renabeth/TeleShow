@@ -243,7 +243,7 @@ const FetchComments = (props) => {
                         className={`commentTextBox textBox-dark`} 
                         rows={5} 
                         placeholder="Edit your Comment..." 
-                        name="text" 
+                        name="editText" 
                         value={editCommentData.text} 
                         onChange={handleEditCommentChange}
                         maxLength={255} />
@@ -253,7 +253,7 @@ const FetchComments = (props) => {
                         {/* Help from https://react-bootstrap.netlify.app/docs/forms/checks-radios/ */}
                         <Form.Group>
                             {/* Help from https://stackoverflow.com/questions/59117030/how-to-precheck-some-checkbox-in-reactjs */}
-                            <Form.Check id="editSpoiler" label="Spoiler?" checked={editCommentSpoiler ? true : false } />
+                            <Form.Check id="editSpoiler" label="Spoiler?" /*value={editCommentSpoiler ? true : false }*/ />
                         </Form.Group>
             
                         <Button variant="success" onClick={async () => await updateComment(editCommentId)}>
