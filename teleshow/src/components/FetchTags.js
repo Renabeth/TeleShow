@@ -18,6 +18,9 @@ import {
 
 import Button from "react-bootstrap/Button"
 
+// Help from https://react-bootstrap.netlify.app/docs/components/button-group/
+import ButtonGroup from "react-bootstrap/ButtonGroup";
+
 // Help from https://react-bootstrap.netlify.app/docs/forms/form-control/
 import Form from 'react-bootstrap/Form';
 
@@ -545,7 +548,7 @@ const FetchTags = (props) => {
                             />
                         </div>
                         {20 - customTag1Length}/20 characters remaining.
-                        <div className="customTagGroupBtn">
+                        <ButtonGroup className="customTagGroupBtn">
                             <Button 
                                 variant="success" 
                                 className="customTagBtn"
@@ -567,7 +570,7 @@ const FetchTags = (props) => {
                             >
                                 <BsTrashFill /> Delete This Tag
                             </Button>
-                        </div>
+                        </ButtonGroup>
                     </div>
 
                     <div className="customTagGroup">
@@ -589,7 +592,7 @@ const FetchTags = (props) => {
                             />
                         </div>
                         {20 - customTag2Length}/20 characters remaining.
-                        <div className="customTagGroupBtn">
+                        <ButtonGroup className="customTagGroupBtn">
                             <Button 
                                 variant="success" 
                                 className="customTagBtn"
@@ -611,7 +614,7 @@ const FetchTags = (props) => {
                             >
                                 <BsTrashFill /> Delete This Tag
                             </Button>
-                        </div>
+                        </ButtonGroup>
                     </div>
 
                     <div className="customTagGroup">
@@ -633,7 +636,7 @@ const FetchTags = (props) => {
                             />
                         </div>
                         {20 - customTag3Length}/20 characters remaining.
-                        <div className="customTagGroupBtn">
+                        <ButtonGroup className="customTagGroupBtn">
                             <Button 
                                 variant="success" 
                                 className="customTagBtn"
@@ -655,7 +658,7 @@ const FetchTags = (props) => {
                             >
                                 <BsTrashFill /> Delete This Tag
                             </Button>
-                        </div>
+                        </ButtonGroup>
                     </div>
                 </div>
             </div>
