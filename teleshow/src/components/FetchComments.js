@@ -13,6 +13,9 @@ import { serverTimestamp } from 'firebase/firestore'
 
 import Button from "react-bootstrap/Button"
 
+// Help from https://react-bootstrap.netlify.app/docs/components/button-group/
+import ButtonGroup from "react-bootstrap/ButtonGroup";
+
 // Help from https://react-bootstrap.netlify.app/docs/forms/form-control/
 import Form from 'react-bootstrap/Form';
 
@@ -182,13 +185,22 @@ const FetchComments = (props) => {
                         </div>
 
                         { comment.user_id === props.userID ? 
-                            <Button 
-                                variant="danger"
-                                style={{marginTop: "5px"}}
-                                onClick={async () => await deleteComment(comment.id)}
-                            >
-                                Delete My Comment
-                            </Button> : ""
+                            <ButtonGroup>
+                                {/*<Button
+                                    variant="success"
+                                    style={{marginTop: "5px"}}
+                                >
+                                    Edit My Comment
+                                </Button>*/}
+                                <Button 
+                                    variant="danger"
+                                    style={{marginTop: "5px"}}
+                                    onClick={async () => await deleteComment(comment.id)}
+                                >
+                                    Delete My Comment
+                                </Button>
+                            </ButtonGroup>
+                             : ""
                         }
                     </div>
                 ))}

@@ -337,6 +337,8 @@ const DetailModal = ({
       if (response.data.status === "success") {
         alert(`Added to watchlist: ${watchlistName}`);
         handleCloseWatchlistModal();
+      } else {
+        alert("Could not add media to watchlist.") // Added so that the user knows they weren't able to add media to a watchlist -WA
       }
     } catch (error) {
       if (error.response && error.response.data && error.response.data.error) {
