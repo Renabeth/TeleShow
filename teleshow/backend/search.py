@@ -7,6 +7,11 @@ import datetime
 import time
 import os  # Used to find file paths
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Simple rate limiter that keeps count of the function calls and thus api calls.
+from ratelimit import limits, sleep_and_retry
+
 
 search_bp = Blueprint("search", __name__)
 
@@ -50,29 +55,11 @@ PLATFORM_ID_MAP = {
 # I ran into a problem here where tmdbsimple wrapper was giving None responses
 # The wrapper is supposed to give an error message or something. None means that something is wrong with the wrapper
 # To combat this im using a call directly to the api if None is given as a response
+# Executed by the thread
+@sleep_and_retry
+@limits(calls=50, period=5)
 @cache.memoize(3600)
 def get_watch_providers(media_id, media_type):
-    results = []
-    provider_fetch_event = threading.Event()
-    # Passing the array in the case of threads manipulates the same array that was passed
-    # This is because its passing the memory location of the array instead of copying it.
-    # Therefore passing results to the thread actually changes the results array
-    provider_thread = threading.Thread(
-        target=fetch_providers,
-        args=(media_id, media_type, results, provider_fetch_event),
-    )
-    provider_thread.daemon = True
-    provider_thread.start()
-
-    # This causes the function to wait for the thread to be done.
-    # Additional benefit of returning whatever was successfully recieved instead of nothing in the event of a exception
-    provider_fetch_event.wait(timeout=10)
-
-    return results
-
-
-# Executed by the thread
-def fetch_providers(media_id, media_type, results, completion_event):
     try:
         # Direct API call, tmdbsimple limitation
         # I was getting None responses
@@ -97,6 +84,7 @@ def fetch_providers(media_id, media_type, results, completion_event):
 
         if not us_providers:
             return []
+
         # For deduplication
         provider_ids = set()
         for provider_type in ["flatrate", "buy", "rent"]:
@@ -104,14 +92,13 @@ def fetch_providers(media_id, media_type, results, completion_event):
                 provider_id = provider.get("provider_id")
                 if provider_id:
                     provider_ids.add(provider_id)
-        results.extend(list(provider_ids))
+
+        return list(provider_ids)
 
         # Returns the numeric id for watch providers
-        time.sleep(0.1)
     except Exception as e:
         print(f"Error fetching providers: {e}")
-    finally:
-        completion_event.set()
+        return []
 
 
 # Serperate thread executed function to handle movie search
@@ -120,23 +107,47 @@ def process_movies(query, streaming_platform, movie_results, movies_done):
         movie_search = tmdb.Search()
         movie_search.movie(query=query)
 
+        all_movies = []
         for item in movie_search.results:
             item["media_type"] = "movie"
-            if streaming_platform != "all":
-                platform_list = (
-                    streaming_platform.split(",")
-                    if streaming_platform != "all"
-                    else ["all"]
-                )
-                all_platform_ids = set()
-                for platform in platform_list:
-                    platform_ids = PLATFORM_ID_MAP.get(platform.lower(), [])
-                    all_platform_ids.update(platform_ids)
-                provider_ids = get_watch_providers(item["id"], "movie")
-                if any(pid in all_platform_ids for pid in provider_ids):
-                    movie_results.append(item)
-            else:
-                movie_results.append(item)
+            all_movies.append(item)
+
+        if streaming_platform != "all":
+            platform_list = (
+                streaming_platform.split(",")
+                if streaming_platform != "all"
+                else ["all"]
+            )
+            all_platform_ids = set()
+            for platform in platform_list:
+                platform_ids = PLATFORM_ID_MAP.get(platform.lower(), [])
+                all_platform_ids.update(platform_ids)
+
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                # Using threadpoolexecutor, the return are futures that can be worked with
+                # This is created a pool of threads to perform the defined function with the args
+                # Just a reminder for myself that enumerate returns a tuple of iterator and value
+                # This syntax creates a dictionary in python
+                # The key here is the future objects and the values are the indices of each movie in the list
+                # Future objects are held as memory addresses so they're unique
+                # In short future:(movie_index:movie_value)
+                future_to_movie = {
+                    executor.submit(get_watch_providers, movie["id"], "movie"): i
+                    for i, movie in enumerate(all_movies)
+                }
+                # as_completed gets the futures as they complete
+                for future in as_completed(future_to_movie):
+                    # This works because I set the future object as a key in the line above
+                    # It returns the index of the movie in all_movies
+                    i = future_to_movie[future]
+                    try:
+                        provider_ids = future.result(timeout=5)
+                        if any(pid in all_platform_ids for pid in provider_ids):
+                            movie_results.append(all_movies[i])
+                    except Exception as e:
+                        print(f"Fetching Provider failed: {e}")
+        else:
+            movie_results.extend(all_movies)
     except Exception as e:
         print(f"Error in movie processing thread: {e}")
     finally:
@@ -149,24 +160,40 @@ def process_tv_shows(query, streaming_platform, tv_results, tv_done):
     try:
         tv_search = tmdb.Search()
         tv_search.tv(query=query)
-
+        all_tv = []
         for item in tv_search.results:
             item["media_type"] = "tv"
-            if streaming_platform != "all":
-                platform_list = (
-                    streaming_platform.split(",")
-                    if streaming_platform != "all"
-                    else ["all"]
-                )
-                all_platform_ids = set()
-                for platform in platform_list:
-                    platform_ids = PLATFORM_ID_MAP.get(platform.lower(), [])
-                    all_platform_ids.update(platform_ids)
-                provider_ids = get_watch_providers(item["id"], "tv")
-                if any(pid in all_platform_ids for pid in provider_ids):
-                    tv_results.append(item)
-            else:
-                tv_results.append(item)
+            all_tv.append(item)
+
+        if streaming_platform != "all":
+            platform_list = (
+                streaming_platform.split(",")
+                if streaming_platform != "all"
+                else ["all"]
+            )
+            all_platform_ids = set()
+            for platform in platform_list:
+                platform_ids = PLATFORM_ID_MAP.get(platform.lower(), [])
+                all_platform_ids.update(platform_ids)
+
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                future_to_tv = {
+                    executor.submit(get_watch_providers, tv["id"], "tv"): i
+                    for i, tv in enumerate(all_tv)
+                }
+                # as_completed gets the futures as they complete
+                for future in as_completed(future_to_tv):
+                    # This works because I set the future object as a key in the line above
+                    # It returns the index of the movie in all_movies
+                    i = future_to_tv[future]
+                    try:
+                        provider_ids = future.result(timeout=5)
+                        if any(pid in all_platform_ids for pid in provider_ids):
+                            tv_results.append(all_tv[i])
+                    except Exception as e:
+                        print(f"Fetching Provider failed: {e}")
+        else:
+            tv_results.extend(all_tv)
     except Exception as e:
         print(f"Error in tv processing thread: {e}")
     finally:
