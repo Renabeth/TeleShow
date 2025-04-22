@@ -12,13 +12,20 @@ import {
     where, 
     orderBy,
     doc,
-    updateDoc
+    updateDoc,
+    deleteDoc // Help from https://dev.to/rajatamil/firebase-v9-firestore-delete-document-using-deletedoc-5bjh
 } from "firebase/firestore";
 
 import Button from "react-bootstrap/Button"
 
+// Help from https://react-bootstrap.netlify.app/docs/components/button-group/
+import ButtonGroup from "react-bootstrap/ButtonGroup";
+
 // Help from https://react-bootstrap.netlify.app/docs/forms/form-control/
 import Form from 'react-bootstrap/Form';
+
+// Help from https://react-icons.github.io/react-icons/icons/bs/
+import { BsPencilFill, BsTrashFill, BsPlusLg } from "react-icons/bs";
 
 const FetchTags = (props) => {
     // Help from https://www.geeksforgeeks.org/how-to-perform-form-validation-in-react/
@@ -66,6 +73,10 @@ const FetchTags = (props) => {
     const [customTag1, setCustomTag1] = useState("")
     const [customTag2, setCustomTag2] = useState("")
     const [customTag3, setCustomTag3] = useState("")
+
+    const [customTag1Length, setCustomTag1Length] = useState(0)
+    const [customTag2Length, setCustomTag2Length] = useState(0)
+    const [customTag3Length, setCustomTag3Length] = useState(0)
 
     const tagsRef = collection(db, "Tags")
 
@@ -153,14 +164,17 @@ const FetchTags = (props) => {
                 }
                 case ('tag1'): {
                     setCustomTag1(tag.data().tag_name)
+                    setCustomTag1Length(tag.data().tag_name.length)
                     break;
                 }
                 case ('tag2'): {
                     setCustomTag2(tag.data().tag_name)
+                    setCustomTag2Length(tag.data().tag_name.length)
                     break;
                 }
                 case ('tag3'): {
                     setCustomTag3(tag.data().tag_name)
+                    setCustomTag3Length(tag.data().tag_name.length)
                     break;
                 }
                 default: {
@@ -259,19 +273,90 @@ const FetchTags = (props) => {
         switch (tag) {
             case ("customTag1"): {
                 setCustomTag1(tagText)
+                setCustomTag1Length(tagText.length)
                 break;
             }
             case ("customTag2"): {
                 setCustomTag2(tagText)
+                setCustomTag2Length(tagText.length)
                 break;
             }
             case ("customTag3"): {
                 setCustomTag3(tagText)
+                setCustomTag3Length(tagText.length)
                 break;
             }
             default: {
                 break;
             }
+        }
+    }
+
+    const removeTag = async (type) => {
+        const q = query(
+            tagsRef,
+            where('user_id', '==', props.userID),
+            where('media_id', '==', props.mediaId),
+            where('media_type', '==', props.mediaType),
+            where('tag_type', '==', type)
+        )
+        const removeTagSnapshot = await getDocs(q)
+        let tagCount = 0;
+        let docId = 0;
+        removeTagSnapshot.forEach((doc) => {
+            tagCount++;
+            docId = doc.id
+        })
+
+        if (tagCount > 0) {
+            // Help from https://dev.to/rajatamil/firebase-v9-firestore-delete-document-using-deletedoc-5bjh
+            await deleteDoc(doc(db, "Tags", docId))
+            .then(async () => {
+                console.log("Tag deleted successfully.")
+                alert("Tag deleted successfully.")
+
+                switch(type) {
+                    case ("major"): {
+                        setMajorDefaultTag("Please select a tag")
+                        break;
+                    }
+                    case ("normal"): {
+                        setNormalDefaultTag("")
+                        break;
+                    }
+                    case ("minor"): {
+                        setMinorDefaultTag("")
+                        break;
+                    }
+                    case ("tag1"): {
+                        setCustomTag1("")
+                        setCustomTag1Length(0)
+                        break;
+                    }
+                    case ("tag2"): {
+                        setCustomTag2("")
+                        setCustomTag2Length(0)
+                        break;
+                    }
+                    case ("tag3"): {
+                        setCustomTag3("")
+                        setCustomTag3Length(0)
+                        break;
+                    }
+                    default:
+                        break;
+                }
+
+                await getTags()
+                //await getPersonalTags()
+            })
+            .catch(error => {
+                console.log(error)
+                alert("Error: ", error)
+            })
+        } else {
+            console.log("You do not currentl have a tag of this type.")
+            alert(`You do not currently have a tag of this type.`)
         }
     }
 
@@ -332,7 +417,7 @@ const FetchTags = (props) => {
                         >
                             {/* Help from https://www.w3schools.com/tags/att_option_disabled.asp */}
                             <option 
-                                key={"Select"} 
+                                key={"Please select a tag"} 
                                 value="Please select a tag"
                                 className="unselectableOption"
                                 disabled
@@ -348,6 +433,13 @@ const FetchTags = (props) => {
                                 </option>
                             ))}
                         </Form.Select>
+                        <Button
+                            variant="danger"
+                            className="leftSide"
+                            onClick={async () => await removeTag("major")}
+                        >
+                            <BsTrashFill /> Delete This Tag
+                        </Button>
                     </div>
 
                     <div className="tagGroup">
@@ -369,7 +461,7 @@ const FetchTags = (props) => {
                             }
                         >
                             <option 
-                                key={"Select"} 
+                                key={"Please select a tag"} 
                                 value="Please select a tag"
                                 className="unselectableOption"
                                 disabled
@@ -383,6 +475,13 @@ const FetchTags = (props) => {
                                 </option>
                             ))}
                         </Form.Select>
+                        <Button
+                            variant="danger"
+                            className="leftSide"
+                            onClick={async () => await removeTag("normal")}
+                        >
+                            <BsTrashFill /> Delete This Tag
+                        </Button>
                     </div>
 
                     <div className="tagGroup">
@@ -404,7 +503,7 @@ const FetchTags = (props) => {
                             }
                         >
                             <option 
-                                key={"Select"} 
+                                key={"Please select a tag"} 
                                 value="Please select a tag"
                                 className="unselectableOption"
                                 disabled
@@ -418,6 +517,13 @@ const FetchTags = (props) => {
                                 </option>
                             ))}
                         </Form.Select>
+                        <Button
+                            variant="danger"
+                            className="leftSide"
+                            onClick={async () => await removeTag("minor")}
+                        >
+                            <BsTrashFill /> Delete This Tag
+                        </Button>
                     </div>
                 </div>
                 <div className="tagColumn">
@@ -441,9 +547,10 @@ const FetchTags = (props) => {
                                 onChange={(e) => handleCustomTag("customTag1", e.target.value)}
                             />
                         </div>
-                        <div className="customTagGroupBtn">
+                        {20 - customTag1Length}/20 characters remaining.
+                        <ButtonGroup className="customTagGroupBtn">
                             <Button 
-                                variant="primary" 
+                                variant="success" 
                                 className="customTagBtn"
                                 onClick={(e) => {
                                     updateTag(
@@ -454,9 +561,16 @@ const FetchTags = (props) => {
                                     )
                                 }}
                             >
-                                Update
+                                <BsPencilFill /> Update This Tag
                             </Button>
-                        </div>
+                            <Button
+                                variant="danger"
+                                className="customTagBtn"
+                                onClick={async () => await removeTag("tag1")}
+                            >
+                                <BsTrashFill /> Delete This Tag
+                            </Button>
+                        </ButtonGroup>
                     </div>
 
                     <div className="customTagGroup">
@@ -477,9 +591,10 @@ const FetchTags = (props) => {
                                 onChange={(e) => handleCustomTag("customTag2", e.target.value)}
                             />
                         </div>
-                        <div className="customTagGroupBtn">
+                        {20 - customTag2Length}/20 characters remaining.
+                        <ButtonGroup className="customTagGroupBtn">
                             <Button 
-                                variant="primary" 
+                                variant="success" 
                                 className="customTagBtn"
                                 onClick={(e) => {
                                     updateTag(
@@ -490,9 +605,16 @@ const FetchTags = (props) => {
                                     )
                                 }}
                             >
-                                Update
+                                <BsPencilFill /> Update This Tag
                             </Button>
-                        </div>
+                            <Button
+                                variant="danger"
+                                className="customTagBtn"
+                                onClick={async () => await removeTag("tag2")}
+                            >
+                                <BsTrashFill /> Delete This Tag
+                            </Button>
+                        </ButtonGroup>
                     </div>
 
                     <div className="customTagGroup">
@@ -513,9 +635,10 @@ const FetchTags = (props) => {
                                 onChange={(e) => handleCustomTag("customTag3", e.target.value)}
                             />
                         </div>
-                        <div className="customTagGroupBtn">
+                        {20 - customTag3Length}/20 characters remaining.
+                        <ButtonGroup className="customTagGroupBtn">
                             <Button 
-                                variant="primary" 
+                                variant="success" 
                                 className="customTagBtn"
                                 onClick={(e) => {
                                     updateTag(
@@ -526,9 +649,16 @@ const FetchTags = (props) => {
                                     )
                                 }}
                             >
-                                Update
+                                <BsPencilFill /> Update This Tag
                             </Button>
-                        </div>
+                            <Button
+                                variant="danger"
+                                className="customTagBtn"
+                                onClick={async () => await removeTag("tag3")}
+                            >
+                                <BsTrashFill /> Delete This Tag
+                            </Button>
+                        </ButtonGroup>
                     </div>
                 </div>
             </div>

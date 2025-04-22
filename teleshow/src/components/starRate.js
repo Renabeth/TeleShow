@@ -8,6 +8,7 @@ import {
   query,
   serverTimestamp,
   where,
+  deleteDoc // Help from https://dev.to/rajatamil/firebase-v9-firestore-delete-document-using-deletedoc-5bjh
 } from "firebase/firestore";
 import { setDoc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
@@ -19,6 +20,11 @@ import { updateDoc } from "firebase/firestore";
 
 // Help from https://www.youtube.com/watch?v=91LWShFZn40
 import { getAggregateFromServer, average } from "firebase/firestore";
+
+import Button from "react-bootstrap/Button"
+
+// Help from https://react-icons.github.io/react-icons/icons/bs/
+import { BsTrashFill } from "react-icons/bs";
 
 //help from https://www.youtube.com/watch?v=BmhU_MoxNqQ
 // And https://stackoverflow.com/questions/70344255/react-js-passing-one-components-variables-to-another-component-and-vice-versa
@@ -107,6 +113,47 @@ export default function StarRate(props) {
     );
   };
 
+  const deleteRating = async () => {
+
+    let idToDelete = 0;
+    let duplicates = 0; // Checks to see if a user's rating is already in Firestore -WA
+
+    // Help from https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
+    const ratingRef = collection(db, "Ratings")
+    const q = query(
+      ratingRef,
+      where('user_id', '==', props.userID),
+      where('media_id', '==', props.currentMediaID),
+      where('media_type', '==', props.currentMediaType)
+    )
+    const deleteQuerySnapshot = await getDocs(q)
+    deleteQuerySnapshot.forEach((doc) => {
+      duplicates++
+      idToDelete = doc.id
+    })
+
+    if (duplicates > 0) {
+      await deleteDoc(doc(db, "Ratings", idToDelete))
+      .then(() => {
+        setRating(0)
+        console.log("Rating deleted successfully.")
+        alert("Rating deleted successfully.")
+      })
+      .catch(error => {
+        console.log("Error: ", error)
+        alert("Error trying to delete rating: ", error)
+      })
+    } else {
+      console.log(`You do not have a rating for this ${props.currentMediaType === "tv" ? "show" : "movie"} yet.`)
+      alert(`You do not have a rating for this ${props.currentMediaType === "tv" ? "show" : "movie"} yet.`)
+    }
+
+    // Pasted from handleRatingClick
+    setAvgRating(
+      await GetAverageRating(props.currentMediaID, props.currentMediaType)
+    );
+  }
+
   return (
     <>
       {[...Array(5)].map((star, index) => {
@@ -137,7 +184,14 @@ export default function StarRate(props) {
       })}
       <br />
       {/* Help from https://www.geeksforgeeks.org/floating-point-number-precision-in-javascript/# */}
-      Average Rating: {avgRating ? avgRating.toPrecision(2) : 0} / 5
+      <strong>Average Rating:</strong> {avgRating ? avgRating.toPrecision(2) : 0} / 5
+      <br />
+      <Button
+        variant="danger"
+        onClick={async () => await deleteRating()}
+      >
+        <BsTrashFill /> {`Delete my Rating for this ${props.currentMediaType === "tv" ? "Show" : "Movie"}`}
+      </Button>
     </>
   );
 }

@@ -33,26 +33,42 @@
 }
 
 .customTagGroup {
-    display: flex;
+    /*display: flex;*/
     margin-bottom: 20px;
-    align-items: center;
-    justify-content: space-evenly;
+    /*align-items: center;
+    justify-content: space-evenly;*/
 }
 
-.customTagGroupLeft {
+/*.customTagGroupLeft {
     flex: 16%;
 }
 
 .customTagGroupEntry {
     flex: 56%;
-}
+}*/
 
 .customTagEntry {
-    width: 90%;
+    width: 100%;
 }
 
 .customTagGroupBtn {
-    flex: 16%;
+    /*flex: 16%;*/
+    width: 100%;
+}
+
+.customTagBtn {
+    margin-top: 5px;
+    width: 100%;
+}
+
+.resetBtn {
+    width: 100%;
+    margin-top: 5px;
+}
+
+.leftSide {
+    width: 75%;
+    margin-top: 5px;
 }
 
 .unselectableOption {
