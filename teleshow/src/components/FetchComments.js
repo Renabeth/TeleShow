@@ -35,8 +35,8 @@ const FetchComments = (props) => {
     })
 
     const [editCommentData, setEditCommentData] = useState({
-        text: '',
-        remainingCharacters: 255,
+        editText: '',
+        editRemainingCharacters: 255,
     })
 
     const handleCommentChange = (e) => {
@@ -66,7 +66,7 @@ const FetchComments = (props) => {
     }
     const handleShowEdit = async (id, text, spoiler) => {
         setEditModalLoading(true)
-        editCommentData.text = text
+        editCommentData.editText = text
         setEditCommentSpoiler(spoiler)
         setEditCommentId(id)
         setShowEdit(true)
@@ -152,11 +152,11 @@ const FetchComments = (props) => {
 
     const updateComment = async (commentId) => {
 
-        if (editCommentData.text.trim()) {
+        if (editCommentData.editText.trim()) {
             // Code based on FetchTags.js -WA
             try {
                 await updateDoc(doc(db, "Comments", commentId), {
-                    text: editCommentData.text,
+                    text: editCommentData.editText,
                     isEdited: 'yes',
                     spoiler: document.getElementById('editSpoiler').checked,
                 })
@@ -244,16 +244,16 @@ const FetchComments = (props) => {
                         rows={5} 
                         placeholder="Edit your Comment..." 
                         name="editText" 
-                        value={editCommentData.text} 
+                        value={editCommentData.editText} 
                         onChange={handleEditCommentChange}
                         maxLength={255} />
 
-                        <p>{ `${editCommentData.remainingCharacters - editCommentData.text.length}/255 characters remaining.` }</p>
+                        <p>{ `${editCommentData.editRemainingCharacters - editCommentData.editText.length}/255 characters remaining.` }</p>
 
                         {/* Help from https://react-bootstrap.netlify.app/docs/forms/checks-radios/ */}
                         <Form.Group>
                             {/* Help from https://stackoverflow.com/questions/59117030/how-to-precheck-some-checkbox-in-reactjs */}
-                            <Form.Check id="editSpoiler" label="Spoiler?" /*value={editCommentSpoiler ? true : false }*/ />
+                            <Form.Check id="editSpoiler" label="Spoiler?" defaultChecked={editCommentSpoiler ? true : false } />
                         </Form.Group>
             
                         <Button variant="success" onClick={async () => await updateComment(editCommentId)}>
