@@ -393,6 +393,7 @@ const FetchTags = (props) => {
             <hr />
 
             <div className="tagDisplay">
+                { personalUserTagsLoading ? "Loading your standard tags..." :
                 <div className="tagColumn">
                     <h4>Standard Tags</h4>
 
@@ -525,7 +526,8 @@ const FetchTags = (props) => {
                             <BsTrashFill /> Delete This Tag
                         </Button>
                     </div>
-                </div>
+                </div> }
+                { customTagsLoading ? "Loading your custom tags..." :
                 <div className="tagColumn">
                     <h4>Custom Tags</h4>
 
@@ -660,7 +662,7 @@ const FetchTags = (props) => {
                             </Button>
                         </ButtonGroup>
                     </div>
-                </div>
+                </div> }
             </div>
         </>
     )
