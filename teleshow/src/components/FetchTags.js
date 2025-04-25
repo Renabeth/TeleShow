@@ -664,6 +664,7 @@ const FetchTags = (props) => {
                     </div>
                 </div> }
             </div>
+            <p>Tag feature inspired by <a href="https://store.steampowered.com/tag/" rel="noreferrer" target="_blank">Steam</a>.</p>
         </>
     )
 }

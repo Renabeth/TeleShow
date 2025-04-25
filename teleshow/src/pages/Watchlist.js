@@ -632,7 +632,7 @@ function Watchlist() {
                           </Button>
                         </ButtonGroup>
                         <br />
-                        <p>Your rating:</p>
+                        {/*<p>Your rating:</p>*/} {/* Commenting this out to fix watchlist item layout -WA */}
                         {/* Help from https://stackoverflow.com/questions/70344255/react-js-passing-one-components-variables-to-another-component-and-vice-versa */}
                         <StarRate
                           userID={userID}
