@@ -636,7 +636,7 @@ def get_user_watchlists():
     return jsonify({"watchlists": watchlists})
 
 
-# FOR GETTING ALL WATCHLIST MEDIA
+# FOR GETTING WATCHLIST MEDIA FOR ONE WATCHLIST
 @interactions_bp.route("/get-watchlist-media", methods=["GET"])
 def get_watchlist_media():
     user_id = request.args.get("user_id")
@@ -652,6 +652,10 @@ def get_watchlist_media():
     watchlist_ref = user_ref.collection("watchlists").document(watchlist_id)
     if not watchlist_ref.get().exists:
         return jsonify({"error": "Watchlist not found"})
+    watchlist_doc = watchlist_ref.get()
+    watchlist_data = watchlist_doc.to_dict()
+    watchlist_id = watchlist_data.id
+    watchlist_name = watchlist_data.get("name", "Unknown")
 
     media = []
     media_docs = watchlist_ref.collection("media").stream()
@@ -669,10 +673,62 @@ def get_watchlist_media():
                 "poster_path": media_data.get("poster_path"),
                 "added_at": media_data.get("added_at"),
                 "status": media_data.get("status", "Plan to watch"),
+                "watchlist_id": watchlist_id,
+                "watchlist_name": watchlist_name,
             }
         )
 
     return jsonify({"media": media})
+
+
+# FOR GETTING WATCHLIST MEDIA FOR MULTIPLE WATCHLISTS
+@interactions_bp.route("/get-multiple-watchlist-media", methods=["POST"])
+def get_multiple_watchlist_media():
+    data = request.get_json()
+    user_id = data.get("user_id")
+    watchlist_ids = data.get("watchlist_ids", [])
+
+    if not user_id or not watchlist_ids:
+        return jsonify({"error": "User ID and Watchlist IDs are required"})
+
+    user_ref = users_ref.document(user_id)
+    if not user_ref.get().exists:
+        return jsonify({"error": "User not found"})
+
+    all_media = []
+
+    # Process each watchlist
+    for watchlist_id in watchlist_ids:
+        watchlist_ref = user_ref.collection("watchlists").document(watchlist_id)
+        if not watchlist_ref.get().exists:
+            continue  # Skip invalid watchlists
+
+        # Get watchlist info
+        watchlist_doc = watchlist_ref.get()
+        watchlist_data = watchlist_doc.to_dict()
+        watchlist_name = watchlist_data.get("name", "Unknown")
+
+        # Get all media in this watchlist
+        media_docs = watchlist_ref.collection("media").stream()
+        for doc in media_docs:
+            media_data = doc.to_dict()
+            all_media.append(
+                {
+                    "id": doc.id,
+                    "media_id": media_data.get("media_id"),
+                    "media_type": media_data.get("media_type"),
+                    "title": media_data.get("title"),
+                    "overview": media_data.get("overview"),
+                    "release_date": media_data.get("release_date"),
+                    "poster_path": media_data.get("poster_path"),
+                    "added_at": media_data.get("added_at"),
+                    "status": media_data.get("status", "Plan to watch"),
+                    "watchlist_id": watchlist_id,
+                    "watchlist_name": watchlist_name,
+                }
+            )
+
+    return jsonify({"media": all_media})
 
 
 # FOR REMOVING MEDIA FROM WATCHLIST
@@ -835,3 +891,47 @@ def get_ratings():
     except Exception as e:
         print(f"Error getting rating: {str(e)}")
         return jsonify({"error": f"Failed to geting rating: {str(e)}"})
+
+
+# Gets mutiple ratings at the same time
+@interactions_bp.route("/get-multiple-ratings", methods=["POST"])
+def get_multiple_ratings():
+    data = request.get_json()
+    user_id = data.get("user_id")
+    media_items = data.get("media_items", [])  # List instead of one by one
+
+    if not user_id or not media_items:
+        return jsonify({"error": "User ID and media items are required"})
+
+    user_ref = users_ref.document(user_id)
+    if not user_ref.get().exists:
+        return jsonify({"error": "User not found"})
+
+    try:
+        ratings_ref = get_db().collection("Ratings")
+        results = {}
+
+        for item in media_items:
+            media_id = int(item.get("media_id"))
+            media_type = item.get("media_type")
+
+            query_ref = (
+                ratings_ref.where("user_id", "==", user_id)
+                .where("media_id", "==", media_id)
+                .where("media_type", "==", media_type)
+            )
+
+            ratings = list(query_ref.get())
+            if ratings:
+                rating_data = ratings[0].to_dict()
+                results[f"{media_type}_{media_id}"] = rating_data.get("rating")
+            else:
+                results[f"{media_type}_{media_id}"] = 0
+
+        return jsonify(
+            {"ratings": results, "message": "Successfully retrieved ratings"}
+        )
+
+    except Exception as e:
+        print(f"Error getting multiple ratings: {str(e)}")
+        return jsonify({"error": f"Failed to get ratings: {str(e)}"})

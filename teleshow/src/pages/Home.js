@@ -99,9 +99,6 @@ function HomePage() {
           <h1 id="homepage-title">
             Explore Stories That Captivate and Inspire{" "}
           </h1>
-          <div className="search-widget-container">
-            <SearchWidget />
-          </div>
           {!isLoggedIn ? (
             <div className="user-buttons">
               <button className="btn-login" onClick={handleLogin}>
@@ -119,6 +116,9 @@ function HomePage() {
               Dashboard
             </button>
           )}
+          <div className="search-widget-container">
+            <SearchWidget />
+          </div>
         </div>
       </div>
       {loading ? (

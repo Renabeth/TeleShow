@@ -587,7 +587,7 @@ def get_user_recommendations():
                 all_platform_ids.update(platform_ids)
 
             filtered_movies = []
-            movie_slice = filtered_movie_results[:20]
+            movie_slice = filtered_movie_results[:24]
             with ThreadPoolExecutor(max_workers=5) as executor:
                 # Map each movie to a future that fetches its providers
                 future_to_movie = {
@@ -607,7 +607,7 @@ def get_user_recommendations():
             filtered_movie_results = filtered_movies
 
             filtered_tv = []
-            tv_slice = filtered_tv_results[:20]
+            tv_slice = filtered_tv_results[:24]
             with ThreadPoolExecutor(max_workers=5) as executor:
                 # Map each TV show to a future that fetches its providers
                 future_to_tv = {

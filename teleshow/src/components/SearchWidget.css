@@ -21,6 +21,7 @@
   -webkit-backdrop-filter: blur(12px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   margin:0;
+  margin-bottom: 10px;
   background-clip:padding-box;
   font-family: 'Inter',sans-serif;
   font-weight: 400;
@@ -110,7 +111,8 @@
   position: absolute;
   top: 100%;
   left: 0;
-  width: 470px; 
+  width: 470px !important;
+  max-width: 100% !important;
   background-color: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -128,12 +130,19 @@
   scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.1);
 }
 
+.search-result-item img {
+  border-radius: 6px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
 .search-result-item h6 {
   font-family: 'Satoshi', sans-serif;
   font-weight: 600;
   margin-bottom: 5px;
-  color: white;
+  color: rgba(255, 255, 255, 0.95); /* Brighter text */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
+
 
 .no-results {
   padding: 15px;
@@ -142,7 +151,6 @@
   font-family: 'Inter', sans-serif;
   font-weight: 400;
 }
-
 
 .search-results-container.show {
   display: block;
@@ -303,12 +311,12 @@
   position: absolute;
   top: 100%;
   left: 0;
-  width: 100%;
+  width: 470px !important;
+  max-width: 100% !important;
   background-color: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   z-index: 1380;
   padding: 10px 0;
