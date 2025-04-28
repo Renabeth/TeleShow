@@ -167,12 +167,7 @@ function Dashboard() {
   return (
     // Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/#
 
-    <div
-      className={`container ${
-        lightMode ? "dashboard-light" : "dashboard-dark"
-      }`}
-      id="dashboard"
-    >
+    <div className={`dashboard ${lightMode ? "light" : ""}`} id="dashboard">
       <h2>Dashboard in Progress Stay Tuned</h2>
       <Navbar expand="lg" className="dashboard-header">
         <Button

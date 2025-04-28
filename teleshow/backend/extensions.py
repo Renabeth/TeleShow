@@ -1,6 +1,7 @@
 # Written by Moses Pierre
 from flask_caching import Cache  # For caching API Queries
 from flask_limiter import Limiter  # Rate Limiting
+from flask_compress import Compress
 from flask_limiter.util import get_remote_address
 import firebase_admin  # Firebase imports that allow connection to firestore for user data
 from firebase_admin import credentials
@@ -16,6 +17,7 @@ limiter = Limiter(
     strategy="fixed-window",
     default_limits=["200 per minute"],
 )
+compress = Compress()
 
 # Global Variables
 db = None
@@ -90,6 +92,21 @@ def init_app(app):
 
     # Initializes the Flask limiter. Helps avoid the rate limiters for TMDB and Wathmode
     limiter.init_app(app)
+
+    compress.init_app(app)
+
+    # Configures compression
+    app.config["COMPRESS_MIMETYPES"] = [
+        "text/html",
+        "text/css",
+        "text/xml",
+        "application/json",
+        "application/javascript",
+    ]
+    app.config["COMPRESS_LEVEL"] = 6  # Higher compression level 1-9
+    app.config["COMPRESS_MIN_SIZE"] = (
+        500  # Only compress responses larger than 500 bytes
+    )
 
     global model_loading
     # Checks is the model is loading.

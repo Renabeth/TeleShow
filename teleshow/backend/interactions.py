@@ -6,6 +6,7 @@ from firebase_admin import firestore
 import datetime
 import time
 from extensions import get_db, limiter
+from google.cloud.firestore_v1.base_query import FieldFilter
 
 interactions_bp = Blueprint("interactions", __name__)
 
@@ -25,7 +26,9 @@ def add_to_watchlist(user_id, watchlist_name, media_info):
     # Go to the watchlists subcollection of users
     watchlist_ref = user_ref.collection("watchlists")
     # Look for the watchlist document that matches the key
-    watchlist_query = watchlist_ref.where("name", "==", watchlist_name).limit(1)
+    watchlist_query = watchlist_ref.where(
+        filter=FieldFilter("name", "==", watchlist_name)
+    ).limit(1)
     # Get the results
     watchlist_docs = list(watchlist_query.stream())
 
@@ -53,7 +56,7 @@ def add_to_watchlist(user_id, watchlist_name, media_info):
     media_id = media_info.get("id")
     media_check = (
         watchlist_doc_ref.collection("media")
-        .where("media_id", "==", media_id)
+        .where(filter=FieldFilter("media_id", "==", media_id))
         .limit(1)
         .get()
     )
@@ -362,7 +365,9 @@ def update_tv_calendar():
 
         # Get all the followed shows
         followed_ref = user_ref.collection("followed_media")
-        tv_shows = followed_ref.where("media_type", "==", "tv").stream()
+        tv_shows = followed_ref.where(
+            filter=FieldFilter("media_type", "==", "tv")
+        ).stream()
 
         updated_count = 0
         for show in tv_shows:
@@ -753,7 +758,7 @@ def remove_from_watchlist():
             return jsonify({"error": "Watchlist not found"})
 
         media_query = watchlist_ref.collection("media").where(
-            "media_id", "==", media_id
+            filter=FieldFilter("media_id", "==", media_id)
         )
         media_docs = media_query.get()
 
@@ -828,7 +833,7 @@ def update_media_status():
             return jsonify({"error": "watchlist not found"})
 
         media_query = watchlist_ref.collection("media").where(
-            "media_id", "==", media_id
+            filter=FieldFilter("media_id", "==", media_id)
         )
         media_docs = media_query.get()
 
@@ -865,9 +870,9 @@ def get_ratings():
 
         ratings_ref = get_db().collection("Ratings")
         query_ref = (
-            ratings_ref.where("user_id", "==", user_id)
-            .where("media_id", "==", media_id)
-            .where("media_type", "==", media_type)
+            ratings_ref.where(filter=FieldFilter("user_id", "==", user_id))
+            .where(filter=FieldFilter("media_id", "==", media_id))
+            .where(filter=FieldFilter("media_type", "==", media_type))
         )
         ratings = list(query_ref.get())
         if not ratings:
@@ -916,9 +921,9 @@ def get_multiple_ratings():
             media_type = item.get("media_type")
 
             query_ref = (
-                ratings_ref.where("user_id", "==", user_id)
-                .where("media_id", "==", media_id)
-                .where("media_type", "==", media_type)
+                ratings_ref.where(filter=FieldFilter("user_id", "==", user_id))
+                .where(filter=FieldFilter("media_id", "==", media_id))
+                .where(filter=FieldFilter("media_type", "==", media_type))
             )
 
             ratings = list(query_ref.get())
