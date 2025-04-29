@@ -24,9 +24,9 @@
 
 :: Install React dependencies
 @echo Installing React dependencies...
-@call npm install react-router-dom react-router react-bootstrap axios bootstrap lz-string axios-retry react-icons firebase-admin
+@call npm install react-router-dom react-router react-bootstrap axios bootstrap lz-string axios-retry react-icons firebase-admin recharts
 
-@call npm install --save-dev concurrently dotenv
+@call npm install --save-dev concurrently dotenv 
 
 
 :: Create empty .env files if they don't exist

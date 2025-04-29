@@ -69,11 +69,10 @@
 
 .search-icon {
   font-size: 35px; /*Icon size and color*/
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(163, 163, 255,0.8);
   display:block;
   position:relative;
 }
-
 
 /* Control the search input appearance */
 .search-input {
@@ -204,6 +203,7 @@
   background-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  color: rgba(163, 163, 255,0.8);
 }
 
 .filter-dropdown-menu {
@@ -253,10 +253,10 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   background-color: rgba(255, 255, 255, 0.4);
   border-color: rgba(255, 255, 255, 0.3);
-  color: rgba(0, 0, 0, 0.9);
 }
 
 .platform-dropdown-btn:hover {
+  color: rgba(163, 163, 255,0.8);
   background-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);

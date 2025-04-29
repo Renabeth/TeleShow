@@ -54,6 +54,7 @@ const Watchlist = () => {
   const [trendingMedia, setTrendingMedia] = useState([]);
   const [selectedStarters, setSelectedStarters] = useState(new Set());
   const [loadingCreate, setLoadingCreate] = useState(false);
+  const [watchlistsWithMedia, setWatchlistsWithMedia] = useState([]);
 
   useEffect(() => {
     if (!userID) return;
@@ -180,6 +181,20 @@ const Watchlist = () => {
     if (selectedList === "all") {
       setPendingMedia(media);
       setChosenList("");
+      // Filters watchlists to only include those containing the media
+      const relevantWatchlists = watchlists.filter((wl) =>
+        allMedia.some(
+          (item) =>
+            item.watchlist_id === wl.id &&
+            item.media_id === media.media_id &&
+            item.media_type === media.media_type
+        )
+      );
+      if (relevantWatchlists.length < 2) {
+        removeMedia(media, media.watchlist_id);
+        return;
+      }
+      setWatchlistsWithMedia(relevantWatchlists);
       setShowListSelect(true);
     } else {
       removeMedia(media, selectedList);
@@ -358,6 +373,7 @@ const Watchlist = () => {
         show={showListSelect}
         onHide={() => setShowListSelect(false)}
         centered
+        className="delete-watchlist-modal"
       >
         <Modal.Header closeButton>
           <Modal.Title>Select a Watchlist to Remove From</Modal.Title>
@@ -372,7 +388,7 @@ const Watchlist = () => {
               <option value="" disabled>
                 - select a watchlist -
               </option>
-              {watchlists.map((wl) => (
+              {watchlistsWithMedia.map((wl) => (
                 <option key={wl.id} value={wl.id}>
                   {wl.name}
                 </option>
@@ -401,6 +417,7 @@ const Watchlist = () => {
         onHide={() => setShowCreateModal(false)}
         size="lg"
         centered
+        className="create-watchlist-modal"
       >
         <Modal.Header closeButton>
           <Modal.Title>Create New Watchlist</Modal.Title>
@@ -461,7 +478,6 @@ const Watchlist = () => {
                   });
                 } else {
                   for (let key of items) {
-                    //Breaks up the key to look in the usermedia or trending media for the selection information
                     const m = (
                       userMedia.length ? userMedia : trendingMedia
                     ).find((x) => `${x.media_type}_${x.media_id}` === key);
@@ -480,7 +496,7 @@ const Watchlist = () => {
                     });
                   }
                 }
-                //Refreshs the watchlists and closes
+                //Refreshes the watchlists and closes
                 await fetchWatchlists();
                 setShowCreateModal(false);
                 setNewListName("");

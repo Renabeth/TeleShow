@@ -75,8 +75,36 @@ Variables can be used instead of putting the same value over and over again
   .recommendation-section h2,
   .calendar-section h2 {
     margin-bottom: 1rem;
-    border-bottom: 2px solid var(--accent);
     display: inline-block;
+  }
+
+  .stats-widget .stat-card {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 15px;
+    transition: all 0.3s;
+  }
+  
+  .stats-widget .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  }
+  
+  .stats-widget h3 {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 0;
+  }
+  
+  .stats-widget p {
+    color: #888;
+    margin-top: 5px;
+  }
+  
+  .stats-widget .progress {
+    height: 8px;
+    border-radius: 4px;
+    width: 100%;
   }
 
   

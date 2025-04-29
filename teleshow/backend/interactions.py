@@ -940,3 +940,143 @@ def get_multiple_ratings():
     except Exception as e:
         print(f"Error getting multiple ratings: {str(e)}")
         return jsonify({"error": f"Failed to get ratings: {str(e)}"})
+
+
+@interactions_bp.route("/user-stats", methods=["GET"])
+def get_user_stats():
+    user_id = request.args.get("user_id")
+
+    if not user_id:
+        return jsonify({"error": "User ID required"})
+
+    db = get_db()
+
+    user_ref = users_ref.document(user_id)
+    if not user_ref.get().exists:
+        return jsonify({"error": "User not found"})
+    # Collection of media interaction information
+    stats = {}
+
+    # Get ratings
+    ratings_ref = db.collection("Ratings")
+    ratings = list(
+        ratings_ref.where(filter=FieldFilter("user_id", "==", user_id)).stream()
+    )
+
+    comments_ref = db.collection("Comments")
+    comments = list(comments_ref.where("user_id", "==", user_id).stream())
+
+    # Get followed media
+    followed_ref = user_ref.collection("followed_media")
+    followed = list(followed_ref.stream())
+
+    watchlists_ref = user_ref.collection("watchlists")
+    watchlists = list(watchlists_ref.stream())
+    tv_progress_ref = user_ref.collection("tv_progress")
+    tv_progress = list(tv_progress_ref.stream())
+
+    stats["total_ratings"] = len(ratings)
+    stats["total_comments"] = len(comments)
+    stats["avg_rating"] = (
+        sum(r.to_dict().get("rating", 0) for r in ratings) / len(ratings)
+        if ratings
+        else 0
+    )
+    stats["followed_count"] = len(followed)
+    stats["watchlist_count"] = len(watchlists)
+
+    movie_count = 0
+    tv_count = 0
+
+    for media in followed:
+        media_data = media.to_dict()
+        if media_data.get("media_type") == "movie":
+            movie_count += 1
+        elif media_data.get("media_type") == "tv":
+            tv_count += 1
+
+    stats["movie_count"] = movie_count
+    stats["tv_count"] = tv_count
+
+    total_episodes = 0
+    for show_doc in tv_progress:
+        show_data = show_doc.to_dict()
+        for season_key, season_data in show_data.get("seasons", {}).items():
+            for episode_key, episode_data in season_data.get("episodes", {}).items():
+                if episode_data.get("watched") == True:
+                    total_episodes += 1
+
+    stats["episodes_watched"] = total_episodes
+    # I estimate about 40 minutes per episode
+    stats["watch_time_hours"] = round((total_episodes * 40) / 60, 1)
+    # Calculating genre distribution
+    genre_counts = {}
+    for media in followed:
+        media_data = media.to_dict()
+        for genre in media_data.get("genres", []):
+            genre_name = genre.get("name")
+            if genre_name:
+                if genre_name not in genre_counts:
+                    genre_counts[genre_name] = 0
+                genre_counts[genre_name] += 1
+
+    stats["top_genres"] = sorted(
+        [{"name": k, "count": v} for k, v in genre_counts.items()],
+        key=lambda x: x["count"],
+        reverse=True,
+    )[:5]
+
+    activity_timeline = {}
+    # Leaving ratings and comments count toward activity.
+    for rating in ratings:
+        rating_data = rating.to_dict()
+        created_at = rating_data.get("created_at")
+        if created_at:
+            # Handles different date formats
+            if isinstance(created_at, str):
+                try:
+                    created_at = datetime.datetime.strptime(
+                        created_at, "%B %d, %Y at %I:%M:%S %p %Z"
+                    )
+                except ValueError:
+                    # Tries alternative format if needed
+                    try:
+                        created_at = datetime.datetime.strptime(
+                            created_at, "%Y-%m-%d %H:%M:%S"
+                        )
+                    except ValueError:
+                        continue
+
+            date_key = created_at.strftime("%Y-%m")
+            if date_key not in activity_timeline:
+                activity_timeline[date_key] = 0
+            activity_timeline[date_key] += 1
+
+    # Tracks comments activity
+    for comment in comments:
+        comment_data = comment.to_dict()
+        date_added = comment_data.get("date_added")
+        if date_added:
+            # Handles different timestamp formats
+            if isinstance(date_added, str):
+                try:
+                    date_added = datetime.datetime.strptime(
+                        date_added, "%B %d, %Y at %I:%M:%S %p %Z"
+                    )
+                except ValueError:
+                    try:
+                        date_added = datetime.datetime.strptime(
+                            date_added, "%Y-%m-%d %H:%M:%S"
+                        )
+                    except ValueError:
+                        continue
+
+            date_key = date_added.strftime("%Y-%m")
+            if date_key not in activity_timeline:
+                activity_timeline[date_key] = 0
+            activity_timeline[date_key] += 1
+
+    stats["activity_timeline"] = [
+        {"month": k, "count": v} for k, v in sorted(activity_timeline.items())
+    ]
+    return jsonify({"stats": stats})

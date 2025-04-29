@@ -161,6 +161,14 @@
     margin: 5px;
   }
 
+.create-watchlist-modal .modal-content,
+.delete-watchlist-modal .modal-content {
+  background-color: var(--bg-content);
+  color: var(--text-light);
+  border: 1px solid var(--accent);
+}
+  
+
   .wl-footer {
     display: flex;
     align-items: center;

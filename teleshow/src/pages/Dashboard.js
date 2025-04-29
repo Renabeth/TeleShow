@@ -21,6 +21,7 @@ import "../styles/Dashboard.css";
 import SearchWidget from "../components/SearchWidget";
 import MediaSlides from "../components/MediaSlides.js";
 import TVCalendar from "../components/TVCalendar";
+import UserStatsWidget from "../components/UserStatsWidget";
 // Credit to JustWatch as TMDB API watch providers data source
 import { redirect, useNavigate } from "react-router-dom";
 // Help from https://developer.themoviedb.org/reference/trending-movies
@@ -40,6 +41,7 @@ function Dashboard() {
   const [lightMode, setLightMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const STORAGE_KEY = "platform_selection";
   //enables user filters
   //Attempts to get value from session variable
@@ -165,8 +167,6 @@ function Dashboard() {
   };
 
   return (
-    // Help from https://www.geeksforgeeks.org/using-the-useref-hook-to-change-an-elements-style-in-react/#
-
     <div className={`dashboard ${lightMode ? "light" : ""}`} id="dashboard">
       <h2>Dashboard in Progress Stay Tuned</h2>
       <Navbar expand="lg" className="dashboard-header">
@@ -209,7 +209,7 @@ function Dashboard() {
           </ToggleButtonGroup>
         </Nav>
       </Navbar>
-      {/*Container will take 100% of viewport*/}
+      {/*Container will take 100% of viewport when using fluid*/}
       <Container fluid className="dashboard-body">
         <Row>
           {/* Sidebar */}
@@ -233,6 +233,9 @@ function Dashboard() {
                 <Nav.Link onClick={() => navigate("/settings")}>
                   Settings
                 </Nav.Link>
+                <Nav.Link onClick={() => setShowStats(!showStats)}>
+                  {showStats ? "Hide Stats" : "View Stats"}
+                </Nav.Link>
                 <Nav.Link onClick={handleLogout}>Logout</Nav.Link>
               </Nav>
             </Col>
@@ -243,6 +246,11 @@ function Dashboard() {
             <SearchWidget />
             {!showCalendar ? (
               <>
+                {showStats && (
+                  <section className="stats-section">
+                    <UserStatsWidget userId={userID} />
+                  </section>
+                )}
                 <section
                   className="recommendation-section"
                   onMouseEnter={handleMouseEnter}
@@ -266,7 +274,7 @@ function Dashboard() {
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
                 >
-                  <h2>{`Recommended TV ${
+                  <h2>{`Recommended TV: ${
                     beingFiltered ? "(Filtered) " : " "
                   }`}</h2>
                   {tvLoading ? (
@@ -275,8 +283,6 @@ function Dashboard() {
                     <MediaSlides items={recommendedTv} autoplay={autoplay} />
                   )}
                 </section>
-
-                <section className="calendar-section"></section>
               </>
             ) : (
               <section className="calendar-section full-width">
