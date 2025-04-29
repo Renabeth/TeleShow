@@ -2,28 +2,31 @@
 from flask import Flask, jsonify, redirect
 import tmdbsimple as tmdb  # Library that makes interacting with TMDB API simplier
 from flask_cors import CORS  # CORS allows for cross-origin requests
-from search import search_bp
-from recommendations import recommendations_bp
-from interactions import interactions_bp
-from extensions import cache, limiter, init_app
-
-# Loads .env files (Flask does this automatically but explicit statement give more control)
-from dotenv import load_dotenv
+from app.blueprints.search import search_bp
+from app.blueprints.recommendations import recommendations_bp
+from app.blueprints.interactions import interactions_bp
+from app.extensions import cache, limiter, init_app
 import os  # Used to find file paths
+import sys
 
+if getattr(sys, "frozen", False):
+    # Running as executable
+    static_folder = os.path.join(sys._MEIPASS, "app", "static")
+    template_folder = os.path.join(sys._MEIPASS, "app", "templates")
+    app = Flask(__name__, static_folder=static_folder, template_folder=template_folder)
+else:
+    # Running as script
+    app = Flask(__name__)
 
-app = Flask(__name__)
 init_app(app)
 app.register_blueprint(search_bp, url_prefix="/search")
 app.register_blueprint(interactions_bp, url_prefix="/interactions")
 app.register_blueprint(recommendations_bp)
 
 
-CORS(app, origins=["http://localhost:3000"])  # Initializes CORS
-load_dotenv()  # Explicit loading of .env file in working directory to avoid problems
-
-# Sets the API key using the tmdbsimple library
-tmdb.API_KEY = os.getenv("PY_TMDB_API_KEY")
+CORS(
+    app, origins=["http://localhost:3000", "http://127.0.0.1:5000", "file://*"]
+)  # Initializes CORS
 
 
 @app.route("/cache_stats")
@@ -38,7 +41,11 @@ def cache_stats():
 # What happens when someone visits the default path.
 @app.route("/")
 def home():
-    return redirect("http://localhost:3000")  # Redirects to proper url
+    if getattr(sys, "frozen", False):
+        return app.send_static_file("index.html")
+    return redirect(
+        "http://localhost:3000"
+    )  # Redirects to proper url  # Redirects to proper url
 
 
 # Trending content for the home page
@@ -65,4 +72,7 @@ def get_trending():
 
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    if getattr(sys, "frozen", False):
+        app.run(port=5000, debug=False)
+    else:
+        app.run(port=5000, debug=True)

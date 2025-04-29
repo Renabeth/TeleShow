@@ -5,7 +5,7 @@ import tmdbsimple as tmdb  # Library that makes interacting with TMDB API simpli
 from firebase_admin import firestore
 import datetime
 import time
-from extensions import get_db, limiter
+from app.extensions import get_db, limiter
 from google.cloud.firestore_v1.base_query import FieldFilter
 
 interactions_bp = Blueprint("interactions", __name__)

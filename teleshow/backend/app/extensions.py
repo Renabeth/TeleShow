@@ -1,14 +1,19 @@
 # Written by Moses Pierre
 from flask_caching import Cache  # For caching API Queries
 from flask_limiter import Limiter  # Rate Limiting
+import tmdbsimple as tmdb
 from flask_compress import Compress
 from flask_limiter.util import get_remote_address
 import firebase_admin  # Firebase imports that allow connection to firestore for user data
 from firebase_admin import credentials
 from firebase_admin import firestore
 import os  # Used to find file paths
+import sys
 import threading
 import time
+
+# Loads .env files (Flask does this automatically but explicit statement give more control)
+from dotenv import load_dotenv
 
 cache = Cache()
 limiter = Limiter(
@@ -25,6 +30,15 @@ model = None
 model_loading = False
 # Events are use to tell other threads that something has happened
 model_load_complete = threading.Event()
+
+# This checks whether the python application is running a 'frozen' executable or a script
+# The default value is set to false if the attribute doesn't exist
+if getattr(sys, "frozen", False):
+    # Running as executable
+    # Set to the directory containing the executable file
+    base_path = sys._MEIPASS
+# For PyInstaller temporary directory
+# MEIPASS is a special temporary directory PyInstaller creates at runtime where it extracts all the bundled files needed by your application
 
 
 # The function that will be run by the thread
@@ -54,9 +68,10 @@ def load_model_task():
 def get_db():
     global db
     if db is None:
-        script_dir = os.path.dirname(os.path.abspath(__file__))
         # Gets the firebase keyfile
-        firebase_key = os.path.join(script_dir, "Resources", "teleshow-firebase.json")
+        firebase_key = os.path.join(
+            base_path, "app", "Resources", "teleshow-firebase.json"
+        )
         cred = credentials.Certificate(firebase_key)  # Firebase initialization
         firebase_admin.initialize_app(cred)
         db = firestore.client()
@@ -94,6 +109,9 @@ def init_app(app):
     limiter.init_app(app)
 
     compress.init_app(app)
+
+    # Sets the API key using the tmdbsimple library
+    tmdb.API_KEY = os.getenv("PY_TMDB_API_KEY")
 
     # Configures compression
     app.config["COMPRESS_MIMETYPES"] = [

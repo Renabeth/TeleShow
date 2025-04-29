@@ -2,9 +2,8 @@
 from flask import Blueprint, request, jsonify
 import tmdbsimple as tmdb
 import torch.nn.functional as F  # Enabler of machine learning. Allows for the dot
-import time
-from extensions import cache, limiter, get_db, get_model
-from search import get_watch_providers, PLATFORM_ID_MAP
+from app.extensions import cache, limiter, get_db, get_model
+from app.blueprints.search import get_watch_providers, PLATFORM_ID_MAP
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Thread, Lock
 from ratelimit import limits, sleep_and_retry

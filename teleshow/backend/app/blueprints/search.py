@@ -2,9 +2,8 @@
 from flask import Blueprint, request, jsonify
 import requests
 import tmdbsimple as tmdb  # Library that makes interacting with TMDB API simplier
-from extensions import cache, limiter
+from app.extensions import cache, limiter
 import datetime
-import time
 import os  # Used to find file paths
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed

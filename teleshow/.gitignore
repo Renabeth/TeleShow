@@ -27,7 +27,9 @@ yarn-error.log*
 /build/
 
 # Backend sensitive resources
-/backend/Resources/
+/backend/app/Resources/
+/backend/build
+/backend/dist
 
 # Miscellaneous system files
 .DS_Store
