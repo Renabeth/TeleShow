@@ -105,7 +105,7 @@ def init_app(app):
     ]
     app.config["COMPRESS_LEVEL"] = 6  # Higher compression level 1-9
     app.config["COMPRESS_MIN_SIZE"] = (
-        500  # Only compress responses larger than 500 bytes
+        500  # Only compresses responses larger than 500 bytes
     )
 
     global model_loading
