@@ -22,7 +22,11 @@ import {
 } from "../API/Flask_API";
 import StarRate from "../components/starRate"; //Component Made by Serena and William
 import GetAverageRating from "../scripts/GetAverageRating.js"; //Component Made by Serena and William
-import FetchComments from "../components/FetchComments.js"; //Component Made by William
+import FetchComments from "../components/FetchComments.js";
+import {addDoc, collection, doc, getDocs, query, serverTimestamp, updateDoc, where} from "firebase/firestore";
+import {db} from "../firebase"; //Component Made by William
+
+
 
 const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
   const features = [
@@ -81,6 +85,13 @@ const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
   const [activeTab, setActiveTab] = useState("overview");
   const host = process.env.REACT_APP_NETWORK_HOST;
   const displayName = sessionStorage.getItem("userName");
+
+//Review constants
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewText, setReviewText] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [existingReview, setExistingReview] = useState(null);
+
 
   const isLoggedIn = !!sessionStorage.getItem("userId");
   useEffect(() => {
@@ -346,8 +357,110 @@ const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
     );
   }
 
+  const handleSubmitReview = async () => {
+    if (!reviewText.trim()) {
+      return;
+    }
+
+    setSubmittingReview(true);
+
+    try {
+      if (existingReview) {
+        // If review exists, update it
+        const reviewDocRef = doc(db, "Reviews", existingReview.id);
+        await updateDoc(reviewDocRef, {
+          reviewText: reviewText.trim(),
+          editedAt: serverTimestamp(), // Optional: Track when they edited
+        });
+
+      } else {
+        // Else create a new one
+        await addDoc(collection(db, "Reviews"), {
+          userID: userId,
+          displayName: displayName,
+          mediaId: item.tmdb.id,
+          mediaType: item.tmdb.media_type,
+          title: item.tmdb.title || item.tmdb.name,
+          reviewText: reviewText.trim(),
+          createdAt: serverTimestamp(),
+        });
+
+      }
+
+      setReviewText("");
+      setExistingReview(null);
+      setShowReviewModal(false);
+    } catch (error) {
+      console.error("Error submitting review:", error);
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+
+
+  const handleOpenReviewModal = async () => {
+    try {
+      const reviewsRef = collection(db, "Reviews");
+      const q = query(
+          reviewsRef,
+          where("userID", "==", userId),
+          where("mediaId", "==", item.tmdb.id)
+      );
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const docSnapshot = querySnapshot.docs[0];
+        setExistingReview({ id: docSnapshot.id, ...docSnapshot.data() });
+        setReviewText(docSnapshot.data().reviewText);
+      } else {
+        setExistingReview(null);
+        setReviewText("");
+      }
+
+      setShowReviewModal(true);
+    } catch (error) {
+      console.error("Error fetching existing review:", error);
+    }
+  };
+
+
   return (
     <>
+
+      <Modal
+          show={showReviewModal}
+          onHide={() => setShowReviewModal(false)}
+          centered
+          className="detail-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Write a Review</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+    <textarea
+        className="form-control"
+        rows="5"
+        value={reviewText}
+        onChange={(e) => setReviewText(e.target.value)}
+        placeholder="Share your thoughts about this title..."
+    />
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowReviewModal(false)}>
+            Cancel
+          </Button>
+          <Button
+              variant="primary"
+              onClick={handleSubmitReview}
+              disabled={submittingReview || reviewText.trim().length === 0}
+          >
+            {submittingReview ? "Submitting..." : "Submit Review"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+
       <Modal
         show={show}
         onHide={onHide}
@@ -415,6 +528,8 @@ const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
                           {followed ? "Liked" : "Like"}
                         </Button>
                       )}
+
+
                       <Button
                         variant="outline-primary"
                         onClick={handleAddToWatchList}
@@ -422,6 +537,16 @@ const DetailModal = ({ item: givenItem, mediaId, mediaType, show, onHide }) => {
                       >
                         <FaPlus /> Watchlist
                       </Button>
+
+                      <Button
+                          variant="outline-primary"
+                          className="m-2"
+                          onClick={handleOpenReviewModal}
+                      >
+                        {existingReview ? "Edit Your Review" : "Write a Review"}
+                      </Button>
+
+
                     </div>
                   ) : (
                     ""
