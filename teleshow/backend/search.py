@@ -299,16 +299,16 @@ def details():
                             )
                             break
 
-            """
+            
             watchmode_data = watchmode_search(
                 item_id, item_type
             )  # Passes the tmdb_id and type to watchmode search function"
-            """
+            
 
             return jsonify(
                 {
                     "tmdb": tmdb_details or [],
-                    "watchmode": [],
+                    "watchmode": watchmode_data or [],
                 }
             )
         except Exception as e:

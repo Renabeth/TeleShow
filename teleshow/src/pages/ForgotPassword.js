@@ -1,10 +1,32 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+// Oguzhan's code
+import { getAuth, sendPasswordResetEmail } from "firebase/auth"; // Import Firebase functions
+
 import "../styles/Auth.css";  // Reuse the same styles as Login/Signup
 
 function ForgotPassword() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
+
+  // Oguzhan's code
+  const [message, setMessage] = useState(""); // For success/error messages
+ 
+  const handleResetPassword = async () => {
+    if (!email) {
+      setMessage("Please enter your email.");
+      return;
+    }
+ 
+    const auth = getAuth();
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setMessage("Password reset link sent! Check your email.");
+    } catch (error) {
+      setMessage("Error: " + error.message);
+    }
+  };
 
   return (
     <div className="login-container">
@@ -26,8 +48,12 @@ function ForgotPassword() {
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        {/* Reset Password Button (Functionality will be added with Firebase later) */}
-        <button className="login-button primary">
+        {/* Oguzhan's code */}
+        {/* Show Success/Error Message */}
+        {message && <p className="message">{message}</p>}
+ 
+        {/* Reset Password Button */}
+        <button className="login-button primary" onClick={handleResetPassword}>
           Send Reset Link
         </button>
 
