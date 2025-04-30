@@ -28,6 +28,8 @@ yarn-error.log*
 
 # Backend sensitive resources
 /teleshow/backend/app/Resources/
+/teleshow/backend/app/static/
+/teleshow/backend/app/templates/
 /teleshow/backend/build/
 /teleshow/backend/dist/
 

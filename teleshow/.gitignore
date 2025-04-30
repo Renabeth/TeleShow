@@ -28,6 +28,8 @@ yarn-error.log*
 
 # Backend sensitive resources
 /backend/app/Resources/
+/backend/app/static/
+/backend/app/templates/
 /backend/build/
 /backend/dist/
 

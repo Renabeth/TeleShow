@@ -1,4 +1,5 @@
 @echo About To Build Flask App 
+@echo This process could take 3-4 minutes
 @pause
 
 @echo ===== Building =====
@@ -30,28 +31,48 @@ if exist "build\*.json" (
 if exist "build\*.ico" (
     copy "build\*.ico" "backend\app\static\" /Y
 )
-
-echo Building executable with PyInstaller...
-cd backend
-pyinstaller --onefile `
-   --icon=favicon.ico `
-   --add-data "app/Resources;app/Resources" `
-   --add-data ".env;." `
-   --add-data "app/static;app/static" `
-   --add-data "app/templates;app/templates" `
-   --hidden-import="app.blueprints.search" `
-   --hidden-import="app.blueprints.recommendations" `
-   --hidden-import="app.blueprints.interactions" `
-   teleshow.py
-
-echo Opening dist folder...
-if exist "dist" (
-    explorer dist
-) else (
-    echo Error: dist folder not found
+if exist "build\*.png" (
+    copy "build\*.png" "backend\app\static\" /Y
 )
 
-cd ..
+echo Checking if static folder has files...
+dir /b /a-d "backend\app\static\*" >nul 2>&1
+if errorlevel 1 (
+    echo Static folder is empty or contains no files. Executable build skipped.
+    pause
+) else (
+    echo Static folder has files. Building executable...
+    cd backend
+    
+    echo Running PyInstaller... Please wait...
+    
+    pyinstaller --onefile ^
+       --icon=favicon.ico ^
+       --add-data "app/Resources;app/Resources" ^
+       --add-data ".env;." ^
+       --add-data "app/static;app/static" ^
+       --add-data "app/templates;app/templates" ^
+       --hidden-import="app.blueprints.search" ^
+       --hidden-import="app.blueprints.recommendations" ^
+       --hidden-import="app.blueprints.interactions" ^
+       teleshow.py
+    
+    if errorlevel 1 (
+        echo PyInstaller command failed. Please check for errors above.
+        pause
+    ) else (
+        echo PyInstaller completed successfully.
+        
+        echo Opening dist folder...
+        if exist "dist" (
+            explorer dist
+        ) else (
+            echo Error: dist folder not found
+        )
+    )
+    
+    cd ..
+)
 
 @echo ===== Build complete! =====
 @pause
