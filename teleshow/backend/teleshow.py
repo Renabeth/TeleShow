@@ -23,10 +23,8 @@ app.register_blueprint(search_bp, url_prefix="/search")
 app.register_blueprint(interactions_bp, url_prefix="/interactions")
 app.register_blueprint(recommendations_bp)
 
-
-CORS(
-    app, origins=["http://localhost:3000", "http://127.0.0.1:5000", "file://*"]
-)  # Initializes CORS
+# Initializes CORS
+CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:5000", "file://*"])
 
 
 @app.route("/cache_stats")
@@ -43,9 +41,8 @@ def cache_stats():
 def home():
     if getattr(sys, "frozen", False):
         return app.send_static_file("index.html")
-    return redirect(
-        "http://localhost:3000"
-    )  # Redirects to proper url  # Redirects to proper url
+    else:
+        return redirect("http://localhost:3000")  # Redirects to proper url
 
 
 # Trending content for the home page

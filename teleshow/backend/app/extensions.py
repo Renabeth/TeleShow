@@ -37,8 +37,22 @@ if getattr(sys, "frozen", False):
     # Running as executable
     # Set to the directory containing the executable file
     base_path = sys._MEIPASS
+    dotenv_path = os.path.join(sys._MEIPASS, ".env")
 # For PyInstaller temporary directory
 # MEIPASS is a special temporary directory PyInstaller creates at runtime where it extracts all the bundled files needed by your application
+
+else:
+    # Running as script
+    # Set to the directory containing the current script file
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+
+load_dotenv(dotenv_path=dotenv_path)
+
+
+def get_watchmode_key():
+    watchmode_key = os.getenv("PY_WATCHMODE_API_KEY")
+    return watchmode_key
 
 
 # The function that will be run by the thread

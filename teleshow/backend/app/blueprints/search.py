@@ -2,9 +2,8 @@
 from flask import Blueprint, request, jsonify
 import requests
 import tmdbsimple as tmdb  # Library that makes interacting with TMDB API simplier
-from app.extensions import cache, limiter
+from app.extensions import cache, limiter, get_watchmode_key
 import datetime
-import os  # Used to find file paths
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -23,7 +22,7 @@ def on_rate_limit_breach(request_limit):
 
 
 # Saves the watchmode API to a variable
-api_key = os.getenv("PY_WATCHMODE_API_KEY")
+api_key = get_watchmode_key()
 
 
 def make_search_cache_key():
