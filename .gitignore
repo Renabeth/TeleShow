@@ -28,8 +28,10 @@ yarn-error.log*
 
 # Backend sensitive resources
 /teleshow/backend/app/Resources/
-/teleshow/backend/build
-/teleshow/backend/dist
+/teleshow/backend/app/static/
+/teleshow/backend/app/templates/
+/teleshow/backend/build/
+/teleshow/backend/dist/
 
 # Miscellaneous system files
 .DS_Store

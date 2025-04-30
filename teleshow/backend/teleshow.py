@@ -45,6 +45,12 @@ def home():
         return redirect("http://localhost:3000")  # Redirects to proper url
 
 
+@app.route("/logo.png")
+def get_logo():
+    if getattr(sys, "frozen", False):
+        return app.send_static_file("Logo.png")
+
+
 # Trending content for the home page
 @app.route("/trending", methods=["GET"])
 @limiter.limit("10 per 5 seconds")
@@ -66,6 +72,14 @@ def get_trending():
     except Exception as e:
         print(f"Error getting trending TV shows: {str(e)}")
         return jsonify({"error": str(e)})
+
+
+@app.errorhandler(404)
+def not_found(e):
+    if getattr(sys, "frozen", False):
+        return app.send_static_file("index.html")
+    else:
+        return redirect("http://localhost:3000")
 
 
 if __name__ == "__main__":
