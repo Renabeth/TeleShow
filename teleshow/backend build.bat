@@ -36,7 +36,7 @@ if exist "build\*.png" (
 )
 
 echo Checking if static folder has files...
-dir /b /a-d "backend\app\static\*" >nul 2>&1
+dir /b "backend\app\static\" 2>nul | findstr "." >nul
 if errorlevel 1 (
     echo Static folder is empty or contains no files. Executable build skipped.
     pause
