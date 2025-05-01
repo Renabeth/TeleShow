@@ -4,8 +4,9 @@ import {
   PieChart,
   Pie,
   Cell,
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
+  CartesianGrid,
   XAxis,
   YAxis,
   Tooltip,
@@ -76,6 +77,18 @@ const UserStatsWidget = ({ userId }) => {
           <Row>
             <Col md={6} lg={3} className="text-center mb-3">
               <div className="stat-card">
+                <h3>{stats.watch_time_hours || 0}</h3>
+                <p>Watch Hours</p>
+              </div>
+            </Col>
+            <Col md={6} lg={3} className="text-center mb-3">
+              <div className="stat-card">
+                <h3>{stats.total_comments || 0}</h3>
+                <p>Total Comments Left</p>
+              </div>
+            </Col>
+            <Col md={6} lg={3} className="text-center mb-3">
+              <div className="stat-card">
                 <h3>{stats.total_ratings || 0}</h3>
                 <p>Total Ratings Given</p>
               </div>
@@ -88,14 +101,14 @@ const UserStatsWidget = ({ userId }) => {
             </Col>
             <Col md={6} lg={3} className="text-center mb-3">
               <div className="stat-card">
-                <h3>{stats.episodes_watched || 0}</h3>
-                <p>Episodes Watched</p>
+                <h3>{stats.seasons_watched || 0}</h3>
+                <p>Seasons Watched</p>
               </div>
             </Col>
             <Col md={6} lg={3} className="text-center mb-3">
               <div className="stat-card">
-                <h3>{stats.watch_time_hours || 0}</h3>
-                <p>Watch Hours</p>
+                <h3>{stats.episodes_watched || 0}</h3>
+                <p>Episodes Watched</p>
               </div>
             </Col>
           </Row>
@@ -148,20 +161,6 @@ const UserStatsWidget = ({ userId }) => {
                     />
                   </div>
                 ))}
-            </Col>
-          </Row>
-
-          <h6 className="mt-4">Activity Timeline</h6>
-          <Row>
-            <Col>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={stats.activity_timeline || []}>
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#8884d8" />
-                </BarChart>
-              </ResponsiveContainer>
             </Col>
           </Row>
         </Card.Body>

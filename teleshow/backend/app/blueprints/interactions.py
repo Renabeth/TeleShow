@@ -5,7 +5,7 @@ import tmdbsimple as tmdb  # Library that makes interacting with TMDB API simpli
 from firebase_admin import firestore
 import datetime
 import time
-from app.extensions import get_db, limiter
+from app.extensions import cache, get_db, limiter
 from google.cloud.firestore_v1.base_query import FieldFilter
 
 interactions_bp = Blueprint("interactions", __name__)
@@ -942,6 +942,7 @@ def get_multiple_ratings():
         return jsonify({"error": f"Failed to get ratings: {str(e)}"})
 
 
+@cache.cached(query_string=True, timeout=600)
 @interactions_bp.route("/user-stats", methods=["GET"])
 def get_user_stats():
     user_id = request.args.get("user_id")
@@ -964,7 +965,9 @@ def get_user_stats():
     )
 
     comments_ref = db.collection("Comments")
-    comments = list(comments_ref.where("user_id", "==", user_id).stream())
+    comments = list(
+        comments_ref.where(filter=FieldFilter("user_id", "==", user_id)).stream()
+    )
 
     # Get followed media
     followed_ref = user_ref.collection("followed_media")
@@ -975,8 +978,8 @@ def get_user_stats():
     tv_progress_ref = user_ref.collection("tv_progress")
     tv_progress = list(tv_progress_ref.stream())
 
-    stats["total_ratings"] = len(ratings)
     stats["total_comments"] = len(comments)
+    stats["total_ratings"] = len(ratings)
     stats["avg_rating"] = (
         sum(r.to_dict().get("rating", 0) for r in ratings) / len(ratings)
         if ratings
@@ -997,6 +1000,16 @@ def get_user_stats():
 
     stats["movie_count"] = movie_count
     stats["tv_count"] = tv_count
+
+    total_seasons = 0
+    for show_doc in tv_progress:
+        show_data = show_doc.to_dict()
+        for season_key, season_data in show_data.get("seasons", {}).items():
+            episodes = season_data.get("episodes", {})
+            if episodes and all(ep.get("watched", False) for ep in episodes.values()):
+                total_seasons += 1
+
+    stats["total_seasons_watched"] = total_seasons
 
     total_episodes = 0
     for show_doc in tv_progress:
@@ -1026,57 +1039,4 @@ def get_user_stats():
         reverse=True,
     )[:5]
 
-    activity_timeline = {}
-    # Leaving ratings and comments count toward activity.
-    for rating in ratings:
-        rating_data = rating.to_dict()
-        created_at = rating_data.get("created_at")
-        if created_at:
-            # Handles different date formats
-            if isinstance(created_at, str):
-                try:
-                    created_at = datetime.datetime.strptime(
-                        created_at, "%B %d, %Y at %I:%M:%S %p %Z"
-                    )
-                except ValueError:
-                    # Tries alternative format if needed
-                    try:
-                        created_at = datetime.datetime.strptime(
-                            created_at, "%Y-%m-%d %H:%M:%S"
-                        )
-                    except ValueError:
-                        continue
-
-            date_key = created_at.strftime("%Y-%m")
-            if date_key not in activity_timeline:
-                activity_timeline[date_key] = 0
-            activity_timeline[date_key] += 1
-
-    # Tracks comments activity
-    for comment in comments:
-        comment_data = comment.to_dict()
-        date_added = comment_data.get("date_added")
-        if date_added:
-            # Handles different timestamp formats
-            if isinstance(date_added, str):
-                try:
-                    date_added = datetime.datetime.strptime(
-                        date_added, "%B %d, %Y at %I:%M:%S %p %Z"
-                    )
-                except ValueError:
-                    try:
-                        date_added = datetime.datetime.strptime(
-                            date_added, "%Y-%m-%d %H:%M:%S"
-                        )
-                    except ValueError:
-                        continue
-
-            date_key = date_added.strftime("%Y-%m")
-            if date_key not in activity_timeline:
-                activity_timeline[date_key] = 0
-            activity_timeline[date_key] += 1
-
-    stats["activity_timeline"] = [
-        {"month": k, "count": v} for k, v in sorted(activity_timeline.items())
-    ]
     return jsonify({"stats": stats})

@@ -83,9 +83,14 @@ def get_db():
     global db
     if db is None:
         # Gets the firebase keyfile
-        firebase_key = os.path.join(
-            base_path, "app", "Resources", "teleshow-firebase.json"
-        )
+        if getattr(sys, "frozen", False):
+            firebase_key = os.path.join(
+                base_path, "app", "Resources", "teleshow-firebase.json"
+            )
+        else:
+            firebase_key = os.path.join(
+                base_path, "Resources", "teleshow-firebase.json"
+            )
         cred = credentials.Certificate(firebase_key)  # Firebase initialization
         firebase_admin.initialize_app(cred)
         db = firestore.client()
