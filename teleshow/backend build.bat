@@ -1,5 +1,6 @@
 @echo About To Build Flask App 
 @echo This process could take 3-4 minutes
+@echo Make sure teleshow/build is either clean or up to date
 @pause
 
 @echo ===== Building =====

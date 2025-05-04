@@ -142,38 +142,31 @@ def get_cached_user_comments(user_id):
     def on_snapshot(query_snapshot, changes, read_time):
         try:
             with cache_lock:
-                if not changes:
+                is_initial = user_id not in comments_cache
+                if is_initial:
                     comments_cache[user_id] = [
                         {"id": doc.id, **doc.to_dict()} for doc in query_snapshot
                     ]
-                else:
-                    if user_id not in comments_cache:
-                        comments_cache[user_id] = []
-
+                elif changes:
                     for change in changes:
+                        data = {"id": change.document.id, **change.document.to_dict()}
                         if change.type.name == "ADDED":
-                            comments_cache[user_id].append(
-                                {
-                                    "id": change.document.id,
-                                    **change.document.to_dict(),
-                                }
-                            )
+                            comments_cache[user_id].append(data)
                         elif change.type.name == "MODIFIED":
                             # Updates existing comment
                             for i, comment in enumerate(comments_cache[user_id]):
-                                if comment["id"] == change.document.id:
-                                    comments_cache[user_id][i] = {
-                                        "id": change.document.id,
-                                        **change.document.to_dict(),
-                                    }
+                                if comment["id"] == data["id"]:
+                                    comments_cache[user_id][i].update(data)
+                                    break
                         elif change.type.name == "REMOVED":
                             # Removes deleted comment
                             comments_cache[user_id] = [
                                 c
                                 for c in comments_cache[user_id]
-                                if c["id"] != change.document.id
+                                if c["id"] != data["id"]
                             ]
-
+                else:
+                    logger.debug("Empty snapshot after initial load; ignoring.")
                 logger.info(f"Comments cache updated for {user_id}")
 
             with listener_lock:
@@ -218,12 +211,9 @@ def get_cached_user_watchlists(user_id):
 
         try:
             with cache_lock:
-                to_add = []  # watchlist_ids that need media listeners
-                to_remove = []  # watchlist_ids whose media listeners must be detached
-                if user_id not in watchlist_cache:
-                    watchlist_cache[user_id] = []
 
-                if not changes:
+                is_initial = user_id not in watchlist_cache
+                if is_initial:
                     watchlist_cache[user_id] = [
                         {"id": doc.id, **doc.to_dict()} for doc in query_snapshot
                     ]
@@ -232,8 +222,9 @@ def get_cached_user_watchlists(user_id):
                         key = f"watchlist_media_{user_id}_{wl['id']}"
                         if key not in active_listeners:
                             setup_watchlist_media_listener(user_id, wl["id"])
-                else:
+                elif changes:
                     for change in changes:
+                        to_remove, to_add = [], []
                         data = {"id": change.document.id, **change.document.to_dict()}
 
                         if change.type.name == "ADDED":
@@ -243,7 +234,7 @@ def get_cached_user_watchlists(user_id):
                         elif change.type.name == "MODIFIED":
                             for i, wl in enumerate(watchlist_cache[user_id]):
                                 if wl["id"] == data["id"]:
-                                    watchlist_cache[user_id][i] = data
+                                    watchlist_cache[user_id][i].update(data)
                                     break
 
                         elif change.type.name == "REMOVED":
@@ -253,16 +244,17 @@ def get_cached_user_watchlists(user_id):
                                 if wl["id"] != data["id"]
                             ]
                             to_remove.append(data["id"])
+                    with listener_lock:
+                        for wl_id in to_remove:
+                            media_key = f"watchlist_media_{user_id}_{wl_id}"
+                            detach_listener(media_key)
+                        for wl_id in to_add:
+                            setup_watchlist_media_listener(user_id, wl_id)
+                else:
+                    logger.debug("Empty snapshot after initial load; ignoring.")
 
                 logger.info(f"Watchlists cache updated for {user_id}")
-            with listener_lock:
-                if listener_key in active_listeners:
-                    active_listeners[listener_key]["last_active"] = time.time()
-                for wl_id in to_remove:
-                    media_key = f"watchlist_media_{user_id}_{wl_id}"
-                    detach_listener(media_key)
-                for wl_id in to_add:
-                    setup_watchlist_media_listener(user_id, wl_id)
+
         except Exception as e:
             logger.error(f"Error in watchlists snapshot listener: {str(e)}")
         finally:
@@ -307,36 +299,25 @@ def setup_watchlist_media_listener(user_id, watchlist_id):
         def on_snapshot(query_snapshot, changes, read_time):
             try:
                 with cache_lock:
-                    if user_id not in watchlist_cache:
-                        watchlist_cache[user_id] = []
-
-                    target_watchlist = None
-                    for wl in watchlist_cache[user_id]:
-                        if wl["id"] == watchlist_id:
-                            target_watchlist = wl
-                            break
+                    user_lists = watchlist_cache.get(user_id, [])
+                    target_watchlist = next(
+                        (wl for wl in user_lists if wl["id"] == watchlist_id), None
+                    )
 
                     if target_watchlist is None:
                         logger.error(
                             f"Watchlist {watchlist_id} not found for user {user_id}"
                         )
                         return
-
-                    if "media" not in target_watchlist:
-                        target_watchlist["media"] = []
-                        logger.info(
-                            f"Initialized media array for watchlist {watchlist_id}"
-                        )
-
-                    if not changes:
-                        media_items = [
+                    is_initial = "media" not in target_watchlist
+                    if is_initial:
+                        target_watchlist["media"] = [
                             {"id": doc.id, **doc.to_dict()} for doc in query_snapshot
                         ]
-                        target_watchlist["media"] = media_items
                         logger.info(
-                            f"Loaded {len(media_items)} media items for watchlist {watchlist_id}"
+                            f"Initialized media items for watchlist {watchlist_id}"
                         )
-                    else:
+                    elif changes:
                         for change in changes:
                             media_data = {
                                 "id": change.document.id,
@@ -395,32 +376,36 @@ def get_cached_followed_media(user_id):
     def on_snapshot(query_snapshot, changes, read_time):
         try:
             with cache_lock:
-                if user_id not in followed_media_cache:
-                    followed_media_cache[user_id] = {}
-
-                if not changes:
-                    followed_dict = {}
-                    for doc in query_snapshot:
-                        data = doc.to_dict()
-                        media_key = f"{data.get('media_type')}_{data.get('media_id')}"
-                        followed_dict[media_key] = {"id": doc.id, **data}
-                    followed_media_cache[user_id] = followed_dict
-                else:
+                is_initial = user_id not in followed_media_cache
+                if is_initial:
+                    followed_media_cache[user_id] = {
+                        f"{d.to_dict().get('media_type')}_{d.to_dict().get('media_id')}": {
+                            "id": d.id,
+                            **d.to_dict(),
+                        }
+                        for d in query_snapshot
+                    }
+                elif changes:
                     for change in changes:
                         data = change.document.to_dict()
                         media_key = f"{data.get('media_type')}_{data.get('media_id')}"
-
-                        if (
-                            change.type.name == "ADDED"
-                            or change.type.name == "MODIFIED"
-                        ):
+                        if change.type.name == "ADDED":
                             followed_media_cache[user_id][media_key] = {
                                 "id": change.document.id,
                                 **data,
                             }
+                        elif change.type.name == "MODIFIED":
+                            if media_key in followed_media_cache:
+                                followed_media_cache[user_id][media_key].update(data)
+                            else:
+                                followed_media_cache[user_id][media_key] = {
+                                    "id": change.document.id,
+                                    **data,
+                                }
                         elif change.type.name == "REMOVED":
-                            if media_key in followed_media_cache[user_id]:
-                                del followed_media_cache[user_id][media_key]
+                            followed_media_cache[user_id].pop(media_key, None)
+                else:
+                    logger.debug("Empty snapshot after initial load; ignoring.")
 
                 logger.info(f"Followed media cache updated for {user_id}")
 
@@ -465,30 +450,36 @@ def get_cached_tv_progress(user_id):
     def on_snapshot(query_snapshot, changes, read_time):
         try:
             with cache_lock:
-                if not changes:
-                    progress_dict = {}
-                    for doc in query_snapshot:
-                        data = doc.to_dict()
-                        tv_id = data.get("tv_id")
-                        progress_dict[f"tv_{tv_id}"] = data
-                    tv_progress_cache[user_id] = progress_dict
-                else:
-                    if user_id not in tv_progress_cache:
-                        tv_progress_cache[user_id] = {}
-
+                is_initial = user_id not in tv_progress_cache
+                if is_initial:
+                    tv_progress_cache[user_id] = {
+                        f"tv_{d.to_dict().get('tv_id')}": d.to_dict()
+                        for d in query_snapshot
+                    }
+                elif changes:
                     for change in changes:
                         data = change.document.to_dict()
-                        tv_id = data.get("tv_id")
+                        key = f"tv_{data.get('tv_id')}"
 
-                        if (
-                            change.type.name == "ADDED"
-                            or change.type.name == "MODIFIED"
-                        ):
-                            tv_progress_cache[user_id][f"tv_{tv_id}"] = data
+                        if change.type.name == "ADDED":
+                            tv_progress_cache[user_id][key] = {
+                                "id": change.document.id,
+                                **data,
+                            }
+                        elif change.type.name == "MODIFIED":
+                            # Merge only the changed fields into the existing dict
+                            if key in tv_progress_cache[user_id]:
+                                tv_progress_cache[user_id][key].update(data)
+                            else:
+                                # Fallback if we somehow missed the add
+                                tv_progress_cache[user_id][key] = {
+                                    "id": change.document.id,
+                                    **data,
+                                }
                         elif change.type.name == "REMOVED":
-                            tv_key = f"tv_{tv_id}"
-                            if tv_key in tv_progress_cache[user_id]:
-                                del tv_progress_cache[user_id][tv_key]
+                            tv_progress_cache[user_id].pop(key, None)
+                else:
+                    logger.debug("Empty snapshot after initial load; ignoring.")
 
                 logger.info(f"TV progress cache updated for {user_id}")
 
