@@ -120,28 +120,60 @@ function Dashboard() {
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         const uid = user.uid;
-        //console.log(user)
-        //console.log(user.displayName)
         console.log("uid", uid);
-        console.log("You appear to be signed in.");
         setIsLoggedIn(true);
         setDisplayName(user.displayName);
         sessionStorage.setItem("userName", user.displayName);
         setUserID(uid);
 
-        // Help from https://www.youtube.com/watch?v=PGCMdiXRI6Y
-        // // Shows media -WA
-
-        // Help from https://stackoverflow.com/questions/68260152/firebase-auth-currentuser-is-null-at-page-load/68260898#68260898
+        // Check if we already initialized for this user
+        const currentInitialized = sessionStorage.getItem(
+          "listenersInitialized"
+        );
+        if (currentInitialized !== uid) {
+          // Initialize only if not done already for this user
+          await initializeFirebase(uid);
+          sessionStorage.setItem("listenersInitialized", uid);
+        }
       } else {
         console.log("You appear to be signed out.");
         setIsLoggedIn(false);
         setUserID("");
+
+        // Clear the initialization flag when logged out
+        sessionStorage.removeItem("listenersInitialized");
       }
     });
-
-    // Help from https://stackoverflow.com/questions/53070970/infinite-loop-in-useeffect
   }, []);
+
+  const initializeFirebase = async (user_id) => {
+    try {
+      const response = await axios.post(
+        `${host}interactions/initialize-listeners`,
+        {
+          user_id,
+        }
+      );
+      if (response.data.status === "success") {
+        console.log("Initalized listeners");
+      }
+    } catch (err) {
+      console.log(`Error inialiazing listeners ${err}`);
+    }
+  };
+
+  const shutdownFirebase = async (user_id) => {
+    try {
+      const response = await axios.post(`${host}interactions/stop-listeners`, {
+        user_id,
+      });
+      if (response.data.status === "success") {
+        console.log("Stopped listeners");
+      }
+    } catch (err) {
+      console.log(`Error inialiazing listeners ${err}`);
+    }
+  };
 
   const navigate = useNavigate();
 
@@ -149,6 +181,7 @@ function Dashboard() {
     // Help from https://www.freecodecamp.org/news/use-firebase-authentication-in-a-react-app/
     signOut(auth)
       .then(() => {
+        shutdownFirebase(userID);
         sessionStorage.removeItem("userId");
         sessionStorage.removeItem("userName");
         navigate("/"); // Go back to login after logging out

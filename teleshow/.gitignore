@@ -30,6 +30,7 @@ yarn-error.log*
 /backend/app/Resources/
 /backend/app/static/
 /backend/app/templates/
+/backend/app/teleshow_cache/
 /backend/build/
 /backend/dist/
 

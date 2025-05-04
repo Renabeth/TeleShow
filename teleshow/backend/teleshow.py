@@ -8,6 +8,10 @@ from app.blueprints.interactions import interactions_bp
 from app.extensions import cache, limiter, init_app
 import os  # Used to find file paths
 import sys
+import logging
+import atexit
+import signal
+from app.firebase_handler import shutdown_all_listeners
 
 if getattr(sys, "frozen", False):
     # Running as executable
@@ -22,6 +26,11 @@ init_app(app)
 app.register_blueprint(search_bp, url_prefix="/search")
 app.register_blueprint(interactions_bp, url_prefix="/interactions")
 app.register_blueprint(recommendations_bp)
+
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 
 # Initializes CORS
 CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:5000", "file://*"])
@@ -81,6 +90,17 @@ def not_found(e):
     else:
         return redirect("http://localhost:3000")
 
+
+atexit.register(shutdown_all_listeners)
+
+
+def _graceful_shutdown(signum, frame):
+    shutdown_all_listeners()
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, _graceful_shutdown)
+signal.signal(signal.SIGTERM, _graceful_shutdown)
 
 if __name__ == "__main__":
     if getattr(sys, "frozen", False):

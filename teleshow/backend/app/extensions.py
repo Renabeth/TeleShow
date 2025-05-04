@@ -47,6 +47,22 @@ else:
     base_path = os.path.dirname(os.path.abspath(__file__))
     dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
 
+
+def get_cache_dir():
+    if getattr(sys, "frozen", False):
+
+        cache_dir = os.path.join(sys._MEIPASS, "app", "teleshow_cache")
+    else:
+
+        cache_dir = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "teleshow_cache"
+        )
+
+    # Makes sure that the directory exists
+    os.makedirs(cache_dir, exist_ok=True)
+    return cache_dir
+
+
 load_dotenv(dotenv_path=dotenv_path)
 
 
@@ -115,12 +131,14 @@ def get_model():
 
 def init_app(app):
     # Initializes Cache with a default ttl of 30 minutes
+    # Since we are using an executable to deploy and thus are only really expecting one user per executable. Therefore im saving the cache in the file system instead of memory.
     cache.init_app(
         app,
         config={
-            "CACHE_TYPE": "SimpleCache",
-            "CACHE_THRESHOLD": 2000,
-            "CACHE_DEFAULT_TIMEOUT": 3600,
+            "CACHE_TYPE": "FileSystemCache",
+            "CACHE_DIR": get_cache_dir(),
+            "CACHE_THRESHOLD": 5000,
+            "CACHE_DEFAULT_TIMEOUT": 86400,
         },
     )
 

@@ -121,7 +121,7 @@ def process_movies(query, streaming_platform, movie_results, movies_done):
                 platform_ids = PLATFORM_ID_MAP.get(platform.lower(), [])
                 all_platform_ids.update(platform_ids)
 
-            with ThreadPoolExecutor(max_workers=5) as executor:
+            with ThreadPoolExecutor(max_workers=3) as executor:
                 # Using threadpoolexecutor, the return are futures that can be worked with
                 # This is created a pool of threads to perform the defined function with the args
                 # Just a reminder for myself that enumerate returns a tuple of iterator and value
@@ -174,7 +174,7 @@ def process_tv_shows(query, streaming_platform, tv_results, tv_done):
                 platform_ids = PLATFORM_ID_MAP.get(platform.lower(), [])
                 all_platform_ids.update(platform_ids)
 
-            with ThreadPoolExecutor(max_workers=5) as executor:
+            with ThreadPoolExecutor(max_workers=3) as executor:
                 future_to_tv = {
                     executor.submit(get_watch_providers, tv["id"], "tv"): i
                     for i, tv in enumerate(all_tv)
