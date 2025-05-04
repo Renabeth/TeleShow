@@ -16,8 +16,7 @@ comments_cache = {}
 followed_media_cache = {}
 watchlist_cache = {}
 tv_progress_cache = {}
-active_listeners = {}
-MAX_ACTIVE_LISTENERS = 50
+
 EVICTION_MAP = {
     "user_": user_cache,
     "ratings_": ratings_cache,
@@ -27,6 +26,7 @@ EVICTION_MAP = {
     "tv_progress_": tv_progress_cache,
 }
 
+active_listeners = {}
 cache_lock = threading.RLock()
 listener_lock = threading.RLock()
 
@@ -36,10 +36,23 @@ listener_thread = None
 users_ref = get_db().collection("users-test")
 
 
+### Utility to register a listener###
+def _attach_listener(key: str, create_fn):
+    if key in active_listeners:
+        return
+
+    watch = create_fn()
+    active_listeners[key] = {"listener": watch, "restart": create_fn}
+    logger.info(f"Attached listener: {key}")
+
+
 def get_cached_user_data(user_id):
     """Gets user data from cache or set up listener if not available"""
     initial_data_event = threading.Event()
     listener_key = f"user_{user_id}"
+    if listener_key in active_listeners:
+        logger.info("Cache used for user data")
+        return user_cache.get(user_id, {})
     user_ref = users_ref.document(user_id)
 
     def on_snapshot(doc_snapshot, changes, read_time):
@@ -48,35 +61,12 @@ def get_cached_user_data(user_id):
                 for doc in doc_snapshot:
                     user_cache[user_id] = doc.to_dict()
                     logger.info(f"User document updated for {user_id}")
-                    with listener_lock:
-                        if listener_key in active_listeners:
-                            active_listeners[listener_key]["last_active"] = time.time()
         except Exception as e:
             logger.error(f"Error in user snapshot listener: {str(e)}")
         finally:
             initial_data_event.set()
 
-    with listener_lock:
-        # Sets up the document listener
-        if user_id in user_cache and listener_key in active_listeners:
-            info = active_listeners.get(listener_key)
-            if info:
-                info["last_active"] = time.time()
-            return user_cache[user_id]
-
-        if len(active_listeners) >= MAX_ACTIVE_LISTENERS:
-            msg = f"user listener cap reached ({MAX_ACTIVE_LISTENERS})"
-            logger.error(msg)
-            raise RuntimeError(msg)
-        if listener_key in active_listeners:
-            active_listeners[listener_key]["last_active"] = time.time()
-            return user_cache.get(user_id, {})
-
-        listener = user_ref.on_snapshot(on_snapshot)
-        active_listeners[listener_key] = {
-            "listener": listener,
-            "last_active": time.time(),
-        }
+    _attach_listener(listener_key, create_fn=lambda: user_ref.on_snapshot(on_snapshot))
 
     initial_data_event.wait(timeout=5.0)
     return user_cache.get(user_id, {})
@@ -86,9 +76,12 @@ def get_cached_user_ratings(user_id):
     """Gets user ratings from cache or set up listener if not available"""
     initial_data_event = threading.Event()
     listener_key = f"ratings_{user_id}"
+    if listener_key in active_listeners:
+        logger.info("Cache used for ratings data")
+        return ratings_cache.get(user_id, {})
     logger.info(f"Setting up ratings listener for {user_id}")
     ratings_ref = get_db().collection("Ratings")
-    query = ratings_ref.where("user_id", "==", user_id)
+    query = ratings_ref.where(filter=FieldFilter("user_id", "==", user_id))
 
     def on_snapshot(query_snapshot, changes, read_time):
         try:
@@ -99,33 +92,12 @@ def get_cached_user_ratings(user_id):
                 }
                 ratings_cache[user_id] = ratings
                 logger.info(f"Ratings cached for {user_id}")
-            with listener_lock:
-                if listener_key in active_listeners:
-                    active_listeners[listener_key]["last_active"] = time.time()
         except Exception as e:
             logger.error(f"Error in ratings snapshot listener: {str(e)}")
         finally:
             initial_data_event.set()
 
-    with listener_lock:
-        if user_id in ratings_cache and listener_key in active_listeners:
-            info = active_listeners.get(listener_key)
-            if info:
-                info["last_active"] = time.time()
-            return ratings_cache[user_id]
-        if len(active_listeners) >= MAX_ACTIVE_LISTENERS:
-            msg = f"Max listeners ({MAX_ACTIVE_LISTENERS}) reached, cannot subscribe {listener_key}"
-            logger.error(msg)
-            raise RuntimeError(msg)
-        if listener_key in active_listeners:
-            active_listeners[listener_key]["last_active"] = time.time()
-            return ratings_cache.get(user_id, {})
-
-        listener = query.on_snapshot(on_snapshot)
-        active_listeners[listener_key] = {
-            "listener": listener,
-            "last_active": time.time(),
-        }
+    _attach_listener(listener_key, create_fn=lambda: query.on_snapshot(on_snapshot))
     initial_data_event.wait(timeout=5.0)
     return ratings_cache.get(user_id, {})
 
@@ -133,6 +105,9 @@ def get_cached_user_ratings(user_id):
 def get_cached_user_comments(user_id):
     """Gets user comments from cache or set up listener if not available"""
     listener_key = f"comments_{user_id}"
+    if listener_key in active_listeners:
+        logger.info("Cache used for comments data")
+        return comments_cache.get(user_id, [])
     initial_data_event = threading.Event()
 
     logger.info(f"Setting up comments listener for {user_id}")
@@ -168,33 +143,12 @@ def get_cached_user_comments(user_id):
                 else:
                     logger.debug("Empty snapshot after initial load; ignoring.")
                 logger.info(f"Comments cache updated for {user_id}")
-
-            with listener_lock:
-                if listener_key in active_listeners:
-                    active_listeners[listener_key]["last_active"] = time.time()
         except Exception as e:
             logger.error(f"Error in comments snapshot listener: {str(e)}")
         finally:
             initial_data_event.set()
 
-    with listener_lock:
-        if user_id in comments_cache and listener_key in active_listeners:
-            info = active_listeners.get(listener_key)
-            if info:
-                info["last_active"] = time.time()
-            return comments_cache.get(user_id, [])
-        if len(active_listeners) >= MAX_ACTIVE_LISTENERS:
-            msg = f"{listener_key} cap reached ({MAX_ACTIVE_LISTENERS})"
-            logger.error(msg)
-            raise RuntimeError(msg)
-        if listener_key in active_listeners:
-            active_listeners[listener_key]["last_active"] = time.time()
-            return comments_cache.get(user_id, [])
-        listener = query.on_snapshot(on_snapshot)
-        active_listeners[f"comments_{user_id}"] = {
-            "listener": listener,
-            "last_active": time.time(),
-        }
+    _attach_listener(listener_key, create_fn=lambda: query.on_snapshot(on_snapshot))
 
     initial_data_event.wait(timeout=5.0)
     return comments_cache.get(user_id, [])
@@ -203,6 +157,9 @@ def get_cached_user_comments(user_id):
 def get_cached_user_watchlists(user_id):
     """Gets user watchlists from cache or set up listener if not available"""
     listener_key = f"watchlists_{user_id}"
+    if listener_key in active_listeners:
+        logger.info("Cache used for watchlist data")
+        return watchlist_cache.get(user_id, [])
     initial_data_event = threading.Event()
     logger.info(f"Setting up watchlists listener for {user_id}")
     watchlist_ref = users_ref.document(user_id).collection("watchlists")
@@ -244,12 +201,12 @@ def get_cached_user_watchlists(user_id):
                                 if wl["id"] != data["id"]
                             ]
                             to_remove.append(data["id"])
-                    with listener_lock:
-                        for wl_id in to_remove:
-                            media_key = f"watchlist_media_{user_id}_{wl_id}"
-                            detach_listener(media_key)
-                        for wl_id in to_add:
-                            setup_watchlist_media_listener(user_id, wl_id)
+
+                    for wl_id in to_remove:
+                        media_key = f"watchlist_media_{user_id}_{wl_id}"
+                        detach_listener(media_key)
+                    for wl_id in to_add:
+                        setup_watchlist_media_listener(user_id, wl_id)
                 else:
                     logger.debug("Empty snapshot after initial load; ignoring.")
 
@@ -260,25 +217,9 @@ def get_cached_user_watchlists(user_id):
         finally:
             initial_data_event.set()
 
-    with listener_lock:
-        if user_id in watchlist_cache and listener_key in active_listeners:
-            info = active_listeners.get(listener_key)
-            if info:
-                info["last_active"] = time.time()
-            return watchlist_cache.get(user_id, [])
-        if len(active_listeners) >= MAX_ACTIVE_LISTENERS:
-            msg = f"{listener_key} cap reached ({MAX_ACTIVE_LISTENERS})"
-            logger.error(msg)
-            raise RuntimeError(msg)
-        if listener_key in active_listeners:
-            active_listeners[listener_key]["last_active"] = time.time()
-            return watchlist_cache.get(user_id, [])
-        listener = watchlist_ref.on_snapshot(on_snapshot)
-        active_listeners[f"watchlists_{user_id}"] = {
-            "listener": listener,
-            "last_active": time.time(),
-        }
-
+    _attach_listener(
+        listener_key, create_fn=lambda: watchlist_ref.on_snapshot(on_snapshot)
+    )
     initial_data_event.wait(timeout=5.0)
     return watchlist_cache.get(user_id, [])
 
@@ -340,26 +281,12 @@ def setup_watchlist_media_listener(user_id, watchlist_id):
                                 ]
 
                     logger.info(f"Media cache updated for watchlist {watchlist_id}")
-
-                with listener_lock:
-                    if listener_key in active_listeners:
-                        active_listeners[listener_key]["last_active"] = time.time()
             except Exception as e:
                 logger.error(f"Error in watchlist media snapshot listener: {str(e)}")
 
-        with listener_lock:
-            if listener_key in active_listeners:
-                active_listeners[listener_key]["last_active"] = time.time()
-                return
-            if len(active_listeners) >= MAX_ACTIVE_LISTENERS:
-                msg = f"{listener_key} cap reached ({MAX_ACTIVE_LISTENERS})"
-                logger.error(msg)
-                raise RuntimeError(msg)
-            listener = media_ref.on_snapshot(on_snapshot)
-            active_listeners[listener_key] = {
-                "listener": listener,
-                "last_active": time.time(),
-            }
+        _attach_listener(
+            listener_key, create_fn=lambda: media_ref.on_snapshot(on_snapshot)
+        )
 
     except Exception as e:
         logger.error(f"Error setting up watchlist media listener: {str(e)}")
@@ -368,6 +295,9 @@ def setup_watchlist_media_listener(user_id, watchlist_id):
 def get_cached_followed_media(user_id):
     """Gets followed media from cache or set up listener if not available"""
     listener_key = f"followed_{user_id}"
+    if listener_key in active_listeners:
+        logger.info("Cache used for followed media")
+        return followed_media_cache.get(user_id, {})
     initial_data_event = threading.Event()
 
     logger.info(f"Setting up followed media listener for {user_id}")
@@ -408,33 +338,14 @@ def get_cached_followed_media(user_id):
                     logger.debug("Empty snapshot after initial load; ignoring.")
 
                 logger.info(f"Followed media cache updated for {user_id}")
-
-            with listener_lock:
-                if listener_key in active_listeners:
-                    active_listeners[listener_key]["last_active"] = time.time()
         except Exception as e:
             logger.error(f"Error in followed media snapshot listener: {str(e)}")
         finally:
             initial_data_event.set()
 
-    with listener_lock:
-        if user_id in followed_media_cache and listener_key in active_listeners:
-            info = active_listeners.get(listener_key)
-            if info:
-                info["last_active"] = time.time()
-            return followed_media_cache.get(user_id, {})
-        if len(active_listeners) >= MAX_ACTIVE_LISTENERS:
-            msg = f"{listener_key} cap reached ({MAX_ACTIVE_LISTENERS})"
-            logger.error(msg)
-            raise RuntimeError(msg)
-        if listener_key in active_listeners:
-            active_listeners[listener_key]["last_active"] = time.time()
-            return followed_media_cache.get(user_id, {})
-        listener = followed_ref.on_snapshot(on_snapshot)
-        active_listeners[f"followed_{user_id}"] = {
-            "listener": listener,
-            "last_active": time.time(),
-        }
+    _attach_listener(
+        listener_key, create_fn=lambda: followed_ref.on_snapshot(on_snapshot)
+    )
 
     initial_data_event.wait(timeout=5.0)
     return followed_media_cache.get(user_id, {})
@@ -443,6 +354,9 @@ def get_cached_followed_media(user_id):
 def get_cached_tv_progress(user_id):
     """Gets TV progress from cache or set up listener if not available"""
     listener_key = f"tv_progress_{user_id}"
+    if listener_key in active_listeners:
+        logger.info("Cache used for tv progress")
+        return tv_progress_cache.get(user_id, {})
     initial_data_event = threading.Event()
     logger.info(f"Setting up TV progress listener for {user_id}")
     progress_ref = users_ref.document(user_id).collection("tv_progress")
@@ -482,34 +396,14 @@ def get_cached_tv_progress(user_id):
                     logger.debug("Empty snapshot after initial load; ignoring.")
 
                 logger.info(f"TV progress cache updated for {user_id}")
-
-            with listener_lock:
-                if listener_key in active_listeners:
-                    active_listeners[listener_key]["last_active"] = time.time()
         except Exception as e:
             logger.error(f"Error in TV progress snapshot listener: {str(e)}")
         finally:
             initial_data_event.set()
 
-    with listener_lock:
-        if user_id in tv_progress_cache and listener_key in active_listeners:
-            info = active_listeners.get(listener_key)
-            if info:
-                info["last_active"] = time.time()
-            return tv_progress_cache.get(user_id, {})
-        if len(active_listeners) >= MAX_ACTIVE_LISTENERS:
-            msg = f"{listener_key} cap reached ({MAX_ACTIVE_LISTENERS})"
-            logger.error(msg)
-            raise RuntimeError(msg)
-        if listener_key in active_listeners:
-            active_listeners[listener_key]["last_active"] = time.time()
-            return tv_progress_cache.get(user_id, {})
-        listener = progress_ref.on_snapshot(on_snapshot)
-        active_listeners[f"tv_progress_{user_id}"] = {
-            "listener": listener,
-            "last_active": time.time(),
-        }
-
+    _attach_listener(
+        listener_key, create_fn=lambda: progress_ref.on_snapshot(on_snapshot)
+    )
     initial_data_event.wait(timeout=5.0)
     return tv_progress_cache.get(user_id, {})
 
@@ -518,12 +412,6 @@ def start_all_listeners_for_user(user_id):
     """Initializes all listeners for a specific user"""
     global listener_thread
     try:
-        if len(active_listeners) > MAX_ACTIVE_LISTENERS * 0.8:  # 80% threshold
-            logger.warning(
-                f"Approaching listener limit ({len(active_listeners)}/{MAX_ACTIVE_LISTENERS})"
-            )
-            cleanup_stale_listeners()
-
         get_cached_user_data(user_id)
         get_cached_user_ratings(user_id)
         get_cached_user_comments(user_id)
@@ -535,7 +423,7 @@ def start_all_listeners_for_user(user_id):
         with listener_lock:
             if listener_thread is None or not listener_thread.is_alive():
                 listener_shutdown_event.clear()
-                listener_thread = threading.Thread(target=keep_listeners_alive)
+                listener_thread = threading.Thread(target=monitor_listeners)
                 listener_thread.daemon = True
                 listener_thread.start()
                 logger.info("Started listener maintenance thread")
@@ -548,82 +436,40 @@ def start_all_listeners_for_user(user_id):
 
 def detach_listener(listener_key):
     """Detaches a specific listener by key"""
-    info = None
-    with cache_lock:
-        with listener_lock:
-            info = active_listeners.pop(listener_key, None)
-            if not info:
-                return False
-
-            for prefix, cache_dict in EVICTION_MAP.items():
-                if listener_key.startswith(prefix):
-                    user_id = listener_key[len(prefix) :]
-                    cache_dict.pop(user_id, None)
-                    break
-            else:
-                # special-case for watchlist_media_
-                if listener_key.startswith("watchlist_media_"):
-                    _, _, rest = listener_key.partition("watchlist_media_")
-                    user_id, _, wl_id = rest.partition("_")
-                    for wl in watchlist_cache.get(user_id, []):
-                        if wl["id"] == wl_id:
-                            wl.pop("media", None)
-                            break
+    with listener_lock:
+        info = active_listeners.pop(listener_key, None)
+    if not info:
+        return False
 
     try:
         info["listener"].unsubscribe()
         logger.info(f"Detached listener: {listener_key}")
     except Exception as e:
-        logger.error(f"Error detaching listener {listener_key}: {e}")
+        logger.error(f"Error detaching {listener_key}: {e}")
     return True
 
 
-def keep_listeners_alive():
-    HEALTH_INTERVAL = 120
-    SLEEP_CHUNK = 1
-    last_check = time.time()
-
-    logger.info("Listener maintenance thread started")
-    while not listener_shutdown_event.is_set():
-        now = time.time()
-        if now - last_check >= HEALTH_INTERVAL:
-            _perform_health_check()
-            last_check = now
-
-        # Sleep in small chunks to react quickly to shutdown
-        if listener_shutdown_event.wait(timeout=SLEEP_CHUNK):
-            break
-
-
-def _perform_health_check():
-    LISTENER_TIMEOUT = 300
+def monitor_listeners(interval=300):
+    # Background thread: every `interval` seconds, restart any closed listener.
     try:
-        removed = cleanup_stale_listeners(max_age=LISTENER_TIMEOUT)
-
-        if removed:
-            logger.info(f"Cleaned up {removed} stale listeners")
+        while not listener_shutdown_event.is_set():
+            time.sleep(interval)
+            with listener_lock:
+                for key, info in list(active_listeners.items()):
+                    watch = info["listener"]
+                    # Firestore Watch has an internal ._closed flag when stream ends
+                    if getattr(watch, "_closed", False):
+                        logger.warning(f"{key} closed unexpectedly; restarting")
+                        try:
+                            watch.unsubscribe()
+                        except:
+                            pass
+                        # Re-creates listener
+                        new_watch = info["restart"]()
+                        active_listeners[key]["listener"] = new_watch
+                        logger.info(f"Restarted listener: {key}")
     except Exception as e:
-        logger.error(f"Error performing health check: {e}")
-
-
-def cleanup_stale_listeners(max_age=300):
-    """Removes listeners that haven't been active recently"""
-    current_time = time.time()
-    removed_count = 0
-
-    with listener_lock:
-        stale_keys = [
-            key
-            for key, info in active_listeners.items()
-            if current_time - info["last_active"] > max_age
-        ]
-    for key in stale_keys:
-        detach_listener(key)
-        removed_count += 1
-
-    if removed_count > 0:
-        logger.info(f"Cleaned up {removed_count} stale listeners")
-    return removed_count
+        logger.error(f"Error monitoring listeners: {e}")
 
 
 def shutdown_all_listeners():
@@ -633,12 +479,11 @@ def shutdown_all_listeners():
     if listener_thread and listener_thread.is_alive():
         listener_thread.join(timeout=1.0)
 
-    keys_and_infos = list(active_listeners.items())
+    with listener_lock:
+        for key, info in active_listeners.items():
+            try:
+                info["listener"].unsubscribe()
+                logger.info(f"Unsubscribed {key}")
+            except Exception as e:
+                logger.error(f"Error unsubscribing {key}: {e}")
     active_listeners.clear()
-
-    for key, info in keys_and_infos:
-        try:
-            info["listener"].unsubscribe()
-            logger.info(f"Unsubscribed {key}")
-        except Exception as e:
-            logger.error(f"Error unsubscribing {key}: {e}")

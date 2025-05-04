@@ -71,7 +71,7 @@ const UserStatsWidget = ({ userId }) => {
             color: "var(--text-light)",
           }}
         >
-          Your Viewing Stats
+          {`${sessionStorage.getItem("userName")}'s Viewing Stats`}
         </Card.Header>
         <Card.Body>
           <Row>
