@@ -9,9 +9,25 @@ const WatchlistCard = ({
   onUpdateStatus,
   onInfoClick,
   onRemoveClick,
+  loading = false,
 }) => {
   const [hover, setHover] = useState(false);
-
+  if (loading) {
+    return (
+      <Card className="wl-card skeleton-card">
+        <div className="skeleton-image"></div>
+        <Card.Body className="skeleton-body">
+          <div className="skeleton-title"></div>
+          <div className="wl-footer">
+            <div className="skeleton-rating"></div>
+          </div>
+          <div className="wl-actions">
+            <div className="skeleton-button"></div>
+          </div>
+        </Card.Body>
+      </Card>
+    );
+  }
   return (
     <Card
       className="wl-card"

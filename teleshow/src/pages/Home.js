@@ -121,27 +121,29 @@ function HomePage() {
           </div>
         </div>
       </div>
-      {loading ? (
-        <div className="loading-spinner">
-          <Spinner animation="border" variant="primary" />
-          <span> Finding Trending Titles...</span>
-        </div>
-      ) : (
-        <div
-          className="media-container"
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-        >
-          <section className="trending-section">
-            <h2>Trending Movies</h2>
-            <MediaSlides items={trendingMovies} autoplay={autoplay} />
-          </section>
-          <section className="popular-section">
-            <h2>Popular TV</h2>
-            <MediaSlides items={popularTV} autoplay={autoplay} />
-          </section>
-        </div>
-      )}
+
+      <div
+        className="media-container"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        <section className="trending-section">
+          <h2>Trending Movies</h2>
+          <MediaSlides
+            items={trendingMovies}
+            autoplay={autoplay}
+            loading={loading}
+          />
+        </section>
+        <section className="popular-section">
+          <h2>Popular TV</h2>
+          <MediaSlides
+            items={popularTV}
+            autoplay={autoplay}
+            loading={loading}
+          />
+        </section>
+      </div>
     </div>
   );
 }

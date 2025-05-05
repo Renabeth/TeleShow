@@ -339,16 +339,26 @@ const Watchlist = () => {
             <Badge bg="secondary" className="me-2 wl-count">
               {filteredMedia.length} items
             </Badge>
-
-            {loading ? (
-              <Spinner animation="border" />
-            ) : (
-              <Row className="wl-grid">
-                {/*...Converts to array
+            <Row className="wl-grid">
+              {/*...Converts to array
                 Converts the media ids to dictionary keys so they are unique
                 prevents duplicates
                 */}
-                {filteredMedia.length > 0 &&
+              {loading
+                ? Array(8)
+                    .fill()
+                    .map((_, index) => (
+                      <Col
+                        key={`skeleton-${index}`}
+                        xs={6}
+                        sm={4}
+                        lg={3}
+                        className="mb-4"
+                      >
+                        <WatchlistCard loading={true} />
+                      </Col>
+                    ))
+                : filteredMedia.length > 0 &&
                   [
                     ...new Map(
                       filteredMedia.map((item) => [item.media_id, item])
@@ -360,11 +370,11 @@ const Watchlist = () => {
                         onUpdateStatus={updateStatus}
                         onInfoClick={handleItemClick}
                         onRemoveClick={handleRemoveClick}
+                        loading={loading}
                       />
                     </Col>
                   ))}
-              </Row>
-            )}
+            </Row>
           </Col>
         </Row>
       </Container>

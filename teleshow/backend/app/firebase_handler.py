@@ -32,6 +32,8 @@ listener_lock = threading.RLock()
 
 listener_shutdown_event = threading.Event()
 listener_thread = None
+_initializing_users = set()
+_initializing_lock = threading.Lock()
 
 users_ref = get_db().collection("users-test")
 
@@ -60,7 +62,7 @@ def get_cached_user_data(user_id):
             with cache_lock:
                 for doc in doc_snapshot:
                     user_cache[user_id] = doc.to_dict()
-                    logger.info(f"User document updated for {user_id}")
+                    logger.info(f"User document cached for {user_id}")
         except Exception as e:
             logger.error(f"Error in user snapshot listener: {str(e)}")
         finally:
@@ -142,7 +144,7 @@ def get_cached_user_comments(user_id):
                             ]
                 else:
                     logger.debug("Empty snapshot after initial load; ignoring.")
-                logger.info(f"Comments cache updated for {user_id}")
+                logger.info(f"Comments cached for {user_id}")
         except Exception as e:
             logger.error(f"Error in comments snapshot listener: {str(e)}")
         finally:
@@ -210,7 +212,7 @@ def get_cached_user_watchlists(user_id):
                 else:
                     logger.debug("Empty snapshot after initial load; ignoring.")
 
-                logger.info(f"Watchlists cache updated for {user_id}")
+                logger.info(f"Watchlists cached for {user_id}")
 
         except Exception as e:
             logger.error(f"Error in watchlists snapshot listener: {str(e)}")
@@ -280,7 +282,7 @@ def setup_watchlist_media_listener(user_id, watchlist_id):
                                     if m["id"] != change.document.id
                                 ]
 
-                    logger.info(f"Media cache updated for watchlist {watchlist_id}")
+                    logger.info(f"Media cached for watchlist {watchlist_id}")
             except Exception as e:
                 logger.error(f"Error in watchlist media snapshot listener: {str(e)}")
 
@@ -337,7 +339,7 @@ def get_cached_followed_media(user_id):
                 else:
                     logger.debug("Empty snapshot after initial load; ignoring.")
 
-                logger.info(f"Followed media cache updated for {user_id}")
+                logger.info(f"Followed media cached for {user_id}")
         except Exception as e:
             logger.error(f"Error in followed media snapshot listener: {str(e)}")
         finally:
@@ -395,7 +397,7 @@ def get_cached_tv_progress(user_id):
                 else:
                     logger.debug("Empty snapshot after initial load; ignoring.")
 
-                logger.info(f"TV progress cache updated for {user_id}")
+                logger.info(f"TV progress cached for {user_id}")
         except Exception as e:
             logger.error(f"Error in TV progress snapshot listener: {str(e)}")
         finally:
@@ -411,6 +413,14 @@ def get_cached_tv_progress(user_id):
 def start_all_listeners_for_user(user_id):
     """Initializes all listeners for a specific user"""
     global listener_thread
+    with _initializing_lock:
+        if user_id in _initializing_users:
+            logger.info(f"Initialization already in progress for {user_id}, skipping")
+            return {
+                "status": "in_progress",
+                "message": "Initialization already in progress",
+            }
+        _initializing_users.add(user_id)
     try:
         get_cached_user_data(user_id)
         get_cached_user_ratings(user_id)
@@ -432,6 +442,9 @@ def start_all_listeners_for_user(user_id):
     except Exception as e:
         logger.error(f"Error starting listeners: {str(e)}")
         return {"status": "error", "message": str(e)}
+    finally:
+        with _initializing_lock:
+            _initializing_users.remove(user_id)
 
 
 def detach_listener(listener_key):
@@ -477,13 +490,28 @@ def shutdown_all_listeners():
     logger.info(f"Shutting down {len(active_listeners)} active listeners")
     listener_shutdown_event.set()
     if listener_thread and listener_thread.is_alive():
-        listener_thread.join(timeout=1.0)
+        try:
+            listener_thread.join(timeout=5.0)
+        except Exception as e:
+            logger.error(f"Error joining listener thread: {e}")
 
+    try:
+        with cache_lock:
+            user_cache.clear()
+            ratings_cache.clear()
+            comments_cache.clear()
+            followed_media_cache.clear()
+            watchlist_cache.clear()
+            tv_progress_cache.clear()
+        logger.info("All caches cleared")
+    except Exception as e:
+        logger.error(f"Error clearing caches: {e}")
     with listener_lock:
-        for key, info in active_listeners.items():
+        for key, info in list(active_listeners.items()):
             try:
                 info["listener"].unsubscribe()
                 logger.info(f"Unsubscribed {key}")
             except Exception as e:
                 logger.error(f"Error unsubscribing {key}: {e}")
+
     active_listeners.clear()

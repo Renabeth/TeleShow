@@ -135,6 +135,7 @@ function Settings() {
                         release_date: movie.release_date,
                       }))}
                       autoplay={autoplay}
+                      loading={loading}
                     />
                   </>
                 )}
@@ -152,6 +153,7 @@ function Settings() {
                         release_date: show.release_date,
                       }))}
                       autoplay={autoplay}
+                      loading={loading}
                     />
                   </>
                 )}

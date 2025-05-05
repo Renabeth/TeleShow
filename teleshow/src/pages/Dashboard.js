@@ -42,6 +42,7 @@ function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
   const STORAGE_KEY = "platform_selection";
   //enables user filters
   //Attempts to get value from session variable
@@ -133,21 +134,20 @@ function Dashboard() {
         if (currentInitialized !== uid) {
           // Initialize only if not done already for this user
           await initializeFirebase(uid);
-          sessionStorage.setItem("listenersInitialized", uid);
         }
       } else {
         console.log("You appear to be signed out.");
         setIsLoggedIn(false);
         setUserID("");
-
-        // Clear the initialization flag when logged out
         sessionStorage.removeItem("listenersInitialized");
       }
     });
   }, []);
 
   const initializeFirebase = async (user_id) => {
+    if (isInitializing) return;
     try {
+      setIsInitializing(true);
       const response = await axios.post(
         `${host}interactions/initialize-listeners`,
         {
@@ -156,9 +156,12 @@ function Dashboard() {
       );
       if (response.data.status === "success") {
         console.log("Initalized listeners");
+        sessionStorage.setItem("listenersInitialized", userID);
       }
     } catch (err) {
       console.log(`Error inialiazing listeners ${err}`);
+    } finally {
+      setIsInitializing(false);
     }
   };
 
@@ -184,6 +187,7 @@ function Dashboard() {
         shutdownFirebase(userID);
         sessionStorage.removeItem("userId");
         sessionStorage.removeItem("userName");
+        sessionStorage.removeItem("listenersInitialized");
         navigate("/"); // Go back to login after logging out
         alert("You have logged out successfully.");
       })
@@ -201,7 +205,7 @@ function Dashboard() {
 
   return (
     <div className={`dashboard ${lightMode ? "light" : ""}`} id="dashboard">
-      <h2>Dashboard in Progress Stay Tuned</h2>
+      <h2>Dashboard</h2>
       <Navbar expand="lg" className="dashboard-header">
         <Button
           variant="link"
@@ -292,14 +296,11 @@ function Dashboard() {
                   <h2>{`Recommended Movies ${
                     beingFiltered ? "(Filtered) " : " "
                   }:`}</h2>
-                  {movieLoading ? (
-                    <Spinner animation="border" />
-                  ) : (
-                    <MediaSlides
-                      items={recommendedMovies}
-                      autoplay={autoplay}
-                    />
-                  )}
+                  <MediaSlides
+                    items={recommendedMovies}
+                    autoplay={autoplay}
+                    loading={movieLoading}
+                  />
                 </section>
 
                 <section
@@ -310,11 +311,12 @@ function Dashboard() {
                   <h2>{`Recommended TV: ${
                     beingFiltered ? "(Filtered) " : " "
                   }`}</h2>
-                  {tvLoading ? (
-                    <Spinner animation="border" />
-                  ) : (
-                    <MediaSlides items={recommendedTv} autoplay={autoplay} />
-                  )}
+
+                  <MediaSlides
+                    items={recommendedTv}
+                    autoplay={autoplay}
+                    loading={tvLoading}
+                  />
                 </section>
               </>
             ) : (
