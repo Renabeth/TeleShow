@@ -251,6 +251,14 @@ const SearchWidget = () => {
     handleSearch(historyItem, "all");
   };
 
+  const renderSkeletonResults = () => {
+    return Array(5)
+      .fill()
+      .map((_, index) => (
+        <SearchResultItem key={`skeleton-${index}`} loading={true} />
+      ));
+  };
+
   return (
     <div ref={searchContainerRef} className="position-relative">
       <div onSubmit={(e) => e.preventDefault()}>
@@ -413,19 +421,21 @@ const SearchWidget = () => {
       {(showDropdown || loading) && (
         <Dropdown.Menu show={true} className="search-results-container show">
           {loading ? (
-            <div className="loading-container">
-              <Spinner animation="border" role="status" variant="light">
-                <span className="visually-hidden">Loading...</span>
-              </Spinner>
-              <p className="loading-text">
-                Searching
-                {filter_type !== "all"
-                  ? ` ${filter_type === "movie" ? "movies" : "TV shows"}`
-                  : ""}
-                {streamingPlatform !== "all" ? ` on ${streamingPlatform}` : ""}
-                ...
-              </p>
-            </div>
+            <>
+              <div className="loading-container">
+                <p className="loading-text">
+                  Searching
+                  {filter_type !== "all"
+                    ? ` ${filter_type === "movie" ? "movies" : "TV shows"}`
+                    : ""}
+                  {streamingPlatform !== "all"
+                    ? ` on ${streamingPlatform}`
+                    : ""}
+                  ...
+                </p>
+              </div>
+              {renderSkeletonResults()}
+            </>
           ) : results && results.unified ? (
             results.allResults && results.allResults.length > 0 ? (
               <div className="search-result-item">

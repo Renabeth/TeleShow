@@ -11,8 +11,9 @@ echo Checking build folder...
 if not exist "build" mkdir build
 
 dir /b /s /a "build\" | findstr .>nul || (
-    echo Build folder is empty, running npm build...
-    npm run build
+    echo Build folder is empty, please run frontend build.bat
+    pause
+    exit /b
 )
 
 if not exist "backend\app\static" mkdir backend\app\static

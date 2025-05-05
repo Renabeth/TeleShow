@@ -498,6 +498,134 @@
   border-left: 5px solid #4CAF50;
 }
 
+.modal-skeleton {
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.skeleton-header {
+  height: 50px;
+  background: linear-gradient(90deg, rgba(105, 105, 105, 0.2) 25%, rgba(105, 105, 105, 0.3) 50%, rgba(105, 105, 105, 0.2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.skeleton-tabs-container {
+  margin-bottom: 20px;
+}
+
+.skeleton-tabs {
+  display: flex;
+  gap: 10px;
+}
+
+.skeleton-tab {
+  height: 30px;
+  width: 100px;
+  background: linear-gradient(90deg, rgba(105, 105, 105, 0.2) 25%, rgba(105, 105, 105, 0.3) 50%, rgba(105, 105, 105, 0.2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 5px;
+}
+
+.skeleton-content {
+  animation: fadeIn 0.4s ease-out 0.1s;
+  animation-fill-mode: both;
+}
+
+.skeleton-poster-large {
+  width: 100%;
+  height: 0;
+  padding-bottom: 150%;
+  background: linear-gradient(90deg, rgba(105, 105, 105, 0.2) 25%, rgba(105, 105, 105, 0.3) 50%, rgba(105, 105, 105, 0.2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.skeleton-button-group {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.skeleton-button {
+  height: 38px;
+  width: 48%;
+  background: linear-gradient(90deg, rgba(105, 105, 105, 0.2) 25%, rgba(105, 105, 105, 0.3) 50%, rgba(105, 105, 105, 0.2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 5px;
+}
+
+.skeleton-rating {
+  height: 30px;
+  width: 100%;
+  background: linear-gradient(90deg, rgba(105, 105, 105, 0.2) 25%, rgba(105, 105, 105, 0.3) 50%, rgba(105, 105, 105, 0.2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 5px;
+}
+
+.skeleton-title-large {
+  height: 30px;
+  width: 70%;
+  background: linear-gradient(90deg, rgba(105, 105, 105, 0.2) 25%, rgba(105, 105, 105, 0.3) 50%, rgba(105, 105, 105, 0.2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 5px;
+  margin-bottom: 15px;
+}
+
+.skeleton-info-line {
+  height: 20px;
+  width: 100%;
+  background: linear-gradient(90deg, rgba(105, 105, 105, 0.2) 25%, rgba(105, 105, 105, 0.3) 50%, rgba(105, 105, 105, 0.2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+.skeleton-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 15px 0;
+}
+
+.skeleton-badge {
+  height: 24px;
+  width: 80px;
+  background: linear-gradient(90deg, rgba(105, 105, 105, 0.2) 25%, rgba(105, 105, 105, 0.3) 50%, rgba(105, 105, 105, 0.2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 12px;
+}
+
+.skeleton-paragraph {
+  height: 80px;
+  width: 100%;
+  background: linear-gradient(90deg, rgba(105, 105, 105, 0.2) 25%, rgba(105, 105, 105, 0.3) 50%, rgba(105, 105, 105, 0.2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 5px;
+  margin-bottom: 15px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
 
 
 @keyframes fadeIn {

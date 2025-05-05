@@ -601,12 +601,58 @@ const DetailModal = ({
     return false;
   };
 
+  const DetailModalSkeleton = () => {
+    return (
+      <div className="modal-skeleton">
+        <div className="skeleton-header"></div>
+        <div className="skeleton-tabs-container">
+          <div className="skeleton-tabs">
+            <div className="skeleton-tab"></div>
+            <div className="skeleton-tab"></div>
+            <div className="skeleton-tab"></div>
+            <div className="skeleton-tab"></div>
+          </div>
+        </div>
+        <div className="skeleton-content">
+          <div className="row">
+            <div className="col-md-4">
+              <div className="skeleton-poster-large"></div>
+              <div className="skeleton-button-group">
+                <div className="skeleton-button"></div>
+                <div className="skeleton-button"></div>
+              </div>
+              <div className="skeleton-rating"></div>
+            </div>
+            <div className="col-md-8">
+              <div className="skeleton-title-large"></div>
+              <div className="skeleton-info-line"></div>
+              <div className="skeleton-info-line"></div>
+              <div className="skeleton-info-line"></div>
+              <div className="skeleton-badges">
+                <div className="skeleton-badge"></div>
+                <div className="skeleton-badge"></div>
+                <div className="skeleton-badge"></div>
+              </div>
+              <div className="skeleton-paragraph"></div>
+              <div className="skeleton-paragraph"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
-      <div className="text-center py-3">
-        <Spinner animation="border" />
-        <div className="text-muted small mt-2">Fetching details...</div>
-      </div>
+      <Modal
+        show={show}
+        onHide={onHide}
+        centered
+        size="lg"
+        className="detail-modal"
+      >
+        <DetailModalSkeleton />
+      </Modal>
     );
   }
 
