@@ -1038,13 +1038,34 @@ def get_user_stats():
     stats["watch_time_hours"] = round((total_episodes * 40) / 60, 1)
     # Calculating genre distribution
     genre_counts = {}
+    producer_counts = {}
     for media in followed:
-        for genre in media.get("genres", []):
-            genre_name = genre.get("name")
-            if genre_name:
-                if genre_name not in genre_counts:
-                    genre_counts[genre_name] = 0
-                genre_counts[genre_name] += 1
+        try:
+            for genre in media.get("genres", []):
+                genre_name = genre.get("name")
+                if genre_name:
+                    if genre_name not in genre_counts:
+                        genre_counts[genre_name] = 0
+                    genre_counts[genre_name] += 1
+                for producer in media.get("production_companies", []) or []:
+                    producer_name = producer.get("name")
+                    if producer_name:
+                        if producer_name not in producer_counts:
+                            producer_counts[producer_name] = 0
+                        producer_counts[producer_name] += 1
+        except Exception as e:
+            print(f"Error processing media for production companies: {e}")
+            continue
+
+    stats["top_producers"] = (
+        sorted(
+            [{"name": k, "count": v} for k, v in producer_counts.items()],
+            key=lambda x: x["count"],
+            reverse=True,
+        )[:5]
+        if producer_counts
+        else []
+    )
 
     stats["top_genres"] = sorted(
         [{"name": k, "count": v} for k, v in genre_counts.items()],

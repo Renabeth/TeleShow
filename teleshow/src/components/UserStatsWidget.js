@@ -113,37 +113,117 @@ const UserStatsWidget = ({ userId }) => {
             </Col>
           </Row>
 
-          <h6 className="mt-4">Media Type Distribution</h6>
           <Row className="mt-3">
-            <Col lg={6}>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: "Movies", value: stats.movie_count || 0 },
-                      { name: "TV Shows", value: stats.tv_count || 0 },
-                    ]}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) =>
-                      `${name}: ${(percent * 100).toFixed(0)}%`
-                    }
-                  >
-                    {[0, 1].map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+            <Col md={6}>
+              <Card
+                className="my-3"
+                style={{ backgroundColor: "var(--sidebar-bg)" }}
+              >
+                <Card.Header>
+                  <Card.Title style={{ color: "var(--text-light)" }}>
+                    Media Type Distribution
+                  </Card.Title>
+                </Card.Header>
+                <Card.Body>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: "Movies", value: stats.movie_count || 0 },
+                          { name: "TV Shows", value: stats.tv_count || 0 },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label={({ name, percent }) =>
+                          `${name}: ${(percent * 100).toFixed(0)}%`
+                        }
+                      >
+                        {[0, 1].map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Card.Body>
+              </Card>
             </Col>
+            {/* Top Production Companies */}
+            {stats.top_producers && stats.top_producers.length > 0 && (
+              <Col md={6}>
+                <Card
+                  className="my-3"
+                  style={{ backgroundColor: "var(--sidebar-bg)" }}
+                >
+                  <Card.Header>
+                    <Card.Title style={{ color: "var(--text-light)" }}>
+                      Top Production Companies
+                    </Card.Title>
+                  </Card.Header>
+                  <Card.Body>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={stats.top_producers}
+                          dataKey="count"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={70}
+                          fill="#8884d8"
+                          label={({ name, percent }) =>
+                            `${name}: ${(percent * 100).toFixed(0)}%`
+                          }
+                        >
+                          {stats.top_producers.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={COLORS[index % COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value, name) => [`${value} titles`, name]}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="mt-3">
+                      {stats.top_producers.map((producer, index) => (
+                        <div
+                          key={index}
+                          className="d-flex justify-content-between align-items-center mb-1"
+                        >
+                          <div className="d-flex align-items-center">
+                            <div
+                              style={{
+                                backgroundColor: COLORS[index % COLORS.length],
+                                width: "12px",
+                                height: "12px",
+                                borderRadius: "50%",
+                                marginRight: "8px",
+                              }}
+                            ></div>
+                            <span style={{ color: "var(--text-light)" }}>
+                              {producer.name}
+                            </span>
+                          </div>
+                          <span className="badge bg-primary">
+                            {producer.count}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            )}
 
             <Col lg={6}>
               <h6>Top Genres</h6>
