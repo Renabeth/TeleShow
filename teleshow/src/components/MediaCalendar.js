@@ -1,11 +1,10 @@
-//Written by Moses Pierre
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Card, Row, Col, Alert, Button } from "react-bootstrap";
+import { Card, Row, Col, Alert, Button, Badge } from "react-bootstrap";
 import { FaSyncAlt } from "react-icons/fa";
-import "./TVCalendar.css";
+import "./MediaCalendar.css";
 
-const TVCalendar = ({ isLoggedIn }) => {
+const MediaCalendar = ({ isLoggedIn }) => {
   const [calendarItems, setCalendarItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -13,14 +12,12 @@ const TVCalendar = ({ isLoggedIn }) => {
   const userId = sessionStorage.getItem("userId");
   const host = process.env.REACT_APP_NETWORK_HOST;
 
-  //If the user is logged in the calendar information is fetched from firebase
   useEffect(() => {
     if (isLoggedIn) {
       fetchCalendar();
     }
   }, [isLoggedIn]);
 
-  //Uses the interactions/tv/calendar endpoints to get Calendar entries from firebase
   const fetchCalendar = async () => {
     setLoading(true);
     setError(null);
@@ -31,20 +28,19 @@ const TVCalendar = ({ isLoggedIn }) => {
     }
 
     try {
-      const response = await axios.get(`${host}interactions/tv/calendar`, {
+      const response = await axios.get(`${host}interactions/media/calendar`, {
         params: { user_id: userId },
       });
 
       setCalendarItems(response.data.calendar || []);
     } catch (err) {
-      console.error("Error fetching TV calendar:", err);
-      setError("Failed to load your TV calendar. Please try again.");
+      console.error("Error fetching media calendar:", err);
+      setError("Failed to load your calendar. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  //Uses the interactions/tv/update-calendar to update the calendar
   const updateCalendar = async () => {
     setLoading(true);
     setError(null);
@@ -56,37 +52,36 @@ const TVCalendar = ({ isLoggedIn }) => {
     }
     try {
       const response = await axios.post(
-        `${host}interactions/tv/update-calendar`,
+        `${host}interactions/media/update-calendar`,
         {
           user_id: userId,
         }
       );
 
       if (response.data.status === "success") {
-        // Refresh calendar after update
         fetchCalendar();
       }
     } catch (err) {
-      console.error("Error updating TV calendar:", err);
-      setError("Failed to update your TV calendar. Please try again.");
+      console.error("Error updating media calendar:", err);
+      setError("Failed to update your calendar. Please try again.");
       setLoading(false);
     }
   };
 
-  //Groups the items in calendar by air date
   const groupByDate = (items) => {
     const groups = {};
     items.forEach((item) => {
-      if (!groups[item.air_date]) {
-        groups[item.air_date] = [];
+      // Handle both TV air_date and movie release_date
+      const dateField = item.release_date || item.air_date;
+      if (!groups[dateField]) {
+        groups[dateField] = [];
       }
-      groups[item.air_date].push(item);
+      groups[dateField].push(item);
     });
 
     return groups;
   };
 
-  //Formats date in weekday,year,month,day format
   const formatDate = (dateString) => {
     const options = {
       weekday: "long",
@@ -116,9 +111,9 @@ const TVCalendar = ({ isLoggedIn }) => {
     return (
       <div className="text-center p-5">
         <Alert variant="info">
-          No upcoming episodes for your followed shows.
+          No upcoming releases for your followed media.
           <br />
-          Follow TV shows to track their air dates!
+          Follow TV shows and Movies to track their release dates!
         </Alert>
         <Button variant="primary" onClick={updateCalendar} disabled={loading}>
           <FaSyncAlt className={loading ? "spin-icon" : ""} />
@@ -131,7 +126,7 @@ const TVCalendar = ({ isLoggedIn }) => {
   const dateGroups = groupByDate(calendarItems);
 
   return (
-    <div className="tv-calendar">
+    <div className="media-calendar">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <Button
           variant="outline-primary"
@@ -142,17 +137,15 @@ const TVCalendar = ({ isLoggedIn }) => {
         </Button>
       </div>
 
-      {/*Object.keys uses the keys given in the groupByDate function to order shows  */}
       {Object.keys(dateGroups)
         .sort()
         .map((date) => (
           <div key={date} className="date-group mb-4">
-            {/*Date Heading */}
             <h3 className="date-header">{formatDate(date)}</h3>
             <Row xs={1} md={2} lg={3} className="g-4">
               {dateGroups[date].map((item) => (
                 <Col key={item.id}>
-                  <Card className="tv-calendar-card h-100">
+                  <Card className="media-calendar-card h-100">
                     <div className="d-flex">
                       {item.poster_path ? (
                         <Card.Img
@@ -167,14 +160,26 @@ const TVCalendar = ({ isLoggedIn }) => {
                       )}
                       <Card.Body>
                         <Card.Title>{item.title}</Card.Title>
-                        <div className="episode-info">
-                          <div className="episode-number">
-                            S{item.season}E{item.episode}
+                        <Badge
+                          bg={item.media_type === "tv" ? "primary" : "success"}
+                          className="mb-2"
+                        >
+                          {item.media_type === "tv" ? "TV Show" : "Movie"}
+                        </Badge>
+                        {item.media_type === "tv" ? (
+                          <div className="episode-info">
+                            <div className="episode-number">
+                              S{item.season}E{item.episode}
+                            </div>
+                            <div className="episode-name">
+                              {item.episode_name}
+                            </div>
                           </div>
-                          <div className="episode-name">
-                            {item.episode_name}
+                        ) : (
+                          <div className="movie-info">
+                            <div className="release-info">Movie Release</div>
                           </div>
-                        </div>
+                        )}
                       </Card.Body>
                     </div>
                   </Card>
@@ -187,4 +192,4 @@ const TVCalendar = ({ isLoggedIn }) => {
   );
 };
 
-export default TVCalendar;
+export default MediaCalendar;

@@ -1,7 +1,8 @@
 // src/components/WatchlistCard.js
 import React, { useState } from "react";
 import { Card, Dropdown, Button } from "react-bootstrap";
-import { FaStar, FaInfoCircle, FaTrash } from "react-icons/fa";
+import { FaStar, FaTrash } from "react-icons/fa";
+import { MdOutlineRateReview } from "react-icons/md";
 import "../styles/Watchlist.css";
 
 const WatchlistCard = ({
@@ -76,6 +77,13 @@ const WatchlistCard = ({
           <FaStar className="wl-star" /> {(item.rating || 0).toFixed(1)}
         </div>
         <div className="wl-actions">
+          <Button
+            variant="success"
+            size="sm"
+            onClick={() => alert("Review Placeholder")}
+          >
+            <MdOutlineRateReview /> Review
+          </Button>
           <Button
             variant="danger"
             size="sm"

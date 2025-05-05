@@ -20,7 +20,7 @@ import {
 import "../styles/Dashboard.css";
 import SearchWidget from "../components/SearchWidget";
 import MediaSlides from "../components/MediaSlides.js";
-import TVCalendar from "../components/TVCalendar";
+import MediaCalendar from "../components/MediaCalendar.js";
 import UserStatsWidget from "../components/UserStatsWidget";
 // Credit to JustWatch as TMDB API watch providers data source
 import { redirect, useNavigate } from "react-router-dom";
@@ -260,7 +260,7 @@ function Dashboard() {
                   </Nav.Link>
                 ) : (
                   <Nav.Link onClick={() => setShowCalendar(true)}>
-                    Tv Calendar
+                    Media Calendar
                   </Nav.Link>
                 )}
                 <Nav.Link onClick={() => navigate("/watchlist")}>
@@ -321,8 +321,8 @@ function Dashboard() {
               </>
             ) : (
               <section className="calendar-section full-width">
-                <h2>Your TV Calendar</h2>
-                <TVCalendar isLoggedIn={isLoggedIn} />
+                <h2>Your Media Calendar</h2>
+                <MediaCalendar isLoggedIn={isLoggedIn} />
               </section>
             )}
           </Col>

@@ -583,6 +583,24 @@ const DetailModal = ({
     return Math.round((watchedCount / episodesForSeason.length) * 100);
   };
 
+  const isCalendarEligible = (item) => {
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split("T")[0];
+
+    if (item.tmdb.media_type === "tv") {
+      return (
+        item.tmdb.status === "Returning Series" ||
+        item.tmdb.in_production === true
+      );
+    } else if (item.tmdb.media_type === "movie") {
+      // Check if movie has a future release date
+      const releaseDate = item.tmdb.release_date;
+      return releaseDate && releaseDate > today;
+    }
+
+    return false;
+  };
+
   if (loading) {
     return (
       <div className="text-center py-3">
@@ -638,31 +656,36 @@ const DetailModal = ({
                   )}
                   {isLoggedIn ? (
                     <div className="d-flex flex-wrap justify-content-between gap-2 mt-2">
-                      {item.tmdb.media_type === "tv" ? (
-                        <Button
-                          variant={followed ? "danger" : "outline-danger"}
-                          onClick={() => handleFollow(item)}
-                          className="btn-follow flex-grow-0"
-                        >
-                          {followed ? <FaBell /> : <FaRegBell />}{" "}
-                          {followed ? "Following" : "Follow"}
-                        </Button>
-                      ) : (
-                        <Button
-                          variant={followed ? "danger" : "outline-danger"}
-                          onClick={() => handleFollow(item)}
-                          className="btn-follow flex-grow-0"
-                        >
-                          {followed ? <FaHeart /> : <FaRegHeart />}{" "}
-                          {followed ? "Liked" : "Like"}
-                        </Button>
-                      )}
+                      <Button
+                        variant={followed ? "danger" : "outline-danger"}
+                        onClick={() => handleFollow(item)}
+                        className="btn-follow flex-grow-0"
+                      >
+                        {followed ? (
+                          isCalendarEligible(item) ? (
+                            <FaBell />
+                          ) : (
+                            <FaHeart />
+                          )
+                        ) : isCalendarEligible(item) ? (
+                          <FaRegBell />
+                        ) : (
+                          <FaRegHeart />
+                        )}{" "}
+                        {followed
+                          ? isCalendarEligible(item)
+                            ? "Following"
+                            : "Liked"
+                          : isCalendarEligible(item)
+                          ? "Follow"
+                          : "Like"}
+                      </Button>
                       <Button
                         variant="outline-primary"
                         onClick={handleAddToWatchList}
                         className="btn-watchlist flex-grow-0"
                       >
-                        <FaPlus /> Watchlist
+                        <FaPlus /> Add to Watchlist
                       </Button>
                     </div>
                   ) : (
@@ -729,6 +752,37 @@ const DetailModal = ({
                       )}
                     </div>
                   )}
+                  {item.tmdb.media_type === "movie" && followed && (
+                    <div className="mt-3">
+                      {item.tmdb.release_date &&
+                      new Date(item.tmdb.release_date) > new Date() ? (
+                        <div className="alert alert-info">
+                          <small>
+                            <strong>{`${
+                              item.tmdb.title
+                            } will be released on ${new Date(
+                              item.tmdb.release_date
+                            ).toLocaleDateString()}`}</strong>
+                            <br />
+                            <em>
+                              This movie will appear in your Media Calendar
+                            </em>
+                          </small>
+                        </div>
+                      ) : (
+                        <div className="alert alert-secondary">
+                          <small>
+                            <em>
+                              {item.tmdb.release_date
+                                ? "Released movies don't appear in the Media Calendar"
+                                : "Movies without a release date don't appear in the Media Calendar"}
+                            </em>
+                          </small>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {item.tmdb.media_type === "tv" ? (
                     <p>
                       <strong>Series Status:</strong>{" "}

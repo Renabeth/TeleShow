@@ -326,7 +326,7 @@ def update_episode_progress():
 
 
 # GET CALENDAR ENTRIES
-@interactions_bp.route("/tv/calendar", methods=["GET"])
+@interactions_bp.route("/media/calendar", methods=["GET"])
 def get_tv_calendar():
     user_id = request.args.get("user_id")
     if not user_id:
@@ -338,10 +338,14 @@ def get_tv_calendar():
             return jsonify({"error": "User not found"})
         # Points to the tv_calendar collection and streams it
         calendar_ref = user_ref.collection("tv_calendar")
-        calendar_docs = calendar_ref.stream()
+        tv_calendar_docs = calendar_ref.stream()
+
+        # For backwards compatibility im making a new movie calendar collection
+        movie_calendar_ref = user_ref.collection("movie_calendar")
+        movie_calendar_docs = movie_calendar_ref.stream()
 
         calendar_entries = []
-        for doc in calendar_docs:
+        for doc in tv_calendar_docs:
             data = doc.to_dict()
             # If a next episode exists and its release is in the future
             if "next_episode" in data and data["next_episode"]["air_date"]:
@@ -355,6 +359,7 @@ def get_tv_calendar():
                         {
                             "id": doc.id,
                             "title": data.get("title"),
+                            "media_type": "tv",
                             "media_id": data.get("media_id"),
                             "poster_path": data.get("poster_path"),
                             "season": data["next_episode"].get("season"),
@@ -364,8 +369,26 @@ def get_tv_calendar():
                             "overview": data["next_episode"].get("overview"),
                         }
                     )
+        for doc in movie_calendar_docs:
+            data = doc.to_dict()
+            if data.get("release_date"):
+                release_date = data["release_date"]
+                today = datetime.datetime.now().strftime("%Y-%m-%d")
+
+                if release_date >= today:
+                    calendar_entries.append(
+                        {
+                            "id": doc.id,
+                            "media_type": "movie",
+                            "title": data.get("title"),
+                            "media_id": data.get("media_id"),
+                            "poster_path": data.get("poster_path"),
+                            "release_date": release_date,
+                            "overview": data.get("overview"),
+                        }
+                    )
         # Sort by air date
-        calendar_entries.sort(key=lambda x: x["air_date"])
+        calendar_entries.sort(key=lambda x: x.get("air_date", x.get("release_date")))
 
         return jsonify({"calendar": calendar_entries})
     except Exception as e:
@@ -375,7 +398,7 @@ def get_tv_calendar():
 
 # UPDATE CALENDAR ENTRIES
 # Updates the calendar from collection information
-@interactions_bp.route("/tv/update-calendar", methods=["POST"])
+@interactions_bp.route("/media/update-calendar", methods=["POST"])
 @limiter.limit("50 per 10 seconds")
 def update_tv_calendar():
     data = request.get_json()
@@ -390,9 +413,14 @@ def update_tv_calendar():
             return jsonify({"error": "User not found"})
 
         # Get all the followed shows
-        followed_ref = user_ref.collection("followed_media")
-        tv_shows = followed_ref.where(
+        followed_tv_ref = user_ref.collection("followed_media")
+        tv_shows = followed_tv_ref.where(
             filter=FieldFilter("media_type", "==", "tv")
+        ).stream()
+
+        followed_movies_ref = user_ref.collection("followed_media")
+        movies = followed_movies_ref.where(
+            filter=FieldFilter("media_type", "==", "movie")
         ).stream()
 
         updated_count = 0
@@ -417,7 +445,7 @@ def update_tv_calendar():
                     calendar_ref = user_ref.collection("tv_calendar")
                     calendar_ref.document(f"tv_{media_id}").set(
                         {
-                            "media": media_id,
+                            "media_id": media_id,
                             "title": show_data.get("title"),
                             "poster_path": tv_info.get("poster_path"),
                             "next_episode": {
@@ -427,6 +455,7 @@ def update_tv_calendar():
                                 "air_date": next_episode.get("air_date"),
                                 "overview": next_episode.get("overview"),
                             },
+                            "media_type": "tv",
                             "last_updated": firestore.SERVER_TIMESTAMP,
                         }
                     )
@@ -436,6 +465,42 @@ def update_tv_calendar():
                     # Remove from the calendar if its finished
                     calendar_ref = user_ref.collection("tv_calendar")
                     calendar_doc = calendar_ref.document(f"tv_{media_id}")
+                    if calendar_doc.get().exists:
+                        calendar_doc.delete()
+
+        for movie in movies:
+            time.sleep(0.2)  # Pause to avoid rate limiting
+            movie_data = movie.to_dict()
+            media_id = movie_data.get("media_id")
+
+            movie_api = tmdb.Movies(media_id)
+            movie_info = movie_api.info()
+
+            # Check if the movie has a future release date
+            if movie_info.get("release_date"):
+                release_date = movie_info.get("release_date")
+                today = datetime.datetime.now().strftime("%Y-%m-%d")
+
+                if release_date >= today:
+                    # Add to movie calendar
+                    calendar_ref = user_ref.collection("movie_calendar")
+                    calendar_ref.document(f"movie_{media_id}").set(
+                        {
+                            "media_id": media_id,
+                            "title": movie_data.get("title"),
+                            "poster_path": movie_info.get("poster_path"),
+                            "media_type": "movie",
+                            "release_date": release_date,
+                            "overview": movie_info.get("overview"),
+                            "media_type": "movie",
+                            "last_updated": firestore.SERVER_TIMESTAMP,
+                        }
+                    )
+                    updated_count += 1
+                else:
+                    # Remove from calendar if already released
+                    calendar_ref = user_ref.collection("movie_calendar")
+                    calendar_doc = calendar_ref.document(f"movie_{media_id}")
                     if calendar_doc.get().exists:
                         calendar_doc.delete()
         return jsonify(
