@@ -38,7 +38,7 @@ _initializing_lock = threading.Lock()
 users_ref = get_db().collection("users-test")
 
 
-### Utility to register a listener###
+# Utility to register a listener
 def _attach_listener(key: str, create_fn):
     if key in active_listeners:
         return
