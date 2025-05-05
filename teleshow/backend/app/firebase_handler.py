@@ -491,7 +491,7 @@ def shutdown_all_listeners():
     listener_shutdown_event.set()
     if listener_thread and listener_thread.is_alive():
         try:
-            listener_thread.join(timeout=5.0)
+            listener_thread.join(timeout=1.0)
         except Exception as e:
             logger.error(f"Error joining listener thread: {e}")
 

@@ -944,25 +944,20 @@ const DetailModal = ({
                       item.tmdb.production_companies.length > 0 && (
                         <div className="mb-2">
                           <strong>Production Companies: </strong>
-                          <div className="d-flex flex-wrap align-items-center mt-1">
-                            {item.tmdb.production_companies.map(
-                              (company, index) => (
-                                <div
-                                  key={company.id || index}
-                                  className="company-badge mr-2 mb-2"
-                                >
-                                  <span className="company-name">
-                                    {company.name}
-                                  </span>
-
-                                  {index <
-                                  item.tmdb.production_companies.length - 1
-                                    ? "/"
-                                    : ""}
-                                </div>
-                              )
-                            )}
-                          </div>
+                          {item.tmdb.production_companies.map(
+                            (company, index) => (
+                              <span
+                                key={company.id || index}
+                                className="company-name"
+                              >
+                                {company.name}
+                                {index <
+                                item.tmdb.production_companies.length - 1
+                                  ? ", "
+                                  : ""}
+                              </span>
+                            )
+                          )}
                         </div>
                       )}
                     {item.tmdb.media_type === "tv" &&
@@ -970,33 +965,17 @@ const DetailModal = ({
                       item.tmdb.networks.length > 0 && (
                         <div className="mb-2">
                           <strong>Networks: </strong>
-                          <div className="d-flex flex-wrap align-items-center mt-1">
-                            {item.tmdb.networks.map((network, index) => (
-                              <div
-                                key={network.id || index}
-                                className="network-badge mr-2 mb-2"
-                              >
-                                {network.logo_path ? (
-                                  <img
-                                    src={`${image_url}${network.logo_path}`}
-                                    alt={network.name}
-                                    className="network-logo mr-1"
-                                    style={{
-                                      maxHeight: "25px",
-                                      maxWidth: "50px",
-                                    }}
-                                  />
-                                ) : (
-                                  <span className="network-name">
-                                    {network.name}
-                                  </span>
-                                )}
-                                {index < item.tmdb.networks.length - 1 && (
-                                  <span>, </span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
+                          {item.tmdb.networks.map((network, index) => (
+                            <span
+                              key={network.id || index}
+                              className="network-name"
+                            >
+                              {network.name}
+                              {index < item.tmdb.networks.length - 1
+                                ? ", "
+                                : ""}
+                            </span>
+                          ))}
                         </div>
                       )}
                   </div>
