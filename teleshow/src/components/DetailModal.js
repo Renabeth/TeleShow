@@ -100,6 +100,7 @@ const DetailModal = ({
   const image_url = " https://image.tmdb.org/t/p/w500"; // Base URL for TMDB image paths
   const [userId, setUserId] = useState(sessionStorage.getItem("userId") || 0);
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [itemHistory, setItemHistory] = useState([]);
   const host = process.env.REACT_APP_NETWORK_HOST;
   const displayName = sessionStorage.getItem("userName");
   const isLoggedIn = !!sessionStorage.getItem("userId");
@@ -353,10 +354,12 @@ const DetailModal = ({
   };
 
   const handleRecClick = async (recItem) => {
-    let detailData;
+    if (item) {
+      setItemHistory((hist) => [...hist, item]);
+    }
     try {
       setLoading(true);
-      detailData = await getDetails(recItem.id, recItem.media_type);
+      const detailData = await getDetails(recItem.id, recItem.media_type);
 
       const ratingResponse = await fetchRating(
         userId,
@@ -379,6 +382,19 @@ const DetailModal = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleModalBack = () => {
+    setItemHistory((hist) => {
+      const newHist = [...hist];
+      const previous = newHist.pop();
+      if (previous) {
+        setItem(previous);
+        setRecommendations([]);
+        setActiveTab("overview");
+      }
+      return newHist;
+    });
   };
 
   const fetchRating = async (user_id, media_id, media_type) => {
@@ -586,6 +602,15 @@ const DetailModal = ({
         className="detail-modal"
       >
         <Modal.Header closeButton>
+          {!!itemHistory.length && (
+            <Button
+              variant="link"
+              onClick={handleModalBack}
+              style={{ marginRight: "auto" }}
+            >
+              ← Back
+            </Button>
+          )}
           <Modal.Title>{item?.tmdb?.title || item?.tmdb?.name}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
