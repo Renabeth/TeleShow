@@ -484,7 +484,15 @@ const Watchlist = () => {
                   await axios.post(`${host}interactions/add-watchlist`, {
                     user_id: userID,
                     watchlist_name: newListName,
-                    media_info: { id: null },
+                    media_info: {
+                      id: 2912,
+                      media_name: "Jeopardy",
+                      overview:
+                        "America's favorite quiz show where contestants are presented with general knowledge clues in the form of answers, and must phrase their responses in question form.",
+                      release_date: "1984-09-10",
+                      media_type: "tv",
+                      poster_path: "/11rWvQOEZBouD7wet0sWHwu7NDs.jpg",
+                    },
                   });
                 } else {
                   for (let key of items) {
