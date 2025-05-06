@@ -21,6 +21,7 @@
   -webkit-backdrop-filter: blur(12px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   margin:0;
+  margin-bottom: 10px;
   background-clip:padding-box;
   font-family: 'Inter',sans-serif;
   font-weight: 400;
@@ -28,8 +29,7 @@
   
   
 .search-container.expanded {
-  width: 90%;
-  max-width: 470px; 
+  width: 470px; 
   background-color: rgba(255, 255, 255, 0.15); /* Translucent background. rgba allows for color and blur definition*/
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -69,11 +69,10 @@
 
 .search-icon {
   font-size: 35px; /*Icon size and color*/
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(163, 163, 255,0.8);
   display:block;
   position:relative;
 }
-
 
 /* Control the search input appearance */
 .search-input {
@@ -111,8 +110,8 @@
   position: absolute;
   top: 100%;
   left: 0;
-  width: 90%;
-  max-width: 470px; 
+  width: 470px !important;
+  max-width: 100% !important;
   background-color: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -130,12 +129,19 @@
   scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.1);
 }
 
+.search-result-item img {
+  border-radius: 6px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
 .search-result-item h6 {
   font-family: 'Satoshi', sans-serif;
   font-weight: 600;
   margin-bottom: 5px;
-  color: white;
+  color: rgba(255, 255, 255, 0.95); /* Brighter text */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
+
 
 .no-results {
   padding: 15px;
@@ -144,7 +150,6 @@
   font-family: 'Inter', sans-serif;
   font-weight: 400;
 }
-
 
 .search-results-container.show {
   display: block;
@@ -198,6 +203,7 @@
   background-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  color: rgba(163, 163, 255,0.8);
 }
 
 .filter-dropdown-menu {
@@ -247,10 +253,10 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   background-color: rgba(255, 255, 255, 0.4);
   border-color: rgba(255, 255, 255, 0.3);
-  color: rgba(0, 0, 0, 0.9);
 }
 
 .platform-dropdown-btn:hover {
+  color: rgba(163, 163, 255,0.8);
   background-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
@@ -305,12 +311,12 @@
   position: absolute;
   top: 100%;
   left: 0;
-  width: 100%;
+  width: 470px !important;
+  max-width: 100% !important;
   background-color: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   z-index: 1380;
   padding: 10px 0;
@@ -385,16 +391,44 @@
   gap: 15px; 
 }
 
-/*fadeInUp animated takes place because of Home.css*/
-.loading-text {
-  font-family: 'Inter', sans-serif;
-  font-weight: 400;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
-  margin: 0;
-  text-align: center;
-  position: relative;
+.skeleton-search-item {
+  pointer-events: none;
 }
+
+.skeleton-poster {
+  width: 45px;
+  height: 67px;
+  background: linear-gradient(90deg, var(--skeleton-start, #f0f0f0) 25%, var(--skeleton-middle, #e0e0e0) 50%, var(--skeleton-start, #f0f0f0) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-title {
+  height: 16px;
+  width: 120px;
+  background: linear-gradient(90deg, var(--skeleton-start, #f0f0f0) 25%, var(--skeleton-middle, #e0e0e0) 50%, var(--skeleton-start, #f0f0f0) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.skeleton-year {
+  height: 12px;
+  width: 60px;
+  background: linear-gradient(90deg, var(--skeleton-start, #f0f0f0) 25%, var(--skeleton-middle, #e0e0e0) 50%, var(--skeleton-start, #f0f0f0) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.dashboard:not(.light) .skeleton-poster,
+.dashboard:not(.light) .skeleton-title,
+.dashboard:not(.light) .skeleton-year {
+  --skeleton-start: #2a2a2a;
+  --skeleton-middle: #3a3a3a;
+}
+
 
 
 /* Keyframe for icon fade-in animation */

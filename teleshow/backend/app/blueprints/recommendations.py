@@ -1,8 +1,13 @@
+# Written by Moses Pierre
 from flask import Blueprint, request, jsonify
 import tmdbsimple as tmdb
 import torch.nn.functional as F  # Enabler of machine learning. Allows for the dot
 from app.extensions import cache, limiter, get_db, get_model
 from app.blueprints.search import get_watch_providers, PLATFORM_ID_MAP
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Thread, Lock
+from ratelimit import limits, sleep_and_retry
+
 
 recommendations_bp = Blueprint("recommendations", __name__)
 
@@ -29,6 +34,8 @@ def get_media_details(media_id, media_type):
 # FUNCTION FOR CREATING POOL FOR RECOMMENDATIONS
 # CORE ALGORITHM FOR SEARCHING TMDB DISCOVER
 # GETS RECOMMENDATIONS BY SEARCHING USING SPECIFIC DATA FROM SOURCE
+@sleep_and_retry
+@limits(calls=50, period=5)
 @cache.memoize(3600)
 def create_pool_with_discover(
     media_genres,
@@ -43,6 +50,10 @@ def create_pool_with_discover(
     discover = tmdb.Discover()
     discover_results = []
     seen_ids = set()
+    # These locks protect the editing of either the seen_id set or discover results
+    # In each of the threads respective functions, if they try to edit either while another thread has the lock because their setting it in their own function, the last thread to try to edit it is forced to wait.
+    results_lock = Lock()
+    seen_ids_lock = Lock()
     if media_id:
         seen_ids.add(f"{media_id}-{media_type}")
     base_params = {
@@ -72,28 +83,39 @@ def create_pool_with_discover(
 
     try:
         # Start initial search with genres and producers
-        genre_results = []
-        for page in range(1, 2):
-            params = base_params.copy()
-            params["page"] = page
-            results = (
-                discover.movie(**params)
-                if media_type == "movie"
-                else discover.tv(**params)
-            )
+        def genre_search():
+            genre_results = []
+            for page in range(1, 2):
+                params = base_params.copy()
+                params["page"] = page
+                try:
+                    results = (
+                        discover.movie(**params)
+                        if media_type == "movie"
+                        else discover.tv(**params)
+                    )
 
-            for r in results.get("results", []):
-                r["media_type"] = media_type
-                unique_key = f"{r['id']}-{media_type}"
-                if unique_key not in seen_ids:  # Deduplication check
-                    seen_ids.add(unique_key)
-                    genre_results.append(r)
+                    for r in results.get("results", []):
+                        r["media_type"] = media_type
+                        unique_key = f"{r['id']}-{media_type}"
 
-        discover_results.extend(genre_results)
-        print(f"Added {len(genre_results)} genre-based results")
+                        # Makes sure that only one thread can set seen ids at a time
+                        with seen_ids_lock:
+                            if unique_key not in seen_ids:
+                                seen_ids.add(unique_key)
+                                genre_results.append(r)
+                except Exception as e:
+                    print(f"Error in genre search: {e}")
+                # Makes sure only one thread can add to results at a time
+                with results_lock:
+                    discover_results.extend(genre_results)
+                print(f"Added {len(genre_results)} genre-based results")
 
         # Then keyword search
-        if media_keywords:
+        def keyword_search():
+            if not media_keywords:
+                return
+
             keyword_results = []
             # Using only the top five keywords
             keyword_params = {
@@ -115,16 +137,21 @@ def create_pool_with_discover(
                     for r in results.get("results", []):
                         r["media_type"] = media_type
                         unique_key = f"{r['id']}-{media_type}"
-                        if unique_key not in seen_ids:
-                            seen_ids.add(unique_key)
-                            keyword_results.append(r)
+                        with seen_ids_lock:
+                            if unique_key not in seen_ids:
+                                seen_ids.add(unique_key)
+                                keyword_results.append(r)
                 except Exception as keyword_error:
-                    print(f"Error with keyword batch {k}: {str(keyword_error)}")
+                    print(f"Error with keyword batch: {str(keyword_error)}")
                     continue
-            discover_results.extend(keyword_results)
+
+            with results_lock:
+                discover_results.extend(keyword_results)
             print(f"Added {len(keyword_results)} keyword-based results")
 
-        if media_producers and len(discover_results) < 20:
+        def producer_search():
+            if not media_producers:
+                return
             producer_results = []
             producer_params = {
                 "with_original_language": language,
@@ -144,17 +171,20 @@ def create_pool_with_discover(
                     for r in results.get("results", []):
                         r["media_type"] = media_type
                         unique_key = f"{r['id']}-{media_type}"
-                        if unique_key not in seen_ids:
-                            seen_ids.add(unique_key)
-                            producer_results.append(r)
+                        with seen_ids_lock:
+                            if unique_key not in seen_ids:
+                                seen_ids.add(unique_key)
+                                producer_results.append(r)
                 except Exception as producer_error:
                     print(f"Error with producer query: {str(producer_error)}")
                     continue
-
-            discover_results.extend(producer_results)
+            with results_lock:
+                discover_results.extend(producer_results)
             print(f"Added {len(producer_results)} producer-based results")
+
         # If there aren't enough results get some high quality (high average vote score) content to fill in the space
-        if len(discover_results) < 15:
+        def quality_search():
+            quality_results = []
             quality_params = {
                 "with_original_language": language,
                 "vote_average.gte": 7.5,
@@ -166,7 +196,6 @@ def create_pool_with_discover(
                 # Uses primary genre for matching
                 quality_params["with_genres"] = str(media_genres[0])
 
-            quality_results = []
             for page in range(1, 2):
                 quality_params["page"] = page
                 try:
@@ -179,14 +208,43 @@ def create_pool_with_discover(
                     for r in results.get("results", []):
                         r["media_type"] = media_type
                         unique_key = f"{r['id']}-{media_type}"
-                        if unique_key not in seen_ids:
-                            seen_ids.add(unique_key)
-                            quality_results.append(r)
+                        with seen_ids_lock:
+                            if unique_key not in seen_ids:
+                                seen_ids.add(unique_key)
+                                quality_results.append(r)
                 except Exception as quality_error:
                     print(f"Error with quality query: {str(quality_error)}")
                     continue
-            discover_results.extend(quality_results)
+            with results_lock:
+                discover_results.extend(quality_results)
             print(f"Added {len(quality_results)} quality-based results")
+
+        threads = []
+        genre_thread = Thread(target=genre_search)
+        genre_thread.start()
+        threads.append(genre_thread)
+
+        # Runs keyword search if keywords are available
+        if media_keywords:
+            keyword_thread = Thread(target=keyword_search)
+            keyword_thread.start()
+            threads.append(keyword_thread)
+
+        # Runs producer search if producers are available
+        if media_producers:
+            producer_thread = Thread(target=producer_search)
+            producer_thread.start()
+            threads.append(producer_thread)
+
+        # Waits for all threads to complete
+        for thread in threads:
+            thread.join()
+
+        # Checks if we need quality search as a fallback
+        if len(discover_results) < 15:
+            quality_thread = Thread(target=quality_search)
+            quality_thread.start()
+            quality_thread.join()
 
         # Scores results before returning
         scored_results = []
@@ -526,19 +584,44 @@ def get_user_recommendations():
             for platform in platform_list:
                 platform_ids = PLATFORM_ID_MAP.get(platform.lower(), [])
                 all_platform_ids.update(platform_ids)
+
             filtered_movies = []
-            for movie in filtered_movie_results[:20]:
-                provider_ids = get_watch_providers(movie["id"], "movie")
-                # Check if any provider matches any platform ID
-                if any(pid in all_platform_ids for pid in provider_ids):
-                    filtered_movies.append(movie)
+            movie_slice = filtered_movie_results[:24]
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                # Map each movie to a future that fetches its providers
+                future_to_movie = {
+                    executor.submit(get_watch_providers, movie["id"], "movie"): i
+                    for i, movie in enumerate(movie_slice)
+                }
+                for future in as_completed(future_to_movie):
+                    i = future_to_movie[future]
+                    try:
+                        provider_ids = future.result(timeout=5)
+                        # Check if any provider matches any platform ID
+                        if any(pid in all_platform_ids for pid in provider_ids):
+                            filtered_movies.append(movie_slice[i])
+                    except Exception as e:
+                        print(f"Provider fetch failed for movie: {e}")
 
             filtered_movie_results = filtered_movies
+
             filtered_tv = []
-            for tv in filtered_tv_results[:20]:
-                provider_ids = get_watch_providers(tv["id"], "tv")
-                if any(pid in all_platform_ids for pid in provider_ids):
-                    filtered_tv.append(tv)
+            tv_slice = filtered_tv_results[:24]
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                # Map each TV show to a future that fetches its providers
+                future_to_tv = {
+                    executor.submit(get_watch_providers, tv["id"], "tv"): i
+                    for i, tv in enumerate(tv_slice)
+                }
+                # Process results as they complete
+                for future in as_completed(future_to_tv):
+                    i = future_to_tv[future]
+                    try:
+                        provider_ids = future.result(timeout=5)
+                        if any(pid in all_platform_ids for pid in provider_ids):
+                            filtered_tv.append(tv_slice[i])
+                    except Exception as e:
+                        print(f"Provider fetch failed for TV show: {e}")
 
             filtered_tv_results = filtered_tv
 

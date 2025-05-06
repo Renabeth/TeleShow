@@ -1,5 +1,6 @@
 @echo About To Build Flask App 
 @echo This process could take 3-4 minutes
+@echo Make sure teleshow/build is either clean or up to date
 @pause
 
 @echo ===== Building =====
@@ -10,8 +11,9 @@ echo Checking build folder...
 if not exist "build" mkdir build
 
 dir /b /s /a "build\" | findstr .>nul || (
-    echo Build folder is empty, running npm build...
-    npm run build
+    echo Build folder is empty, please run frontend build.bat
+    pause
+    exit /b
 )
 
 if not exist "backend\app\static" mkdir backend\app\static
@@ -36,7 +38,7 @@ if exist "build\*.png" (
 )
 
 echo Checking if static folder has files...
-dir /b /a-d "backend\app\static\*" >nul 2>&1
+dir /b "backend\app\static\" 2>nul | findstr "." >nul
 if errorlevel 1 (
     echo Static folder is empty or contains no files. Executable build skipped.
     pause

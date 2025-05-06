@@ -1,242 +1,203 @@
-import React from "react";
-import "../styles/Dashboard.css";
-import "../styles/Watchlist.css";
-import { Spinner } from "react-bootstrap";
-import GetAverageRating from "../scripts/GetAverageRating.js";
-import TVCalendar from "../components/TVCalendar.js";
-import { FaList, FaCalendarAlt } from "react-icons/fa";
-import DetailModal from "../components/DetailModal";
-
-import StarRate from "../components/starRate";
-
-// Credit to JustWatch as TMDB API watch providers data source
-
-// Help from https://developer.themoviedb.org/reference/tv-series-details
-// and https://developer.themoviedb.org/reference/movie-details
+// src/pages/Watchlist.js
+import React, { useState, useEffect } from "react";
+import {
+  Container,
+  Row,
+  Col,
+  Navbar,
+  Nav,
+  Button,
+  Spinner,
+  Card,
+  Badge,
+  ToggleButtonGroup,
+  ToggleButton,
+  Modal,
+  Form,
+} from "react-bootstrap";
+import {
+  FaBars,
+  FaTimes,
+  FaPlus,
+  FaTrash,
+  FaMoon,
+  FaSun,
+  FaArrowLeft,
+} from "react-icons/fa";
 import axios from "axios";
-
 import { useNavigate } from "react-router-dom";
+import "../styles/Watchlist.css";
+import DetailModal from "../components/DetailModal";
+import GetAverageRating from "../scripts/GetAverageRating.js";
+import WatchlistCard from "../components/WatchlistCard";
 
-// Help from https://www.freecodecamp.org/news/use-firebase-authentication-in-a-react-app/
-import { useState, useEffect, useRef } from "react";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "../firebase";
-
-// Help from https://react-bootstrap.netlify.app/docs/components/modal/
-import Modal from "react-bootstrap/Modal";
-
-// Help from https://www.freecodecamp.org/news/how-to-use-the-firebase-database-in-react/
-import { collection, addDoc, getDocs } from "firebase/firestore";
-import { db } from "../firebase";
-
-// Help from https://firebase.google.com/docs/firestore/query-data/queries
-import { query, where } from "firebase/firestore";
-
-// Help from https://dev.to/rajatamil/firebase-v9-firestore-delete-document-using-deletedoc-5bjh
-import { doc, deleteDoc } from "firebase/firestore";
-
-// Help from https://react-bootstrap.netlify.app/docs/components/buttons/
-import Button from "react-bootstrap/Button";
-
-// Help from https://react-bootstrap.netlify.app/docs/forms/select/
-import Form from "react-bootstrap/Form";
-
-// Help from https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
-import { updateDoc } from "firebase/firestore";
-
-// Help from https://react-bootstrap.netlify.app/docs/components/button-group/
-import ButtonGroup from "react-bootstrap/ButtonGroup";
-
-// Help from https://www.youtube.com/watch?v=91LWShFZn40
-import { getAggregateFromServer, average } from "firebase/firestore";
-
-function Watchlist() {
-  const [watchlists, setWatchlists] = useState([]);
-  const [selectedWatchlistId, setSelectedWatchlistId] = useState("all");
-  const [tabOpen, setTabOpen] = useState("overview");
-  const [filteredMedia, setFilteredMedia] = useState([]);
-  const [allWatchlistMedia, setAllWatchlistMedia] = useState([]);
-  const [showCalendarView, setShowCalendarView] = useState(false);
-  const [showWatchlistSelection, setShowWatchlistSelection] = useState(false);
-  const [selectedMediaForRemoval, setSelectedMediaForRemoval] = useState(null);
+const Watchlist = () => {
   const host = process.env.REACT_APP_NETWORK_HOST;
-
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [userID, setUserID] = useState("");
-
-  // Copied from Dashboard.js
-  const [modalTitle, setModalTitle] = useState("");
-  const [modalPoster, setModalPoster] = useState("");
-  const [modalOverview, setModalOverview] = useState("");
-  const [modalLanguages, setModalLanguages] = useState("");
-
-  const [modalProvidersBuy, setModalProvidersBuy] = useState("");
-  const [modalProvidersFlatrate, setModalProvidersFlatrate] = useState("");
-  const [modalProvidersRent, setModalProvidersRent] = useState("");
-
-  // Help from https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/
-  const [isLightMode, setIsLightMode] = useState(false);
-
-  // Help from https://www.rowy.io/blog/firestore-react-query
+  const userID = sessionStorage.getItem("userId") || "";
+  const [watchlists, setWatchlists] = useState([]);
+  const [selectedList, setSelectedList] = useState("all");
+  const [allMedia, setAllMedia] = useState([]);
+  const [filteredMedia, setFilteredMedia] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  // Help from https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/
-  const toggleLightMode = () => {
-    setIsLightMode((prevMode) => !prevMode);
-  };
-
-  // Help from https://developer.themoviedb.org/docs/image-basics
-  const imgPath = "https://image.tmdb.org/t/p/w500";
-
-  // Help from https://react-bootstrap.netlify.app/docs/components/modal/
-  const [show, setShow] = useState(false);
-  const handleClose = () => setShow(false);
-  const handleShow = () => setShow(true);
-
-  const [selectedItem, setSelectedItem] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [lightMode, setLightMode] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const navigate = useNavigate();
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [tabOpen, setTabOpen] = useState("overview");
+  const [showListSelect, setShowListSelect] = useState(false);
+  const [pendingMedia, setPendingMedia] = useState(null);
+  const [chosenList, setChosenList] = useState("");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newListName, setNewListName] = useState("");
+  const [userMedia, setUserMedia] = useState([]);
+  const [trendingMedia, setTrendingMedia] = useState([]);
+  const [selectedStarters, setSelectedStarters] = useState(new Set());
+  const [loadingCreate, setLoadingCreate] = useState(false);
+  const [watchlistsWithMedia, setWatchlistsWithMedia] = useState([]);
 
-  //Updates filtered media when selection changes
   useEffect(() => {
-    if (selectedWatchlistId === "all") {
-      setFilteredMedia(allWatchlistMedia);
+    if (!userID) return;
+    fetchWatchlists();
+  }, [userID]);
+
+  useEffect(() => {
+    axios
+      .get(`${host}interactions/get_followed`, { params: { user_id: userID } })
+      .then((response) => {
+        const tv = response.data.followed_tv || [];
+        const movie = response.data.followed_movies || [];
+        const all = [...tv, ...movie];
+        if (all.length) setUserMedia(all);
+        else {
+          axios
+            .get(`${host}trending`)
+            .then((response) => setTrendingMedia(response.data.results || []))
+            .catch(() => setTrendingMedia([]));
+        }
+      })
+      .catch(() => {
+        axios
+          .get(`${host}trending`)
+          .then((response) => setTrendingMedia(response.data.results || []))
+          .catch(() => setTrendingMedia([]));
+      });
+  }, [showCreateModal]);
+
+  useEffect(() => {
+    // filter media whenever list changes
+    if (selectedList === "all") {
+      setFilteredMedia(allMedia);
     } else {
-      setFilteredMedia(
-        allWatchlistMedia.filter(
-          (media) => media.watchlist_id === selectedWatchlistId
-        )
-      ); // Only show the media in respective watchlist
+      setFilteredMedia(allMedia.filter((m) => m.watchlist_id === selectedList));
     }
-  }, [selectedWatchlistId, allWatchlistMedia]);
+  }, [selectedList, allMedia]);
 
-  // Help from https://www.freecodecamp.org/news/use-firebase-authentication-in-a-react-app/
-  useEffect(() => {
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        const uid = user.uid;
-        console.log("uid", uid);
-        setLoggedIn(true);
-        setUserID(uid);
-
-        // Help from https://stackoverflow.com/questions/68260152/firebase-auth-currentuser-is-null-at-page-load/68260898#68260898
-        fetchAllWatchlistMedia(uid);
-      } else {
-        console.log("You are currently logged out.");
-        setLoggedIn(false);
-        setUserID("");
-        setAllWatchlistMedia([]);
-        setFilteredMedia([]);
-      }
-    });
-
-    // Help from https://www.rowy.io/blog/firestore-react-query
-    //fetchWatchlist()
-
-    // Help from https://stackoverflow.com/questions/53070970/infinite-loop-in-useeffect
-  }, []);
-
-  //Get all the users watchlists from the flask endpoint
-  const fetchWatchlists = async (userId) => {
+  const fetchWatchlists = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${host}interactions/get-watchlists`, {
-        params: { user_id: userId },
+      const resp = await axios.get(`${host}interactions/get-watchlists`, {
+        params: { user_id: userID },
       });
-      return response.data.watchlists || [];
-    } catch (error) {
-      console.error("Error fetching watchlists", error);
-      return [];
+      const lists = resp.data.watchlists || [];
+      setWatchlists(lists);
+      const ids = lists.map((l) => l.id);
+      await fetchMedia(ids);
+    } catch (err) {
+      console.error("Error loading watchlists", err);
     } finally {
       setLoading(false);
     }
   };
-  //Gets media in specific watchlist
-  const fetchWatchlistMedia = async (userId, watchlistId, watchlistName) => {
-    setLoading(true);
+
+  const fetchMedia = async (ids) => {
+    if (!ids.length) {
+      setAllMedia([]);
+      return;
+    }
     try {
-      const response = await axios.get(
-        `${host}interactions/get-watchlist-media`,
+      const resp = await axios.post(
+        `${host}interactions/get-multiple-watchlist-media`,
+        { user_id: userID, watchlist_ids: ids }
+      );
+
+      const allMedia = resp.data.media || [];
+
+      //Create a list of ids and media types to pass to ratings endpoint
+      const mediaItems = allMedia.map((item) => ({
+        media_id: item.media_id,
+        media_type: item.media_type,
+      }));
+
+      //Get all ratings in a single request
+      const ratingsResponse = await fetchRatings(mediaItems);
+
+      // Update media with ratings and fetch average ratings
+      if (ratingsResponse && ratingsResponse.ratings) {
+        for (const item of allMedia) {
+          const ratingKey = `${item.media_type}_${item.media_id}`;
+          item.rating = ratingsResponse.ratings[ratingKey] || 0;
+          item.averageRating = await GetAverageRating(
+            item.media_id,
+            item.media_type
+          );
+        }
+      }
+      setAllMedia(allMedia || []);
+    } catch (err) {
+      console.error("Error loading media", err);
+    }
+  };
+
+  const removeMedia = async (media, watchlistID) => {
+    try {
+      await axios.post(`${host}interactions/remove-from-watchlist`, {
+        user_id: userID,
+        watchlist_id: watchlistID,
+        media_id: media.media_id,
+      });
+      fetchWatchlists();
+    } catch (err) {
+      console.error("Remove failed", err);
+    }
+  };
+
+  const fetchRatings = async (mediaItems) => {
+    try {
+      const response = await axios.post(
+        `${host}interactions/get-multiple-ratings`,
         {
-          params: {
-            user_id: userId,
-            watchlist_id: watchlistId,
-          },
+          user_id: userID,
+          media_items: mediaItems,
         }
       );
-
-      const mediaWithWatchlistInfo = (response.data.media || []).map(
-        (item) => ({
-          ...item, //...Used to get all the items from the object instead of going through with dot operator
-          watchlist_name: watchlistName,
-          watchlist_id: watchlistId,
-        })
-      );
-
-      return mediaWithWatchlistInfo;
-    } catch (error) {
-      console.error(
-        `Error fetching media for watchlist ${watchlistId}:`,
-        error
-      );
-      return [];
-    }
-  };
-  //Gets all watchlist media to display in watchlist page
-  const fetchAllWatchlistMedia = async (userId) => {
-    setLoading(true);
-
-    try {
-      //Get all of the user's watchlists
-      const watchlists = await fetchWatchlists(userId);
-      setWatchlists(watchlists);
-
-      if (watchlists.length === 0) {
-        setAllWatchlistMedia([]);
-        setLoading(false);
-        return;
-      }
-      //Get all the media and combine
-      let allMedia = [];
-      for (const watchlist of watchlists) {
-        const media = await fetchWatchlistMedia(
-          userId,
-          watchlist.id,
-          watchlist.name
-        );
-        allMedia = [...allMedia, ...media];
-      }
-      for (const item of allMedia) {
-        const response = await fetchRatings(
-          userId,
-          item.media_id,
-          item.media_type
-        );
-        item.rating = response.rating;
-        item.averageRating = await GetAverageRating(
-          item.media_id,
-          item.media_type
-        );
-      }
-      console.log(allMedia);
-      setAllWatchlistMedia(allMedia);
-    } catch (error) {
-      console.error("Error fetch all watchlist media:", error);
-    }
-    setLoading(false);
-  };
-
-  const fetchRatings = async (userId, mediaId, mediaType) => {
-    try {
-      const response = await axios.get(`${host}interactions/get-ratings`, {
-        params: {
-          user_id: userId,
-          media_id: mediaId,
-          media_type: mediaType,
-        },
-      });
       return response.data;
     } catch (error) {
       console.error("Error getting rating:", error);
+    }
+  };
+
+  const handleRemoveClick = (media) => {
+    if (selectedList === "all") {
+      setPendingMedia(media);
+      setChosenList("");
+      // Filters watchlists to only include those containing the media
+      const relevantWatchlists = watchlists.filter((wl) =>
+        allMedia.some(
+          (item) =>
+            item.watchlist_id === wl.id &&
+            item.media_id === media.media_id &&
+            item.media_type === media.media_type
+        )
+      );
+      if (relevantWatchlists.length < 2) {
+        removeMedia(media, media.watchlist_id);
+        return;
+      }
+      setWatchlistsWithMedia(relevantWatchlists);
+      setShowListSelect(true);
+    } else {
+      removeMedia(media, selectedList);
     }
   };
 
@@ -258,9 +219,8 @@ function Watchlist() {
         );
 
         if (response.data.status === "success") {
-          alert("Watchlist delete successfully.");
-          setSelectedWatchlistId("all");
-          fetchAllWatchlistMedia(userID);
+          alert("Watchlist deleted successfully.");
+          fetchWatchlists(userID);
         } else {
           alert("Failed to delete watchlist.");
         }
@@ -268,76 +228,6 @@ function Watchlist() {
         console.error("Error deleting watchlist:", error);
         alert("An error occurred while deleting the watchlist.");
       }
-    }
-  };
-
-  const removeFromWatchlist = async (watchlistId, mediaId) => {
-    try {
-      const response = await axios.post(
-        `${host}interactions/remove-from-watchlist`,
-        {
-          user_id: userID,
-          watchlist_id: watchlistId,
-          media_id: mediaId,
-        }
-      );
-
-      if (response.data.status === "success") {
-        alert("Item removed from watchlist successfully.");
-        fetchAllWatchlistMedia(userID);
-      } else {
-        alert("Failed to remove item from watchlist.");
-      }
-    } catch (error) {
-      console.error("Error removing from watchlist:", error);
-      alert("An error occured while removing from watchlist");
-    }
-  };
-
-  const removeFromWatchlistHelper = (media) => {
-    if (selectedWatchlistId === "all") {
-      //When using the all watchlists filter
-      setSelectedMediaForRemoval(media);
-      setShowWatchlistSelection(true);
-    } else {
-      removeFromWatchlist(media.watchlist_id, media.media_id);
-    }
-  };
-
-  const watchlistForMediaRemoval = (watchlistId) => {
-    if (selectedMediaForRemoval) {
-      removeFromWatchlist(watchlistId, selectedMediaForRemoval.media_id);
-      setShowWatchlistSelection(false);
-      setSelectedMediaForRemoval(null);
-    }
-  };
-
-  const displayInformation = async (id, type) => {
-    try {
-      console.log(type);
-      const response = await axios.get(`${host}search/details`, {
-        params: {
-          id: id,
-          type: type,
-        },
-      });
-      const tmdbData = response.data.tmdb;
-      setModalTitle(tmdbData.title || tmdbData.name);
-      setModalOverview(tmdbData.overview);
-      setModalPoster(`${imgPath}${tmdbData.poster_path}`);
-      const languages = tmdbData?.spoken_languages
-        .map((language) => language.name)
-        .join(",");
-
-      setModalLanguages(languages ? languages : "");
-
-      setModalProvidersBuy("");
-      setModalProvidersFlatrate("");
-      setModalProvidersRent("");
-      handleShow();
-    } catch (error) {
-      console.error("Error fetching media details:", error);
-      alert("Failed to load media details. Please try again later.");
     }
   };
 
@@ -354,7 +244,7 @@ function Watchlist() {
       );
 
       if (response.data.status === "success") {
-        await fetchAllWatchlistMedia(userID);
+        await fetchWatchlists(userID);
         alert("Status updated successfully.");
       } else {
         alert("Failed to update status.");
@@ -363,16 +253,6 @@ function Watchlist() {
       console.error("Error updating status:", error);
       alert("An error occurred while updating the status.");
     }
-
-    /*
-        // Help from https://firebase.google.com/docs/firestore/manage-data/add-data
-        // And https://www.geeksforgeeks.org/writing-and-reading-data-in-cloud-firestore/
-        // And https://www.geeksforgeeks.org/react-bootstrap-select/
-        */
-  };
-
-  const returnToDashboard = () => {
-    navigate("/dashboard");
   };
 
   const handleItemClick = (item, tab) => {
@@ -385,301 +265,265 @@ function Watchlist() {
   const handleCloseModal = () => {
     setSelectedItem(null);
     setShowModal(false);
+    fetchWatchlists();
   };
 
-  // From Dashboard.js
-  const navigate = useNavigate();
-
   return (
-    <div
-      className={`container ${
-        isLightMode ? "watchlistLight" : "watchlistDark"
-      }`}
-      id="watchlistContainer"
-    >
-      {/* Help from https://react-bootstrap.netlify.app/docs/components/modal/ */}
-      {/* And https://github.com/react-bootstrap/react-bootstrap/issues/3794 */}
-      {/* And https://www.geeksforgeeks.org/how-to-use-modal-component-in-reactjs/# */}
-      {/* Copied from Dashboard.js */}
-      <Modal
-        show={show}
-        onHide={handleClose}
-        backdrop="static"
-        keyboard={false}
-      >
-        {/* Help from https://stackoverflow.com/questions/76810663/react-modals-or-dialogs-doesnt-inherit-the-dark-mode-styles-tailwind */}
-        {/* And https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/# */}
-        <Modal.Header
-          className={`${isLightMode ? "head-light" : "head-dark"}`}
-          closeButton
-        >
-          <Modal.Title>{modalTitle || "None"}</Modal.Title>
-        </Modal.Header>
-
-        {/* Help from https://stackoverflow.com/questions/76810663/react-modals-or-dialogs-doesnt-inherit-the-dark-mode-styles-tailwind */}
-        {/* And https://www.geeksforgeeks.org/how-to-create-dark-light-theme-in-bootstrap-with-react/# */}
-        <Modal.Body
-          className={`modalBody ${isLightMode ? "body-light" : "body-dark"}`}
-        >
-          <div className="modalBox">
-            <div className="modalLeft">
-              <img
-                className="modalPoster"
-                id="modalPoster"
-                src={modalPoster}
-                alt="modal poster"
-              />
-            </div>
-            <div className="modalRight">
-              <h2>Overview</h2>
-              <div id="overviewBox">{modalOverview || "None"}</div>
-              <hr />
-              <h3>Spoken Languages</h3>
-              {modalLanguages || "None"}
-              <hr />
-              <h3>Watch Providers</h3>
-              <h4>Buy</h4>
-              {modalProvidersBuy || "None"}
-              <h4>Flatrate</h4>
-              {modalProvidersFlatrate || "None"}
-              <h4>Rent</h4>
-              {modalProvidersRent || "None"}
-            </div>
+    <div className={lightMode ? "watchlist light" : "watchlist dark"}>
+      <Navbar className="wl-header" expand="md" sticky="top">
+        <Container>
+          <div className="d-flex align-items-center">
+            <Button
+              variant="secondary"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              {sidebarOpen ? <FaTimes /> : <FaBars />} Watchlists
+            </Button>
+            <Button variant="success" onClick={() => setShowCreateModal(true)}>
+              <FaPlus /> New Watchlist
+            </Button>
           </div>
-        </Modal.Body>
-      </Modal>
 
-      <div className="watchlistBox">
-        <div className="watchlistLeft">
-          {loggedIn ? "Logged in" : "Logged out"}
-          <br />
-          <br />
-          {/* Help from https://react-bootstrap.netlify.app/docs/components/buttons/ */}
-          {/* And https://www.geeksforgeeks.org/how-to-change-button-text-on-click-in-reactjs/# */}
-          <Button
-            variant={`${isLightMode ? "dark" : "light"}`}
-            onClick={toggleLightMode}
-          >
-            {`Switch to ${isLightMode ? "Dark" : "Light"} Mode`}
-          </Button>
-          <br />
-          <br />
-          <Button variant="primary" onClick={returnToDashboard}>
-            Return to Dashboard
-          </Button>
-        </div>
-        <div className="watchlistRight">
-          <br />
-          <div id="watchlist" className="watchlist">
-            {/* Help from https://www.rowy.io/blog/firestore-react-query */}
-            {/* And https://react.dev/learn/rendering-lists#keeping-list-items-in-order-with-key */}
-            {/* Tab Navigation between calendar and watchlists */}
-            <div className="media-view-tabs mb-4">
-              <ButtonGroup>
-                <Button
-                  variant={showCalendarView ? "outline-primary" : "primary"}
-                  onClick={() => setShowCalendarView(false)}
+          <Nav className="ms-auto align-items-center">
+            <Button variant="link" onClick={() => navigate(-1)}>
+              <FaArrowLeft /> Go Back
+            </Button>
+            <ToggleButtonGroup
+              type="radio"
+              name="theme"
+              value={lightMode ? "light" : "dark"}
+              onChange={(val) => setLightMode(val === "light")}
+            >
+              <ToggleButton id="t-dark" value="dark" variant="outline-light">
+                <FaMoon />
+              </ToggleButton>
+              <ToggleButton id="t-light" value="light" variant="outline-light">
+                <FaSun />
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Nav>
+        </Container>
+      </Navbar>
+
+      <Container className="wl-body">
+        <Row>
+          {sidebarOpen && (
+            <Col md={2} className="wl-sidebar">
+              <Nav className="flex-column wl-list-nav">
+                <Nav.Link
+                  active={selectedList === "all"}
+                  onClick={() => setSelectedList("all")}
                 >
-                  <FaList className="me-2" />
-                  Watchlists
-                </Button>
-                <Button
-                  variant={showCalendarView ? "primary" : "outline-primary"}
-                  onClick={() => setShowCalendarView(true)}
-                >
-                  <FaCalendarAlt className="me-2" />
-                  TV Calendar
-                </Button>
-              </ButtonGroup>
-            </div>
-            {loading ? (
-              <div className="loading-spinner">
-                <Spinner animation="border" variant="primary" />
-                <span> Fetching Watchlist Items...</span>
-              </div>
-            ) : !showCalendarView ? (
-              <>
-                {watchlists.length > 0 && (
-                  <div className="watchlist-filter">
-                    <label className="watchlist-select">
-                      Filter by watchlist:{" "}
-                    </label>
-                    <Form.Select
-                      id="watchlist-select"
-                      value={selectedWatchlistId}
-                      onChange={(e) => setSelectedWatchlistId(e.target.value)}
-                    >
-                      <option value="all">All Watchlists</option>
-                      {watchlists.map((list) => (
-                        <option key={list.id} value={list.id}>
-                          {list.name}
-                        </option>
-                      ))}
-                    </Form.Select>
-                    <div className="watchlist-management mt-3">
-                      {selectedWatchlistId !== "all" && (
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={(e) =>
-                            deleteWatchlist(selectedWatchlistId, e)
-                          }
-                        >
-                          {`Delete This Watchlist`}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {/*...Converts to array*/}
-                {filteredMedia.length > 0 &&
+                  All Media
+                </Nav.Link>
+                {watchlists.map((list) => (
+                  <Nav.Link
+                    key={list.id}
+                    active={selectedList === list.id}
+                    onClick={() => setSelectedList(list.id)}
+                  >
+                    {list.name}{" "}
+                    <FaTrash
+                      className="wl-trash"
+                      onClick={(e) => {
+                        deleteWatchlist(list.id, e);
+                      }}
+                    />
+                  </Nav.Link>
+                ))}
+              </Nav>
+            </Col>
+          )}
+
+          <Col md={sidebarOpen ? 10 : 12} className="wl-content">
+            <Badge bg="secondary" className="me-2 wl-count">
+              {filteredMedia.length} items
+            </Badge>
+            <Row className="wl-grid">
+              {/*...Converts to array
+                Converts the media ids to dictionary keys so they are unique
+                prevents duplicates
+                */}
+              {loading
+                ? Array(8)
+                    .fill()
+                    .map((_, index) => (
+                      <Col
+                        key={`skeleton-${index}`}
+                        xs={6}
+                        sm={4}
+                        lg={3}
+                        className="mb-4"
+                      >
+                        <WatchlistCard loading={true} />
+                      </Col>
+                    ))
+                : filteredMedia.length > 0 &&
                   [
                     ...new Map(
                       filteredMedia.map((item) => [item.media_id, item])
                     ).values(),
                   ].map((item) => (
-                    <div
-                      className={`watchlistItem ${
-                        isLightMode ? "watchlistItemLight" : "watchlistItemDark"
-                      }`}
-                      key={item.id}
-                    >
-                      <div className="watchlistPoster">
-                        <img
-                          src={`${imgPath}${item.poster_path}`}
-                          className="watchlistPosterImg"
-                          alt="watchlist item poster"
-                        />
-                      </div>
-                      <div className="watchlistContent">
-                        <h3>{item.title}</h3>
-                        {/* Help from https://stackoverflow.com/questions/52247445/how-do-i-convert-a-firestore-date-timestamp-to-a-js-date */}
-                        <p>
-                          Date Added:{" "}
-                          {item.added_at
-                            ? item.added_at.seconds
-                              ? new Date(
-                                  item.added_at.seconds * 1000
-                                ).toDateString()
-                              : new Date(item.added_at).toDateString()
-                            : "Unknown Date"}
-                        </p>
-                        {/* Help from https://react.dev/reference/react-dom/components/select */}
-                        {/* And https://react-bootstrap.netlify.app/docs/forms/select/ */}
-                        {/* And https://www.geeksforgeeks.org/react-bootstrap-select/ */}
-                        Status:
-                        <Form.Select
-                          data-bs-theme={`${isLightMode ? "light" : "dark"}`}
-                          style={{ width: "90%" }}
-                          value={item.status} // Moses's proposed fix
-                          name="watchStatus"
-                          // Help from https://stackoverflow.com/questions/61858177/how-can-i-get-the-value-from-react-bootstrap-form-select
-                          onChange={(e) =>
-                            updateStatus(
-                              item.watchlist_id,
-                              item.media_id,
-                              e.target.value
-                            )
-                          }
-                        >
-                          <option value="Plan to watch">Plan to watch</option>
-                          <option value="Currently watching">
-                            Currently watching
-                          </option>
-                          <option value="On hold">On hold</option>
-                          <option value="Stopped watching">
-                            Stopped watching
-                          </option>
-                          <option value="Finished watching">
-                            Finished watching
-                          </option>
-                        </Form.Select>
-                        {/* Help from https://react-bootstrap.netlify.app/docs/components/button-group/ */}
-                        <ButtonGroup>
-                          <Button
-                            variant="primary"
-                            onClick={() => handleItemClick(item)}
-                          >
-                            View Information
-                          </Button>
-                          {item.media_type === "tv" && (
-                            <Button
-                              size="sm"
-                              className="me-2 btn btn-info"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleItemClick(item, "episodes");
-                              }}
-                            >
-                              <FaList className="me-1" /> Episodes
-                            </Button>
-                          )}
-                          <Button
-                            variant="success"
-                            onClick={() =>
-                              alert(
-                                "Review functionality has not been implemented yet. We thank you for your patience."
-                              )
-                            }
-                          >
-                            Write a Review
-                          </Button>
-                          <Button
-                            variant="danger"
-                            onClick={() => removeFromWatchlistHelper(item)}
-                          >
-                            Remove from Watchlist
-                          </Button>
-                        </ButtonGroup>
-                        <br />
-                        {/*<p>Your rating:</p>*/} {/* Commenting this out to fix watchlist item layout -WA */}
-                        {/* Help from https://stackoverflow.com/questions/70344255/react-js-passing-one-components-variables-to-another-component-and-vice-versa */}
-                        <StarRate
-                          userID={userID}
-                          currentMediaID={item.media_id}
-                          currentMediaType={item.media_type}
-                          initialRate={item.rating}
-                          initialAvgRate={item.averageRating}
-                        ></StarRate>
-                      </div>
-                    </div>
+                    <Col key={item.id} xs={6} sm={4} lg={3} className="mb-4">
+                      <WatchlistCard
+                        item={item}
+                        onUpdateStatus={updateStatus}
+                        onInfoClick={handleItemClick}
+                        onRemoveClick={handleRemoveClick}
+                        loading={loading}
+                      />
+                    </Col>
                   ))}
-              </>
-            ) : (
-              <TVCalendar isLoggedIn={loggedIn} />
-            )}
-          </div>
-        </div>
-      </div>
+            </Row>
+          </Col>
+        </Row>
+      </Container>
+
       <Modal
-        show={showWatchlistSelection}
-        onHide={() => setShowWatchlistSelection(false)}
-        backdrop="static"
-        keyboard={false}
+        show={showListSelect}
+        onHide={() => setShowListSelect(false)}
+        centered
+        className="delete-watchlist-modal"
       >
         <Modal.Header closeButton>
-          <Modal.Title>Select Watchlist</Modal.Title>
+          <Modal.Title>Select a Watchlist to Remove From</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <p>
-            Select the watchlist from which to remove{" "}
-            {selectedMediaForRemoval?.title}
-          </p>
-          <Form.Select
-            onChange={(e) => watchlistForMediaRemoval(e.target.value)}
-            defaultValue=""
-          >
-            <option value="" disabled>
-              Select a watchlist
-            </option>
-            {watchlists.map((list) => (
-              <option key={list.id} value={list.id}>
-                {list.name}
+          <Form>
+            <Form.Label>Watchlist</Form.Label>
+            <Form.Select
+              value={chosenList}
+              onChange={(e) => setChosenList(e.target.value)}
+            >
+              <option value="" disabled>
+                - select a watchlist -
               </option>
-            ))}
-          </Form.Select>
+              {watchlistsWithMedia.map((wl) => (
+                <option key={wl.id} value={wl.id}>
+                  {wl.name}
+                </option>
+              ))}
+            </Form.Select>
+          </Form>
         </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowListSelect(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            disabled={!chosenList}
+            onClick={() => {
+              removeMedia(pendingMedia, chosenList);
+              setShowListSelect(false);
+            }}
+          >
+            Remove
+          </Button>
+        </Modal.Footer>
       </Modal>
+      <Modal
+        show={showCreateModal}
+        onHide={() => setShowCreateModal(false)}
+        size="lg"
+        centered
+        className="create-watchlist-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Create New Watchlist</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group className="mb-3">
+            <Form.Label>Watchlist Name</Form.Label>
+            <Form.Control
+              type="text"
+              value={newListName}
+              onChange={(e) => setNewListName(e.target.value)}
+              placeholder="Enter a name for your watchlist"
+            />
+          </Form.Group>
+          <hr />
+          <p>Select items to start your watchlist</p>
+          <div className="d-flex flex-wrap">
+            {(userMedia.length > 0 ? userMedia : trendingMedia).map((item) => {
+              const key = `${item.media_type}_${item.media_id}`;
+              const selected = selectedStarters.has(key);
+              return (
+                <Card
+                  key={key}
+                  style={{ width: "120px", margin: "4px", cursor: "pointer" }}
+                  className={selected ? "border border-info border-5" : " "}
+                  onClick={() => {
+                    const next = new Set(selectedStarters);
+                    selected ? next.delete(key) : next.add(key);
+                    setSelectedStarters(next);
+                  }}
+                >
+                  <Card.Img
+                    variant="top"
+                    src={`https://image.tmdb.org/t/p/w200${item.poster_path}`}
+                  />
+                </Card>
+              );
+            })}
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowCreateModal(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            disabled={!newListName.trim() || loadingCreate}
+            onClick={async () => {
+              if (!newListName.trim()) return;
+              setLoadingCreate(true);
+              try {
+                const items = [...selectedStarters];
+                if (items.length === 0) {
+                  await axios.post(`${host}interactions/add-watchlist`, {
+                    user_id: userID,
+                    watchlist_name: newListName,
+                    media_info: { id: null },
+                  });
+                } else {
+                  for (let key of items) {
+                    const m = (
+                      userMedia.length ? userMedia : trendingMedia
+                    ).find((x) => `${x.media_type}_${x.media_id}` === key);
+
+                    await axios.post(`${host}interactions/add-watchlist`, {
+                      user_id: userID,
+                      watchlist_name: newListName,
+                      media_info: {
+                        id: m.media_id,
+                        media_name: m.title || m.name,
+                        overview: m.overview || "",
+                        release_date: m.release_date,
+                        media_type: m.media_type,
+                        poster_path: m.poster_path,
+                      },
+                    });
+                  }
+                }
+                //Refreshes the watchlists and closes
+                await fetchWatchlists();
+                setShowCreateModal(false);
+                setNewListName("");
+                setSelectedStarters(new Set());
+              } catch (err) {
+                console.error(err);
+                alert("Failed to create watchlist");
+              } finally {
+                setLoadingCreate(false);
+              }
+            }}
+          >
+            {loadingCreate ? <Spinner size="sm" /> : "Create"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
       {selectedItem && showModal && (
         <DetailModal
           mediaId={selectedItem.media_id}
@@ -691,19 +535,6 @@ function Watchlist() {
       )}
     </div>
   );
-}
+};
 
 export default Watchlist;
-
-/* 
-
-Other Resources Used:
-- https://www.geeksforgeeks.org/how-to-change-button-text-on-click-in-reactjs/#
-- https://stackoverflow.com/questions/70636194/cant-make-firestore-to-get-only-docs-from-logged-user-id 
-- https://stackoverflow.com/questions/72962388/fetched-firestore-data-not-displaying-on-first-page-load-with-react-useeffect 
-- https://stackoverflow.com/questions/66752231/firebase-reactjs-useeffect-typeerror-cannot-read-property-uid-of-null 
-- https://stackoverflow.com/questions/72962388/fetched-firestore-data-not-displaying-on-first-page-load-with-react-useeffect 
-- https://stackoverflow.com/questions/71256127/how-can-i-retrieve-a-user-id-from-firestore-via-flask-backend-react-frontend/72785157 
-- https://react-bootstrap.netlify.app/docs/getting-started/color-modes/ 
-
-*/

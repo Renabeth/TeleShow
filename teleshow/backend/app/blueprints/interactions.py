@@ -5,11 +5,19 @@ import tmdbsimple as tmdb  # Library that makes interacting with TMDB API simpli
 from firebase_admin import firestore
 import datetime
 import time
-from app.extensions import get_db, limiter
+from app.extensions import cache, get_db, limiter
+from app.firebase_handler import (
+    get_cached_user_ratings,
+    get_cached_user_watchlists,
+    get_cached_followed_media,
+    get_cached_user_comments,
+    get_cached_tv_progress,
+    start_all_listeners_for_user,
+    shutdown_all_listeners,
+)
+from google.cloud.firestore_v1.base_query import FieldFilter
 
 interactions_bp = Blueprint("interactions", __name__)
-
-# Points the default collection to users collection
 users_ref = get_db().collection("users-test")
 
 
@@ -25,7 +33,9 @@ def add_to_watchlist(user_id, watchlist_name, media_info):
     # Go to the watchlists subcollection of users
     watchlist_ref = user_ref.collection("watchlists")
     # Look for the watchlist document that matches the key
-    watchlist_query = watchlist_ref.where("name", "==", watchlist_name).limit(1)
+    watchlist_query = watchlist_ref.where(
+        filter=FieldFilter("name", "==", watchlist_name)
+    ).limit(1)
     # Get the results
     watchlist_docs = list(watchlist_query.stream())
 
@@ -53,7 +63,7 @@ def add_to_watchlist(user_id, watchlist_name, media_info):
     media_id = media_info.get("id")
     media_check = (
         watchlist_doc_ref.collection("media")
-        .where("media_id", "==", media_id)
+        .where(filter=FieldFilter("media_id", "==", media_id))
         .limit(1)
         .get()
     )
@@ -191,6 +201,30 @@ def update_user_interests(user_ref, genres, keywords, production_companies, acti
         batch.commit()
 
 
+@interactions_bp.route("/initialize-listeners", methods=["POST"])
+def initialize_user_listeners():
+    data = request.get_json()
+    user_id = data.get("user_id")
+
+    if not user_id:
+        return jsonify({"error": "User ID is required"})
+
+    result = start_all_listeners_for_user(user_id)
+    return jsonify(result)
+
+
+@interactions_bp.route("/stop-listeners", methods=["POST"])
+def stop_user_listeners():
+    data = request.get_json()
+    user_id = data.get("user_id")
+
+    if not user_id:
+        return jsonify({"error": "User ID is required"})
+
+    shutdown_all_listeners()
+    return jsonify({"status": "success"})
+
+
 # GET EPISODE PROGRESS AND SHOW WHICH EPISODES HAVE BEEN WATCHED
 # This gets the information from firebase while another function sets it
 # The interactions/episode-progress sets the progress information
@@ -203,20 +237,15 @@ def get_episode_progress():
         return jsonify({"error": "user ID and TV ID are required"})
 
     try:
-        user_ref = users_ref.document(user_id)
-        if not user_ref.get().exists:
-            return jsonify({"error": "User not found"})
-
+        all_progress = get_cached_tv_progress(user_id)
         tv_progress_key = f"tv_{tv_id}"
-        tv_progress_ref = user_ref.collection("tv_progress").document(tv_progress_key)
-        tv_doc = tv_progress_ref.get()
 
-        if not tv_doc.exists:
+        if tv_progress_key not in all_progress:
             return jsonify(
                 {"progress": {}, "message": "No progress found for this show"}
             )
 
-        progress_data = tv_doc.to_dict()
+        progress_data = all_progress[tv_progress_key]
         return jsonify({"progress": progress_data})
 
     except Exception as e:
@@ -297,7 +326,7 @@ def update_episode_progress():
 
 
 # GET CALENDAR ENTRIES
-@interactions_bp.route("/tv/calendar", methods=["GET"])
+@interactions_bp.route("/media/calendar", methods=["GET"])
 def get_tv_calendar():
     user_id = request.args.get("user_id")
     if not user_id:
@@ -309,10 +338,14 @@ def get_tv_calendar():
             return jsonify({"error": "User not found"})
         # Points to the tv_calendar collection and streams it
         calendar_ref = user_ref.collection("tv_calendar")
-        calendar_docs = calendar_ref.stream()
+        tv_calendar_docs = calendar_ref.stream()
+
+        # For backwards compatibility im making a new movie calendar collection
+        movie_calendar_ref = user_ref.collection("movie_calendar")
+        movie_calendar_docs = movie_calendar_ref.stream()
 
         calendar_entries = []
-        for doc in calendar_docs:
+        for doc in tv_calendar_docs:
             data = doc.to_dict()
             # If a next episode exists and its release is in the future
             if "next_episode" in data and data["next_episode"]["air_date"]:
@@ -326,6 +359,7 @@ def get_tv_calendar():
                         {
                             "id": doc.id,
                             "title": data.get("title"),
+                            "media_type": "tv",
                             "media_id": data.get("media_id"),
                             "poster_path": data.get("poster_path"),
                             "season": data["next_episode"].get("season"),
@@ -335,8 +369,26 @@ def get_tv_calendar():
                             "overview": data["next_episode"].get("overview"),
                         }
                     )
+        for doc in movie_calendar_docs:
+            data = doc.to_dict()
+            if data.get("release_date"):
+                release_date = data["release_date"]
+                today = datetime.datetime.now().strftime("%Y-%m-%d")
+
+                if release_date >= today:
+                    calendar_entries.append(
+                        {
+                            "id": doc.id,
+                            "media_type": "movie",
+                            "title": data.get("title"),
+                            "media_id": data.get("media_id"),
+                            "poster_path": data.get("poster_path"),
+                            "release_date": release_date,
+                            "overview": data.get("overview"),
+                        }
+                    )
         # Sort by air date
-        calendar_entries.sort(key=lambda x: x["air_date"])
+        calendar_entries.sort(key=lambda x: x.get("air_date", x.get("release_date")))
 
         return jsonify({"calendar": calendar_entries})
     except Exception as e:
@@ -346,7 +398,7 @@ def get_tv_calendar():
 
 # UPDATE CALENDAR ENTRIES
 # Updates the calendar from collection information
-@interactions_bp.route("/tv/update-calendar", methods=["POST"])
+@interactions_bp.route("/media/update-calendar", methods=["POST"])
 @limiter.limit("50 per 10 seconds")
 def update_tv_calendar():
     data = request.get_json()
@@ -361,8 +413,15 @@ def update_tv_calendar():
             return jsonify({"error": "User not found"})
 
         # Get all the followed shows
-        followed_ref = user_ref.collection("followed_media")
-        tv_shows = followed_ref.where("media_type", "==", "tv").stream()
+        followed_tv_ref = user_ref.collection("followed_media")
+        tv_shows = followed_tv_ref.where(
+            filter=FieldFilter("media_type", "==", "tv")
+        ).stream()
+
+        followed_movies_ref = user_ref.collection("followed_media")
+        movies = followed_movies_ref.where(
+            filter=FieldFilter("media_type", "==", "movie")
+        ).stream()
 
         updated_count = 0
         for show in tv_shows:
@@ -386,7 +445,7 @@ def update_tv_calendar():
                     calendar_ref = user_ref.collection("tv_calendar")
                     calendar_ref.document(f"tv_{media_id}").set(
                         {
-                            "media": media_id,
+                            "media_id": media_id,
                             "title": show_data.get("title"),
                             "poster_path": tv_info.get("poster_path"),
                             "next_episode": {
@@ -396,6 +455,7 @@ def update_tv_calendar():
                                 "air_date": next_episode.get("air_date"),
                                 "overview": next_episode.get("overview"),
                             },
+                            "media_type": "tv",
                             "last_updated": firestore.SERVER_TIMESTAMP,
                         }
                     )
@@ -405,6 +465,42 @@ def update_tv_calendar():
                     # Remove from the calendar if its finished
                     calendar_ref = user_ref.collection("tv_calendar")
                     calendar_doc = calendar_ref.document(f"tv_{media_id}")
+                    if calendar_doc.get().exists:
+                        calendar_doc.delete()
+
+        for movie in movies:
+            time.sleep(0.2)  # Pause to avoid rate limiting
+            movie_data = movie.to_dict()
+            media_id = movie_data.get("media_id")
+
+            movie_api = tmdb.Movies(media_id)
+            movie_info = movie_api.info()
+
+            # Check if the movie has a future release date
+            if movie_info.get("release_date"):
+                release_date = movie_info.get("release_date")
+                today = datetime.datetime.now().strftime("%Y-%m-%d")
+
+                if release_date >= today:
+                    # Add to movie calendar
+                    calendar_ref = user_ref.collection("movie_calendar")
+                    calendar_ref.document(f"movie_{media_id}").set(
+                        {
+                            "media_id": media_id,
+                            "title": movie_data.get("title"),
+                            "poster_path": movie_info.get("poster_path"),
+                            "media_type": "movie",
+                            "release_date": release_date,
+                            "overview": movie_info.get("overview"),
+                            "media_type": "movie",
+                            "last_updated": firestore.SERVER_TIMESTAMP,
+                        }
+                    )
+                    updated_count += 1
+                else:
+                    # Remove from calendar if already released
+                    calendar_ref = user_ref.collection("movie_calendar")
+                    calendar_doc = calendar_ref.document(f"movie_{media_id}")
                     if calendar_doc.get().exists:
                         calendar_doc.delete()
         return jsonify(
@@ -543,14 +639,12 @@ def check_if_media_followed():
     if not user_id or not media_id or not media_type:
         return jsonify({"error": "User ID, Media ID, and Media Type are required"})
 
-    user_ref = users_ref.document(user_id)
-    if not user_ref.get().exists:
-        return jsonify({"error": "User not found"})
+    followed_media = get_cached_followed_media(user_id)
 
     media_key = f"{media_type}_{media_id}"
-    followed_media_doc = user_ref.collection("followed_media").document(media_key).get()
+    followed = media_key in followed_media
 
-    return jsonify({"followed": followed_media_doc.exists})
+    return jsonify({"followed": followed})
 
 
 # Getting the media in the followed collection
@@ -561,17 +655,11 @@ def get_followed_media():
     if not user_id:
         return jsonify({"error": "User must be logged in"})
 
-    user_ref = users_ref.document(user_id)
-    if not user_ref.get().exists:
-        return jsonify({"error": "User not found"})
-
-    followed_media_ref = user_ref.collection("followed_media")
-    followed_media_doc = followed_media_ref.stream()
+    followed_media = get_cached_followed_media(user_id)
     user_tv = []
     user_movies = []
 
-    for doc in followed_media_doc:
-        media = doc.to_dict()
+    for key, media in followed_media.items():
         if media.get("media_type") == "tv":
             user_tv.append(media)
         elif media.get("media_type") == "movie":
@@ -614,29 +702,24 @@ def get_user_watchlists():
     if not user_id:
         return jsonify({"error": "User login required"})
 
-    user_ref = users_ref.document(user_id)
-    if not user_ref.get().exists:
-        return jsonify({"error": "User not found"})
+    watchlists_data = get_cached_user_watchlists(user_id)
 
     watchlists = []
 
-    watchlist_docs = user_ref.collection("watchlists").stream()
-
-    for doc in watchlist_docs:
-        watchlist_data = doc.to_dict()
+    for watchlist in watchlists_data:
         watchlists.append(
             {
-                "id": doc.id,  # Actual document id
-                "name": watchlist_data.get("name"),
-                "created_at": watchlist_data.get("created_at"),
-                "updated_at": watchlist_data.get("updated_at"),
+                "id": watchlist["id"],  # Actual document id
+                "name": watchlist.get("name"),
+                "created_at": watchlist.get("created_at"),
+                "updated_at": watchlist.get("updated_at"),
             }
         )
 
     return jsonify({"watchlists": watchlists})
 
 
-# FOR GETTING ALL WATCHLIST MEDIA
+# FOR GETTING WATCHLIST MEDIA FOR ONE WATCHLIST
 @interactions_bp.route("/get-watchlist-media", methods=["GET"])
 def get_watchlist_media():
     user_id = request.args.get("user_id")
@@ -645,34 +728,80 @@ def get_watchlist_media():
     if not user_id or not watchlist_id:
         return jsonify({"error": "User ID and Watchlist ID are required"})
 
-    user_ref = users_ref.document(user_id)
-    if not user_ref.get().exists:
-        return jsonify({"error": "User not found"})
+    watchlists = get_cached_user_watchlists(user_id)
 
-    watchlist_ref = user_ref.collection("watchlists").document(watchlist_id)
-    if not watchlist_ref.get().exists:
+    target_watchlist = None
+    for wl in watchlists:
+        if wl["id"] == watchlist_id:
+            target_watchlist = wl
+            break
+
+    if not target_watchlist:
         return jsonify({"error": "Watchlist not found"})
 
-    media = []
-    media_docs = watchlist_ref.collection("media").stream()
+    watchlist_name = target_watchlist.get("name", "Unknown")
 
-    for doc in media_docs:  # Each doc is a movie or tv show within a watchlist
-        media_data = doc.to_dict()
-        media.append(
-            {
-                "id": doc.id,
-                "media_id": media_data.get("media_id"),
-                "media_type": media_data.get("media_type"),
-                "title": media_data.get("title"),
-                "overview": media_data.get("overview"),
-                "release_date": media_data.get("release_date"),
-                "poster_path": media_data.get("poster_path"),
-                "added_at": media_data.get("added_at"),
-                "status": media_data.get("status", "Plan to watch"),
-            }
-        )
+    media_items = []
+    if "media" in target_watchlist:  # Each doc is a movie or tv show within a watchlist
+        for item in target_watchlist["media"]:
+            media_items.append(
+                {
+                    "id": item["id"],
+                    "media_id": item.get("media_id"),
+                    "media_type": item.get("media_type"),
+                    "title": item.get("title"),
+                    "overview": item.get("overview"),
+                    "release_date": item.get("release_date"),
+                    "poster_path": item.get("poster_path"),
+                    "added_at": item.get("added_at"),
+                    "status": item.get("status", "Plan to watch"),
+                    "watchlist_id": watchlist_id,
+                    "watchlist_name": watchlist_name,
+                }
+            )
 
-    return jsonify({"media": media})
+    return jsonify({"media": media_items})
+
+
+# FOR GETTING WATCHLIST MEDIA FOR MULTIPLE WATCHLISTS
+@interactions_bp.route("/get-multiple-watchlist-media", methods=["POST"])
+def get_multiple_watchlist_media():
+    data = request.get_json()
+    user_id = data.get("user_id")
+    watchlist_ids = data.get("watchlist_ids", [])
+
+    if not user_id or not watchlist_ids:
+        return jsonify({"error": "User ID and Watchlist IDs are required"})
+
+    all_watchlists = get_cached_user_watchlists(user_id)
+
+    all_media = []
+
+    # Process each watchlist
+    for watchlist in all_watchlists:
+        if watchlist["id"] in watchlist_ids:
+            watchlist_name = watchlist.get("name", "Unknown")
+
+        # Get all media in this watchlist
+        if "media" in watchlist:
+            for item in watchlist["media"]:
+                all_media.append(
+                    {
+                        "id": item["id"],
+                        "media_id": item.get("media_id"),
+                        "media_type": item.get("media_type"),
+                        "title": item.get("title"),
+                        "overview": item.get("overview"),
+                        "release_date": item.get("release_date"),
+                        "poster_path": item.get("poster_path"),
+                        "added_at": item.get("added_at"),
+                        "status": item.get("status", "Plan to watch"),
+                        "watchlist_id": watchlist["id"],
+                        "watchlist_name": watchlist_name,
+                    }
+                )
+
+    return jsonify({"media": all_media})
 
 
 # FOR REMOVING MEDIA FROM WATCHLIST
@@ -697,7 +826,7 @@ def remove_from_watchlist():
             return jsonify({"error": "Watchlist not found"})
 
         media_query = watchlist_ref.collection("media").where(
-            "media_id", "==", media_id
+            filter=FieldFilter("media_id", "==", media_id)
         )
         media_docs = media_query.get()
 
@@ -772,7 +901,7 @@ def update_media_status():
             return jsonify({"error": "watchlist not found"})
 
         media_query = watchlist_ref.collection("media").where(
-            "media_id", "==", media_id
+            filter=FieldFilter("media_id", "==", media_id)
         )
         media_docs = media_query.get()
 
@@ -801,37 +930,147 @@ def get_ratings():
     media_id = int(request.args.get("media_id"))
     media_type = request.args.get("media_type")
 
-    user_ref = users_ref.document(user_id)
-    if not user_ref.get().exists:
-        return jsonify({"error": "User not found"})
+    if not user_id:
+        return jsonify({"error": "UserID required"})
 
-    try:
+    # Get cached ratings
+    ratings = get_cached_user_ratings(user_id)
 
-        ratings_ref = get_db().collection("Ratings")
-        query_ref = (
-            ratings_ref.where("user_id", "==", user_id)
-            .where("media_id", "==", media_id)
-            .where("media_type", "==", media_type)
-        )
-        ratings = list(query_ref.get())
-        if not ratings:
-            return jsonify(
-                {
-                    "rating": 0,
-                    "message": "No rating found for this media",
-                }
-            )
-
-        rating_doc = ratings[0]
-        rating_data = rating_doc.to_dict()
-
+    # Check for this specific media rating
+    media_key = f"{media_type}_{media_id}"
+    if media_key in ratings:
         return jsonify(
             {
-                "rating": rating_data.get("rating"),
+                "rating": ratings[media_key].get("rating"),
                 "message": "Successfully found rating",
             }
         )
 
+    return jsonify({"rating": 0, "message": "No rating found for this media"})
+
+
+# Gets mutiple ratings at the same time
+@interactions_bp.route("/get-multiple-ratings", methods=["POST"])
+def get_multiple_ratings():
+    data = request.get_json()
+    user_id = data.get("user_id")
+    media_items = data.get("media_items", [])  # List instead of one by one
+
+    if not user_id or not media_items:
+        return jsonify({"error": "User ID and media items are required"})
+
+    try:
+        all_ratings = get_cached_user_ratings(user_id)
+        results = {}
+
+        for item in media_items:
+            media_id = int(item.get("media_id"))
+            media_type = item.get("media_type")
+
+            media_key = f"{media_type}_{media_id}"
+            if media_key in all_ratings:
+                results[media_key] = all_ratings[media_key].get("rating")
+            else:
+                results[media_key] = 0
+
+        return jsonify(
+            {"ratings": results, "message": "Successfully retrieved ratings"}
+        )
+
     except Exception as e:
-        print(f"Error getting rating: {str(e)}")
-        return jsonify({"error": f"Failed to geting rating: {str(e)}"})
+        print(f"Error getting multiple ratings: {str(e)}")
+        return jsonify({"error": f"Failed to get ratings: {str(e)}"})
+
+
+@cache.cached(query_string=True, timeout=600)
+@interactions_bp.route("/user-stats", methods=["GET"])
+def get_user_stats():
+    user_id = request.args.get("user_id")
+
+    if not user_id:
+        return jsonify({"error": "User ID required"})
+
+    ratings = list(get_cached_user_ratings(user_id).values())
+    comments = get_cached_user_comments(user_id)
+    followed = list(get_cached_followed_media(user_id).values())
+    watchlists = get_cached_user_watchlists(user_id)
+    tv_progress = get_cached_tv_progress(user_id)
+
+    # Collection of media interaction information
+    stats = {}
+    stats["total_comments"] = len(comments)
+    stats["total_ratings"] = len(ratings)
+    stats["avg_rating"] = (
+        sum(r.get("rating", 0) for r in ratings) / len(ratings) if ratings else 0
+    )
+    stats["followed_count"] = len(followed)
+    stats["watchlist_count"] = len(watchlists)
+
+    movie_count = 0
+    tv_count = 0
+    for media in followed:
+        if media.get("media_type") == "movie":
+            movie_count += 1
+        elif media.get("media_type") == "tv":
+            tv_count += 1
+
+    stats["movie_count"] = movie_count
+    stats["tv_count"] = tv_count
+
+    total_seasons = 0
+    total_episodes = 0
+
+    for tv_key, show_data in tv_progress.items():
+        for season_key, season_data in show_data.get("seasons", {}).items():
+            episodes = season_data.get("episodes", {})
+            # Check if all episodes in this season are watched
+            if episodes and all(ep.get("watched", False) for ep in episodes.values()):
+                total_seasons += 1
+
+            # Count watched episodes
+            for episode_key, episode_data in episodes.items():
+                if episode_data.get("watched") == True:
+                    total_episodes += 1
+
+    stats["total_seasons_watched"] = total_seasons
+    stats["episodes_watched"] = total_episodes
+    # I estimate about 40 minutes per episode
+    stats["watch_time_hours"] = round((total_episodes * 40) / 60, 1)
+    # Calculating genre distribution
+    genre_counts = {}
+    producer_counts = {}
+    for media in followed:
+        try:
+            for genre in media.get("genres", []):
+                genre_name = genre.get("name")
+                if genre_name:
+                    if genre_name not in genre_counts:
+                        genre_counts[genre_name] = 0
+                    genre_counts[genre_name] += 1
+                for producer in media.get("production_companies", []) or []:
+                    producer_name = producer.get("name")
+                    if producer_name:
+                        if producer_name not in producer_counts:
+                            producer_counts[producer_name] = 0
+                        producer_counts[producer_name] += 1
+        except Exception as e:
+            print(f"Error processing media for production companies: {e}")
+            continue
+
+    stats["top_producers"] = (
+        sorted(
+            [{"name": k, "count": v} for k, v in producer_counts.items()],
+            key=lambda x: x["count"],
+            reverse=True,
+        )[:5]
+        if producer_counts
+        else []
+    )
+
+    stats["top_genres"] = sorted(
+        [{"name": k, "count": v} for k, v in genre_counts.items()],
+        key=lambda x: x["count"],
+        reverse=True,
+    )[:5]
+
+    return jsonify({"stats": stats})

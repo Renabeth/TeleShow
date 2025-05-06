@@ -100,6 +100,7 @@ const DetailModal = ({
   const image_url = " https://image.tmdb.org/t/p/w500"; // Base URL for TMDB image paths
   const [userId, setUserId] = useState(sessionStorage.getItem("userId") || 0);
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [itemHistory, setItemHistory] = useState([]);
   const host = process.env.REACT_APP_NETWORK_HOST;
   const displayName = sessionStorage.getItem("userName");
   const isLoggedIn = !!sessionStorage.getItem("userId");
@@ -114,6 +115,8 @@ const DetailModal = ({
 
   useEffect(() => {
     // Safety check to prevent showing inappropriate content
+    //Encountered a weird problem where a glitch that mis-matched media id with a different media type and gave a very inaccurate result
+    //This is the counter
     if (
       item &&
       (item.tmdb?.content_rating === "NC-17" ||
@@ -353,10 +356,12 @@ const DetailModal = ({
   };
 
   const handleRecClick = async (recItem) => {
-    let detailData;
+    if (item) {
+      setItemHistory((hist) => [...hist, item]);
+    }
     try {
       setLoading(true);
-      detailData = await getDetails(recItem.id, recItem.media_type);
+      const detailData = await getDetails(recItem.id, recItem.media_type);
 
       const ratingResponse = await fetchRating(
         userId,
@@ -379,6 +384,19 @@ const DetailModal = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleModalBack = () => {
+    setItemHistory((hist) => {
+      const newHist = [...hist];
+      const previous = newHist.pop();
+      if (previous) {
+        setItem(previous);
+        setRecommendations([]);
+        setActiveTab("overview");
+      }
+      return newHist;
+    });
   };
 
   const fetchRating = async (user_id, media_id, media_type) => {
@@ -567,12 +585,76 @@ const DetailModal = ({
     return Math.round((watchedCount / episodesForSeason.length) * 100);
   };
 
+  const isCalendarEligible = (item) => {
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split("T")[0];
+
+    if (item.tmdb.media_type === "tv") {
+      return (
+        item.tmdb.status === "Returning Series" ||
+        item.tmdb.in_production === true
+      );
+    } else if (item.tmdb.media_type === "movie") {
+      // Check if movie has a future release date
+      const releaseDate = item.tmdb.release_date;
+      return releaseDate && releaseDate > today;
+    }
+
+    return false;
+  };
+
+  const DetailModalSkeleton = () => {
+    return (
+      <div className="modal-skeleton">
+        <div className="skeleton-header"></div>
+        <div className="skeleton-tabs-container">
+          <div className="skeleton-tabs">
+            <div className="skeleton-tab"></div>
+            <div className="skeleton-tab"></div>
+            <div className="skeleton-tab"></div>
+            <div className="skeleton-tab"></div>
+          </div>
+        </div>
+        <div className="skeleton-content">
+          <div className="row">
+            <div className="col-md-4">
+              <div className="skeleton-poster-large"></div>
+              <div className="skeleton-button-group">
+                <div className="skeleton-button"></div>
+                <div className="skeleton-button"></div>
+              </div>
+              <div className="skeleton-rating"></div>
+            </div>
+            <div className="col-md-8">
+              <div className="skeleton-title-large"></div>
+              <div className="skeleton-info-line"></div>
+              <div className="skeleton-info-line"></div>
+              <div className="skeleton-info-line"></div>
+              <div className="skeleton-badges">
+                <div className="skeleton-badge"></div>
+                <div className="skeleton-badge"></div>
+                <div className="skeleton-badge"></div>
+              </div>
+              <div className="skeleton-paragraph"></div>
+              <div className="skeleton-paragraph"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
-      <div className="text-center py-3">
-        <Spinner animation="border" />
-        <div className="text-muted small mt-2">Fetching details...</div>
-      </div>
+      <Modal
+        show={show}
+        onHide={onHide}
+        centered
+        size="lg"
+        className="detail-modal"
+      >
+        <DetailModalSkeleton />
+      </Modal>
     );
   }
 
@@ -586,6 +668,15 @@ const DetailModal = ({
         className="detail-modal"
       >
         <Modal.Header closeButton>
+          {!!itemHistory.length && (
+            <Button
+              variant="link"
+              onClick={handleModalBack}
+              style={{ marginRight: "auto" }}
+            >
+              ← Back
+            </Button>
+          )}
           <Modal.Title>{item?.tmdb?.title || item?.tmdb?.name}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
@@ -613,31 +704,36 @@ const DetailModal = ({
                   )}
                   {isLoggedIn ? (
                     <div className="d-flex flex-wrap justify-content-between gap-2 mt-2">
-                      {item.tmdb.media_type === "tv" ? (
-                        <Button
-                          variant={followed ? "danger" : "outline-danger"}
-                          onClick={() => handleFollow(item)}
-                          className="btn-follow flex-grow-0"
-                        >
-                          {followed ? <FaBell /> : <FaRegBell />}{" "}
-                          {followed ? "Following" : "Follow"}
-                        </Button>
-                      ) : (
-                        <Button
-                          variant={followed ? "danger" : "outline-danger"}
-                          onClick={() => handleFollow(item)}
-                          className="btn-follow flex-grow-0"
-                        >
-                          {followed ? <FaHeart /> : <FaRegHeart />}{" "}
-                          {followed ? "Liked" : "Like"}
-                        </Button>
-                      )}
+                      <Button
+                        variant={followed ? "danger" : "outline-danger"}
+                        onClick={() => handleFollow(item)}
+                        className="btn-follow flex-grow-0"
+                      >
+                        {followed ? (
+                          isCalendarEligible(item) ? (
+                            <FaBell />
+                          ) : (
+                            <FaHeart />
+                          )
+                        ) : isCalendarEligible(item) ? (
+                          <FaRegBell />
+                        ) : (
+                          <FaRegHeart />
+                        )}{" "}
+                        {followed
+                          ? isCalendarEligible(item)
+                            ? "Following"
+                            : "Liked"
+                          : isCalendarEligible(item)
+                          ? "Follow"
+                          : "Like"}
+                      </Button>
                       <Button
                         variant="outline-primary"
                         onClick={handleAddToWatchList}
                         className="btn-watchlist flex-grow-0"
                       >
-                        <FaPlus /> Watchlist
+                        <FaPlus /> Add to Watchlist
                       </Button>
                     </div>
                   ) : (
@@ -704,6 +800,37 @@ const DetailModal = ({
                       )}
                     </div>
                   )}
+                  {item.tmdb.media_type === "movie" && followed && (
+                    <div className="mt-3">
+                      {item.tmdb.release_date &&
+                      new Date(item.tmdb.release_date) > new Date() ? (
+                        <div className="alert alert-info">
+                          <small>
+                            <strong>{`${
+                              item.tmdb.title
+                            } will be released on ${new Date(
+                              item.tmdb.release_date
+                            ).toLocaleDateString()}`}</strong>
+                            <br />
+                            <em>
+                              This movie will appear in your Media Calendar
+                            </em>
+                          </small>
+                        </div>
+                      ) : (
+                        <div className="alert alert-secondary">
+                          <small>
+                            <em>
+                              {item.tmdb.release_date
+                                ? "Released movies don't appear in the Media Calendar"
+                                : "Movies without a release date don't appear in the Media Calendar"}
+                            </em>
+                          </small>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {item.tmdb.media_type === "tv" ? (
                     <p>
                       <strong>Series Status:</strong>{" "}
@@ -793,6 +920,66 @@ const DetailModal = ({
                     ) : (
                       <span>No langauges available</span>
                     )}
+                  </div>
+                  {/* Creator and Production Information */}
+                  <div className="production-info mt-4">
+                    {item.tmdb.media_type === "tv" &&
+                      item.tmdb.created_by &&
+                      item.tmdb.created_by.length > 0 && (
+                        <div className="mb-2">
+                          <strong>Created By: </strong>
+                          {item.tmdb.created_by.map((creator, index) => (
+                            <span
+                              key={creator.id || index}
+                              className="creator-name"
+                            >
+                              {creator.name}
+                              {index < item.tmdb.created_by.length - 1
+                                ? ", "
+                                : ""}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                    {item.tmdb.production_companies &&
+                      item.tmdb.production_companies.length > 0 && (
+                        <div className="mb-2">
+                          <strong>Production Companies: </strong>
+                          {item.tmdb.production_companies.map(
+                            (company, index) => (
+                              <span
+                                key={company.id || index}
+                                className="company-name"
+                              >
+                                {company.name}
+                                {index <
+                                item.tmdb.production_companies.length - 1
+                                  ? ", "
+                                  : ""}
+                              </span>
+                            )
+                          )}
+                        </div>
+                      )}
+                    {item.tmdb.media_type === "tv" &&
+                      item.tmdb.networks &&
+                      item.tmdb.networks.length > 0 && (
+                        <div className="mb-2">
+                          <strong>Networks: </strong>
+                          {item.tmdb.networks.map((network, index) => (
+                            <span
+                              key={network.id || index}
+                              className="network-name"
+                            >
+                              {network.name}
+                              {index < item.tmdb.networks.length - 1
+                                ? ", "
+                                : ""}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                   </div>
                 </div>
               </div>

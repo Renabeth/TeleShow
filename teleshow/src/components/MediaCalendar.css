@@ -1,6 +1,5 @@
-
-
-  .date-header {
+/* MediaCalendar.css */
+.date-header {
     margin-bottom: 16px;
     padding-bottom: 8px;
     border-bottom: 1px solid #eee;
@@ -20,11 +19,11 @@
     color: #999;
   }
   
-  .episode-info {
+  .episode-info, .movie-info {
     margin-top: 8px;
   }
   
-  .episode-number {
+  .episode-number, .release-info {
     font-weight: bold;
     color: #666;
   }
@@ -40,5 +39,16 @@
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+  }
+  
+  /* Additional styles for the media calendar */
+  .media-calendar-card {
+    transition: transform 0.2s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .media-calendar-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
   }
   

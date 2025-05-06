@@ -8,6 +8,10 @@ from app.blueprints.interactions import interactions_bp
 from app.extensions import cache, limiter, init_app
 import os  # Used to find file paths
 import sys
+import logging
+import atexit
+import signal
+from app.firebase_handler import shutdown_all_listeners
 
 if getattr(sys, "frozen", False):
     # Running as executable
@@ -21,6 +25,12 @@ init_app(app)
 app.register_blueprint(search_bp, url_prefix="/search")
 app.register_blueprint(interactions_bp, url_prefix="/interactions")
 app.register_blueprint(recommendations_bp)
+
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 # Initializes CORS
 CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:5000", "file://*"])
@@ -80,6 +90,24 @@ def not_found(e):
     else:
         return redirect("http://localhost:3000")
 
+
+def _graceful_shutdown(signum, frame):
+    logger.info(f"Signal {signum} received-shutting down Firestore listeners…")
+    shutdown_all_listeners()
+    sys.exit(0)
+
+
+def register_exit_handlers():
+    if os.environ.get("WERKZEUG_RUN_MAIN") != "true" and app.debug:
+        return
+
+    atexit.register(shutdown_all_listeners)
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, _graceful_shutdown)
+
+
+register_exit_handlers()
 
 if __name__ == "__main__":
     if getattr(sys, "frozen", False):
