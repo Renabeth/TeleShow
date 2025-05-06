@@ -128,7 +128,6 @@
   animation-fill-mode: both;
   padding:1.5rem;
 }
-
 /*Handles the body of the modal*/
 .detail-modal .modal-footer {
   background-color: rgba(105, 105, 105, 0.3);
