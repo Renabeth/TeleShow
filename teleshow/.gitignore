@@ -28,7 +28,6 @@ yarn-error.log*
 
 # Backend sensitive resources
 /backend/app/Resources/
-/backend/Resources/
 /backend/app/static/
 /backend/app/templates/
 /backend/app/teleshow_cache/
