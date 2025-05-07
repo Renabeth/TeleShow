@@ -86,12 +86,37 @@ const Watchlist = () => {
 
   useEffect(() => {
     // filter media whenever list changes
+    let result;
     if (selectedList === "all") {
-      setFilteredMedia(allMedia);
+      result = [...allMedia];
     } else {
-      setFilteredMedia(allMedia.filter((m) => m.watchlist_id === selectedList));
+      result = allMedia.filter((m) => m.watchlist_id === selectedList);
     }
+    //Arrow Function returns either a negative, positive, or zero to finding sort order
+    result.sort((a, b) => {
+      const checkFirst = getPriority(a.status);
+      const checkSecond = getPriority(b.status);
+      return checkFirst - checkSecond;
+    });
+    setFilteredMedia(result);
   }, [selectedList, allMedia]);
+
+  const getPriority = (status) => {
+    switch (status || "") {
+      case "Plan to watch":
+        return 0;
+      case "Currently watching":
+        return 1;
+      case "On hold":
+        return 2;
+      case "Stopped watching":
+        return 3;
+      case "Finished watching":
+        return 4;
+      default:
+        return 5;
+    }
+  };
 
   const fetchWatchlists = async () => {
     setLoading(true);
@@ -245,7 +270,6 @@ const Watchlist = () => {
 
       if (response.data.status === "success") {
         await fetchWatchlists(userID);
-        alert("Status updated successfully.");
       } else {
         alert("Failed to update status.");
       }
@@ -341,9 +365,8 @@ const Watchlist = () => {
             </Badge>
             <Row className="wl-grid">
               {/*...Converts to array
-                Converts the media ids to dictionary keys so they are unique
-                prevents duplicates
-                */}
+               */}
+              {/*Turns the filtered media in a dictionary of item media id and the item itself because dictionary keys have to be uniqie. Therefore only unique media will be shown */}
               {loading
                 ? Array(8)
                     .fill()
