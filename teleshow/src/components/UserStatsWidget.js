@@ -1,17 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, Row, Col, ProgressBar, Spinner } from "react-bootstrap";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import axios from "axios";
 
 const COLORS = [
@@ -47,7 +36,7 @@ const UserStatsWidget = ({ userId }) => {
       }
     };
     fetchStats();
-  }, [userId]);
+  }, [userId, host]);
 
   if (loading) return <Spinner animation="border" />;
   if (error) return <div className="text-danger">{error}</div>;
@@ -135,7 +124,7 @@ const UserStatsWidget = ({ userId }) => {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        outerRadius={80}
+                        outerRadius={60}
                         fill="#8884d8"
                         dataKey="value"
                         label={({ name, percent }) =>
@@ -176,10 +165,15 @@ const UserStatsWidget = ({ userId }) => {
                           nameKey="name"
                           cx="50%"
                           cy="50%"
-                          outerRadius={70}
+                          labelLine={false}
+                          outerRadius={60}
                           fill="#8884d8"
                           label={({ name, percent }) =>
-                            `${name}: ${(percent * 100).toFixed(0)}%`
+                            name.length > 15
+                              ? `${name.substring(0, 15)}...: ${(
+                                  percent * 100
+                                ).toFixed(0)}%`
+                              : `${name}: ${(percent * 100).toFixed(0)}%`
                           }
                         >
                           {stats.top_producers.map((entry, index) => (
