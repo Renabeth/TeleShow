@@ -850,7 +850,7 @@ const DetailModal = ({
                       </Button>
 
                       <Button
-                        variant="outline-primary"
+                        variant="success"
                         className="m-2"
                         onClick={handleOpenReviewModal}
                       >
