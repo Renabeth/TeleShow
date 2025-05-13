@@ -205,7 +205,7 @@ function Dashboard() {
 
   return (
     <div className={`dashboard ${lightMode ? "light" : ""}`} id="dashboard">
-      <h2>Dashboard</h2>
+      {/*<h2>Dashboard</h2>*/}
       <Navbar expand="lg" className="dashboard-header">
         <Button
           variant="link"
@@ -214,7 +214,7 @@ function Dashboard() {
         >
           {sidebarOpen ? <FaTimes /> : <FaBars />}
         </Button>
-        <Navbar.Brand>Teleshow</Navbar.Brand>
+        <Navbar.Brand style={{color: lightMode ? "black" : "white"}}>Teleshow</Navbar.Brand>
         <Nav className="ms-auto align-items-center">
           <FaRegUserCircle
             style={{

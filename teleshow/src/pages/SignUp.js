@@ -133,7 +133,7 @@ function Signup() {
         </div>
 
         {/* Profile Picture Upload */}
-        <div className="profile-upload">
+        {/*<div className="profile-upload">
           <label htmlFor="profile-pic">
             {preview ? (
               <img src={preview} alt="Profile Preview" className="profile-preview" />
@@ -142,7 +142,7 @@ function Signup() {
             )}
           </label>
           <input type="file" id="profile-pic" accept="image/*" onChange={profilePicture} />
-        </div>
+        </div>*/}
 
         <form>
 
@@ -196,8 +196,11 @@ function Signup() {
         {/*<button className="login-button primary" onClick={() => navigate("/dashboard")}>
           Sign Up
         </button>*/}
-        <button className="login-button link" onClick={() => navigate("/")}>
+        <button className="login-button link" onClick={() => navigate("/login")}>
           Already have an account? Login
+        </button>
+        <button className="login-button" onClick={() => navigate("/")}>
+          Return to Home Page
         </button>
       </div>
     </div>
