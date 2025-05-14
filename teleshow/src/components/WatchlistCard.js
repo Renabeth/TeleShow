@@ -77,13 +77,13 @@ const WatchlistCard = ({
           <FaStar className="wl-star" /> {(item.rating || 0).toFixed(1)}
         </div>
         <div className="wl-actions">
-          <Button
+          {/*<Button
             variant="success"
             size="sm"
             onClick={() => alert("Review Placeholder")}
           >
             <MdOutlineRateReview /> Review
-          </Button>
+          </Button>*/}
           <Button
             variant="danger"
             size="sm"
