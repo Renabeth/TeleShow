@@ -111,6 +111,9 @@ function Login() {
         <button className="login-button link" onClick={() => navigate("/forgot-password")}>
           Forgot Password?
         </button>
+        <button className="login-button" onClick={() => navigate("/")}>
+          Return to Home Page
+        </button>
       </div>
     </div>
   );

@@ -318,7 +318,7 @@ const Watchlist = () => {
               value={lightMode ? "light" : "dark"}
               onChange={(val) => setLightMode(val === "light")}
             >
-              <ToggleButton id="t-dark" value="dark" variant="outline-light">
+              <ToggleButton id="t-dark" value="dark" variant="outline-light" style={{backgroundColor: lightMode ? "black" : "white"}}>
                 <FaMoon />
               </ToggleButton>
               <ToggleButton id="t-light" value="light" variant="outline-light">
