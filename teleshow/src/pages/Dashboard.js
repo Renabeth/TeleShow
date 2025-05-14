@@ -205,7 +205,7 @@ function Dashboard() {
 
   return (
     <div className={`dashboard ${lightMode ? "light" : ""}`} id="dashboard">
-      <h2>Dashboard</h2>
+      {/*<h2>Dashboard</h2>*/}
       <Navbar expand="lg" className="dashboard-header">
         <Button
           variant="link"
@@ -214,7 +214,7 @@ function Dashboard() {
         >
           {sidebarOpen ? <FaTimes /> : <FaBars />}
         </Button>
-        <Navbar.Brand>Teleshow</Navbar.Brand>
+        <Navbar.Brand style={{color: lightMode ? "black" : "white"}}>Teleshow</Navbar.Brand>
         <Nav className="ms-auto align-items-center">
           <FaRegUserCircle
             style={{
@@ -237,7 +237,7 @@ function Dashboard() {
             value={lightMode ? "light" : "dark"}
             onChange={(val) => setLightMode(val === "light")}
           >
-            <ToggleButton id="tgl-dark" value="dark" variant="outline-light">
+            <ToggleButton id="tgl-dark" value="dark" variant="outline-light" style={{backgroundColor: lightMode ? "black" : "white"}}>
               <FaMoon />
             </ToggleButton>
             <ToggleButton id="tgl-light" value="light" variant="outline-light">
@@ -293,8 +293,8 @@ function Dashboard() {
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
                 >
-                  <h2>{`Recommended Movies ${
-                    beingFiltered ? "(Filtered) " : " "
+                  <h2>{`Recommended Movies${
+                    beingFiltered ? " (Filtered)" : ""
                   }:`}</h2>
                   <MediaSlides
                     items={recommendedMovies}
@@ -308,9 +308,9 @@ function Dashboard() {
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
                 >
-                  <h2>{`Recommended TV: ${
-                    beingFiltered ? "(Filtered) " : " "
-                  }`}</h2>
+                  <h2>{`Recommended TV${
+                    beingFiltered ? " (Filtered)" : ""
+                  }:`}</h2>
 
                   <MediaSlides
                     items={recommendedTv}

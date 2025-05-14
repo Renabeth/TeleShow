@@ -58,7 +58,7 @@ function ForgotPassword() {
         </button>
 
         {/* Back to Login */}
-        <button className="login-button link" onClick={() => navigate("/")}>
+        <button className="login-button link" onClick={() => navigate("/login")}>
           Back to Login
         </button>
       </div>

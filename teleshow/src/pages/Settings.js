@@ -175,7 +175,7 @@ function Settings() {
         className="save-settings-btn"
         variant="primary"
       >
-        Save Settings
+        Save Settings and Return to Dashboard
       </Button>
     </div>
   );
