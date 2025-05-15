@@ -1,6 +1,6 @@
 # Introduction
 Note: This is a fork of the original repository which can be found here: https://github.com/OguzhanBesiktepe/TeleShow <br><br>
-TeleShow was my senior project at Farmingdale State College. It is a web application with a ReactJS frontend and Flask backend that allows the user to browse movies & TV shows to see where they're available for viewing. It utilizes TMDB & Watchmode APIs for consolidating data.
+TeleShow was my senior project at Farmingdale State College, developed by myself and 3 classmates (contributions further down). It is a web application with a ReactJS frontend and Flask backend that allows the user to browse movies & TV shows to see where they're available for viewing. It utilizes TMDB & Watchmode APIs for consolidating data.
 Other features include: Ratings, Comments, Recommendations, Watchlists, Search, User Stats, and Service Filtering. We are not currently hosting TeleShow anywhere but that may change.
 <br>
 ## APIs
